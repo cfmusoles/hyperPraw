@@ -4,4 +4,7 @@ Project to research and develop a parallel restreaming partitioning algorithm fo
 
 ## Dependencies
 
-Written in Python 3.5, requires to have __mpi4py__ package installed
+Written in C++, only required MPI installed
+
+To build, edit Makefile accordingly and run
+> make
