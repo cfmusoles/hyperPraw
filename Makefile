@@ -1,4 +1,4 @@
-project := praw
+project := hyperPraw
 
 CXX = mpicxx
 ARCHER_CC = CC

@@ -52,7 +52,7 @@ int main(int argc, char** argv) {
     }
     for(int ii = 0; ii < num_processes;ii++) {
         for(int jj=0; jj < num_processes; jj++) {
-            comm_cost_matrix[ii][jj] = ii==jj ? 0 : 1;
+            comm_cost_matrix[ii][jj] = ii==jj ? 1 : 1;
         }
     }
     // initialise vertex weight values

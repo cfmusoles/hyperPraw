@@ -62,6 +62,7 @@ namespace PRAW {
         float absorption = 0;
         std::set<int> hyperedges_visited;
         int total_comm_cost = 0;
+
         for(int vid=0; vid < num_vertices; vid++) {
             if(vtx_wgt != NULL) {
                 workload[partitioning[vid]] += vtx_wgt[vid];
@@ -93,7 +94,7 @@ namespace PRAW {
                 if(!visited) {
                     connectivity_metric += connectivity.size()-1;
                     if(connectivity.size() > 1) {
-                        soed += connectivity.size();
+                        soed += connectivity.size(); // counts as 1 external degree per partition participating
                         hyperedges_cut++;
                     }
                     hyperedges_visited.insert(he_id);
