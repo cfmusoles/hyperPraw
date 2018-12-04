@@ -135,6 +135,7 @@ namespace PRAW {
         float max_imbalance = 0;
         float expected_work = total_workload / num_processes;
         for(int ii=0; ii < num_processes; ii++) {
+            PRINTF("%i workload: %i\n",ii,workload[ii]);
             float imbalance = (workload[ii] / expected_work);
             if(imbalance > max_imbalance)
                 max_imbalance = imbalance;
@@ -259,7 +260,7 @@ namespace PRAW {
             // file not found, default values
             for(int ii = 0; ii < partitions;ii++) {
                 for(int jj=0; jj < partitions; jj++) {
-                    comm_cost_matrix[ii][jj] = 1;
+                    comm_cost_matrix[ii][jj] = ii == jj ? 1 : 1;
                 }
             }
         }
@@ -417,7 +418,7 @@ namespace PRAW {
                     for(int pp=0; pp < num_processes; pp++) {
                         // objective function is a mix of Battaglino 2015 (second part) and Zheng 2016 (communication cost part)
                         // (|P^t_i union N(v)| - commCost(v,Pi) - a * g/2 * |B|^(g-1))
-                        float current_value = /*current_neighbours_in_partition[pp]*/ - current_neighbours_elsewhere[pp] - comm_cost_per_partition[pp]  - a * g/2 * pow(part_load[pp],g-1);
+                        float current_value = current_neighbours_in_partition[pp] - current_neighbours_elsewhere[pp] - comm_cost_per_partition[pp]  - a * g/2 * pow(part_load[pp],g-1);
                         
                         // alternative from Battaglino 2015
                         //float current_value = current_neighbours_in_partition[pp] - a * g/2 * pow(part_load[pp],g-1);

@@ -63,7 +63,7 @@ int main(int argc, char** argv) {
     for(int ii =0; ii < num_vertices; ii++) {
         vtx_wgt[ii] = 1;
     }
-    PRAW::ParallelStreamingPartitioning(partitioning,comm_cost_matrix, num_vertices,&hyperedges,&hedge_ptr,vtx_wgt,iterations, imbalance_tolerance);
+    PRAW::SequentialStreamingPartitioning(partitioning,comm_cost_matrix, num_vertices,&hyperedges,&hedge_ptr,vtx_wgt,iterations, imbalance_tolerance);
 
     if(process_id == 0) 
         PRAW::storePartitionStats(filename,partitioning,num_processes,num_vertices,&hyperedges,&hedge_ptr,vtx_wgt,comm_cost_matrix);
