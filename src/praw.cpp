@@ -51,9 +51,9 @@ int main(int argc, char** argv) {
         if(partitioning[ii] == num_processes) partitioning[ii] -= 1;
     }
     // initialise comm cost matrix
-    float** comm_cost_matrix = (float**)malloc(sizeof(float*) * num_processes);
+    double** comm_cost_matrix = (double**)malloc(sizeof(double*) * num_processes);
     for(int ii=0; ii < num_processes; ii++) {
-        comm_cost_matrix[ii] = (float*)calloc(num_processes,sizeof(float));
+        comm_cost_matrix[ii] = (double*)calloc(num_processes,sizeof(double));
     }
     
     PRAW::get_comm_cost_matrix_from_bandwidth(bandwidth_file,comm_cost_matrix,num_processes);
@@ -63,7 +63,7 @@ int main(int argc, char** argv) {
     for(int ii =0; ii < num_vertices; ii++) {
         vtx_wgt[ii] = 1;
     }
-    PRAW::SequentialStreamingPartitioning(partitioning,comm_cost_matrix, num_vertices,&hyperedges,&hedge_ptr,vtx_wgt,iterations, imbalance_tolerance);
+    PRAW::ParallelStreamingPartitioning(partitioning,comm_cost_matrix, num_vertices,&hyperedges,&hedge_ptr,vtx_wgt,iterations, imbalance_tolerance);
 
     if(process_id == 0) 
         PRAW::storePartitionStats(filename,partitioning,num_processes,num_vertices,&hyperedges,&hedge_ptr,vtx_wgt,comm_cost_matrix);

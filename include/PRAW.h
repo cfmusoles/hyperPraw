@@ -18,6 +18,7 @@
 #include <algorithm>
 #include <numeric>
 #include <unistd.h>
+#include <libgen.h>
 
 #ifdef VERBOSE
 #define PRINTF(...) printf(__VA_ARGS__)
@@ -28,17 +29,17 @@
 typedef int64_t idx_t; // needs to probably match the type in METIS
 
 namespace PRAW {
-    std::string getFileName(std::string filePath, bool withExtension = true, char seperator = '/')
+    std::string getFileName(std::string filePath)
     {
-        // Get last dot position
-        std::size_t dotPos = filePath.rfind('.');
-        std::size_t sepPos = filePath.rfind(seperator);
-    
-        if(sepPos != std::string::npos)
-        {
-            return filePath.substr(sepPos + 1, filePath.size() - (withExtension || dotPos != std::string::npos ? 1 : dotPos) );
-        }
-        return "";
+        int n = filePath.length();  
+      
+        // declaring character array 
+        char char_array[n+1];  
+        
+        // copying the contents of the  
+        // string to char array 
+        strcpy(char_array, filePath.c_str());  
+        return std::string(basename(char_array));
     }
 
     float calculateImbalance(idx_t* partitioning, int num_processes, int num_vertices, int* vtx_wgt) {
@@ -61,7 +62,7 @@ namespace PRAW {
         return  max_imbalance;
     }
 
-    void storePartitionStats(std::string experiment_name, idx_t* partitioning, int num_processes, int num_vertices, std::vector<std::vector<int> >* hyperedges, std::vector<std::vector<int> >* hedge_ptr, int* vtx_wgt,float** comm_cost_matrix) {
+    void storePartitionStats(std::string experiment_name, idx_t* partitioning, int num_processes, int num_vertices, std::vector<std::vector<int> >* hyperedges, std::vector<std::vector<int> >* hedge_ptr, int* vtx_wgt,double** comm_cost_matrix) {
         // For hypergraph partitioning, two common metrics for objective functions Heuer 2017 (connectivity vs hyperedge cut):
         // communication cost estimate (given network bandwidth estimates)
         // quality measurements from hMETIS: Sum of External Degrees, Absorption
@@ -75,7 +76,7 @@ namespace PRAW {
         int* vertices_in_partition = (int*)calloc(num_processes,sizeof(int)); // used for absorption
         float absorption = 0;
         std::set<int> hyperedges_visited;
-        float total_comm_cost = 0;
+        double total_comm_cost = 0;
 
 #ifdef EVALUATE_PARTITIONING
         // Evaluate partitioning by predicting amount of data transferred in null compute sim
@@ -112,10 +113,11 @@ namespace PRAW {
 #ifdef EVALUATE_PARTITIONING
                         part_connectivity[partitioning[vid]][dest_part] += 1;
 #endif
+                        if(comm_cost_matrix != NULL) {
+                            total_comm_cost += comm_cost_matrix[partitioning[vid]][dest_part];
+                        }
                     }
-                    if(comm_cost_matrix != NULL) {
-                        total_comm_cost += comm_cost_matrix[partitioning[vid]][dest_part];
-                    }
+                    
                     total_edges++;
                 }
                 if(!visited) {
@@ -232,28 +234,28 @@ namespace PRAW {
         
     }
 
-    void get_comm_cost_matrix_from_bandwidth(char* comm_bandwidth_filename, float** comm_cost_matrix, int partitions) {
+    void get_comm_cost_matrix_from_bandwidth(char* comm_bandwidth_filename, double** comm_cost_matrix, int partitions) {
         std::ifstream input_stream(comm_bandwidth_filename);
         if(input_stream) {
             std::string line;
             int current_process = 0;
             while(std::getline(input_stream,line)) {
                 std::istringstream buf(line);
-                std::istream_iterator<float> beg(buf), end;
-                std::vector<float> tokens(beg, end);
+                std::istream_iterator<double> beg(buf), end;
+                std::vector<double> tokens(beg, end);
                 for(int ii=0; ii < tokens.size(); ii++) {
                     comm_cost_matrix[current_process][ii] = tokens[ii];
                 }
                 current_process++;
             }
             // standardise bandwidth matrix and transform to cost matrix
-            float* totals = (float*)calloc(partitions,sizeof(float));
+            double* totals = (double*)calloc(partitions,sizeof(double));
             for(int ii = 0; ii < partitions;ii++) {
                 totals[ii] = std::accumulate(comm_cost_matrix[ii],comm_cost_matrix[ii]+partitions,0.0);
             }
-            float total_bandwidth = std::accumulate(totals,totals+partitions,0.0);
+            double total_bandwidth = std::accumulate(totals,totals+partitions,0.0);
             for(int ii = 0; ii < partitions;ii++) {
-                std::transform(comm_cost_matrix[ii],comm_cost_matrix[ii]+partitions,comm_cost_matrix[ii],[total_bandwidth] (float value) { return value == 0 ? 0 : 1-(value / total_bandwidth); });
+                std::transform(comm_cost_matrix[ii],comm_cost_matrix[ii]+partitions,comm_cost_matrix[ii],[total_bandwidth] (double value) { return value == 0 ? 0 : 1-(value / total_bandwidth); });
             }
             free(totals);
         } else {
@@ -266,7 +268,7 @@ namespace PRAW {
         }
     }
 
-    int ParallelStreamingPartitioning(idx_t* partitioning, float** comm_cost_matrix, int num_vertices, std::vector<std::vector<int> >* hyperedges, std::vector<std::vector<int> >* hedge_ptr, int* vtx_wgt, int max_iterations, float imbalance_tolerance) {
+    int ParallelStreamingPartitioning(idx_t* partitioning, double** comm_cost_matrix, int num_vertices, std::vector<std::vector<int> >* hyperedges, std::vector<std::vector<int> >* hedge_ptr, int* vtx_wgt, int max_iterations, float imbalance_tolerance) {
         //PARAMETERS: From Battaglino 2015 //
         float g = 1.5;
         float a = sqrt(2) * hyperedges->size() / pow(num_vertices,g);
@@ -283,7 +285,7 @@ namespace PRAW {
         
         int* part_load = (int*)calloc(num_processes,sizeof(int));
         idx_t* local_stream_partitioning = (idx_t*)malloc(num_vertices*sizeof(idx_t));
-        float* comm_cost_per_partition = (float*)malloc(num_processes*sizeof(float));
+        double* comm_cost_per_partition = (double*)malloc(num_processes*sizeof(double));
         int* current_neighbours_in_partition = (int*)malloc(num_processes*sizeof(int));
                 
         for(int iter=0; iter < max_iterations; iter++) {
@@ -300,7 +302,7 @@ namespace PRAW {
                 // where are neighbours located
                 // new communication cost incurred
                 memset(current_neighbours_in_partition,0,num_processes * sizeof(int));
-                memset(comm_cost_per_partition,0,num_processes * sizeof(float));
+                memset(comm_cost_per_partition,0,num_processes * sizeof(double));
                 for(int he = 0; he < hedge_ptr->at(ii).size(); he++) {
                     int he_id = hedge_ptr->at(ii)[he];
                     for(int vt = 0; vt < hyperedges->at(he_id).size(); vt++) {
@@ -360,7 +362,7 @@ namespace PRAW {
         return 0;
     }
 
-    int SequentialStreamingPartitioning(idx_t* partitioning, float** comm_cost_matrix, int num_vertices, std::vector<std::vector<int> >* hyperedges, std::vector<std::vector<int> >* hedge_ptr, int* vtx_wgt, int max_iterations, float imbalance_tolerance) {
+    int SequentialStreamingPartitioning(idx_t* partitioning, double** comm_cost_matrix, int num_vertices, std::vector<std::vector<int> >* hyperedges, std::vector<std::vector<int> >* hedge_ptr, int* vtx_wgt, int max_iterations, float imbalance_tolerance) {
         
         //PARAMETERS: From Battaglino 2015 //
         float g = 1.5;
@@ -382,11 +384,10 @@ namespace PRAW {
                 part_load[partitioning[ii]] += vtx_wgt[ii]; // workload for vertex
             }
             expected_workload /= num_processes;
-            float* comm_cost_per_partition = (float*)malloc(num_processes*sizeof(float));
+            double* comm_cost_per_partition = (double*)malloc(num_processes*sizeof(double));
             int* current_neighbours_in_partition = (int*)malloc(num_processes*sizeof(int));
             int* current_neighbours_elsewhere = (int*)malloc(num_processes*sizeof(int));
             for(int iter=0; iter < max_iterations; iter++) {
-                //printf("Iteration %i\n",iter);
                 // go through own vertex list and reassign
                 for(int vid=0; vid < num_vertices; vid++) {
                     // reevaluate objective function per partition
@@ -395,7 +396,7 @@ namespace PRAW {
                     // new communication cost incurred
                     memset(current_neighbours_in_partition,0,num_processes * sizeof(int));
                     memset(current_neighbours_elsewhere,0,num_processes * sizeof(int));
-                    memset(comm_cost_per_partition,0,num_processes * sizeof(float));
+                    memset(comm_cost_per_partition,0,num_processes * sizeof(double));
                     for(int he = 0; he < hedge_ptr->at(vid).size(); he++) {
                         int he_id = hedge_ptr->at(vid)[he];
                         for(int vt = 0; vt < hyperedges->at(he_id).size(); vt++) {
