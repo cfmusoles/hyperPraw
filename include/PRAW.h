@@ -249,7 +249,7 @@ namespace PRAW {
                 current_process++;
             }
             // standardise bandwidth matrix and transform to cost matrix
-            double* totals = (double*)calloc(partitions,sizeof(double));
+            /*double* totals = (double*)calloc(partitions,sizeof(double));
             for(int ii = 0; ii < partitions;ii++) {
                 totals[ii] = std::accumulate(comm_cost_matrix[ii],comm_cost_matrix[ii]+partitions,0.0);
             }
@@ -257,12 +257,27 @@ namespace PRAW {
             for(int ii = 0; ii < partitions;ii++) {
                 std::transform(comm_cost_matrix[ii],comm_cost_matrix[ii]+partitions,comm_cost_matrix[ii],[total_bandwidth] (double value) { return value == 0 ? 0 : 1-(value / total_bandwidth); });
             }
-            free(totals);
+            free(totals);*/
+            // transform bandwidth to cost (relative to min bandwidth)
+            float min_bandwidth = std::numeric_limits<float>::max();
+            float max_bandwidth = 0;
+            for(int ii = 0; ii < partitions; ii++) {
+                for(int jj = 0; jj < partitions; jj++) {
+                    if(ii == jj) continue;
+                    if(comm_cost_matrix[ii][jj] < min_bandwidth)
+                        min_bandwidth = comm_cost_matrix[ii][jj];
+                    if(comm_cost_matrix[ii][jj] > max_bandwidth)
+                        max_bandwidth = comm_cost_matrix[ii][jj];
+                }
+            }
+            for(int ii = 0; ii < partitions;ii++) {
+                std::transform(comm_cost_matrix[ii],comm_cost_matrix[ii]+partitions,comm_cost_matrix[ii],[min_bandwidth,max_bandwidth] (double value) { return value == 0 ? 0 : 2 - ( (value-min_bandwidth)/(max_bandwidth-min_bandwidth) ); });
+            }
         } else {
             // file not found, default values
             for(int ii = 0; ii < partitions;ii++) {
                 for(int jj=0; jj < partitions; jj++) {
-                    comm_cost_matrix[ii][jj] = ii == jj ? 1 : 1;
+                    comm_cost_matrix[ii][jj] = ii == jj ? 0 : 1;
                 }
             }
         }
@@ -403,7 +418,7 @@ namespace PRAW {
                             int dest_vertex = hyperedges->at(he_id)[vt];
                             if(dest_vertex == vid) continue;
                             int dest_part = partitioning[dest_vertex];
-                            current_neighbours_in_partition[dest_part] += 1;
+                            current_neighbours_in_partition[dest_part] += 1; //  we may be counting twice a dest_node that appears in more than one hedge
                             // recalculate comm cost for all possible partition assignments of ii
                             //  commCost(v,Pi) = forall edge in edges(Pi) cost += w(e) * c(Pi,Pj) where i != j
                             for(int fp=0; fp < num_processes; fp++) {
@@ -418,7 +433,7 @@ namespace PRAW {
                     int best_partition = partitioning[vid];
                     for(int pp=0; pp < num_processes; pp++) {
                         // testing objective function
-                        //float current_value = current_neighbours_in_partition[pp] - current_neighbours_elsewhere[pp] - comm_cost_per_partition[pp]  - a * g/2 * pow(part_load[pp],g-1);
+                        float current_value = current_neighbours_in_partition[pp] - current_neighbours_elsewhere[pp] - comm_cost_per_partition[pp]  - a * g/2 * pow(part_load[pp],g-1);
                         
                         // objective function is a mix of Battaglino 2015 (second part) and Zheng 2016 (communication cost part)
                         // (|P^t_i union N(v)| - commCost(v,Pi) - a * g/2 * |B|^(g-1))
@@ -427,7 +442,7 @@ namespace PRAW {
                         // alternative from Battaglino 2015
                         //float current_value = current_neighbours_in_partition[pp] - a * g/2 * pow(part_load[pp],g-1);
                         // alternative from ARGO
-                        float current_value = (1.0f/(comm_cost_per_partition[pp]+1)) * (1-part_load[pp]/expected_workload);
+                        //float current_value = (1.0f/(comm_cost_per_partition[pp]+1)) * (1-part_load[pp]/expected_workload);
                         // alternative from Alistarh 2015
                         //if(part_load[pp] >= expected_workload) continue;
                         //float current_value = current_neighbours_in_partition[pp];
@@ -451,7 +466,6 @@ namespace PRAW {
 
                 // update parameters
                 a *= ta;
-                
             }
             // clean up
             free(part_load);
