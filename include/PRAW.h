@@ -113,9 +113,9 @@ namespace PRAW {
 #ifdef EVALUATE_PARTITIONING
                         part_connectivity[partitioning[vid]][dest_part] += 1;
 #endif
-                        if(comm_cost_matrix != NULL) {
-                            total_comm_cost += comm_cost_matrix[partitioning[vid]][dest_part];
-                        }
+                    }
+                    if(comm_cost_matrix != NULL) {
+                        total_comm_cost += comm_cost_matrix[partitioning[vid]][dest_part];
                     }
                     
                     total_edges++;
@@ -417,14 +417,17 @@ namespace PRAW {
                     float max_value = std::numeric_limits<float>::lowest();
                     int best_partition = partitioning[vid];
                     for(int pp=0; pp < num_processes; pp++) {
+                        // testing objective function
+                        //float current_value = current_neighbours_in_partition[pp] - current_neighbours_elsewhere[pp] - comm_cost_per_partition[pp]  - a * g/2 * pow(part_load[pp],g-1);
+                        
                         // objective function is a mix of Battaglino 2015 (second part) and Zheng 2016 (communication cost part)
                         // (|P^t_i union N(v)| - commCost(v,Pi) - a * g/2 * |B|^(g-1))
-                        float current_value = current_neighbours_in_partition[pp] - current_neighbours_elsewhere[pp] - comm_cost_per_partition[pp]  - a * g/2 * pow(part_load[pp],g-1);
+                        //float current_value = current_neighbours_in_partition[pp] - comm_cost_per_partition[pp]  - a * g/2 * pow(part_load[pp],g-1);
                         
                         // alternative from Battaglino 2015
                         //float current_value = current_neighbours_in_partition[pp] - a * g/2 * pow(part_load[pp],g-1);
                         // alternative from ARGO
-                        //float current_value = 1.0f/comm_cost_per_partition[pp] * (1-part_load[pp]/expected_workload);
+                        float current_value = (1.0f/(comm_cost_per_partition[pp]+1)) * (1-part_load[pp]/expected_workload);
                         // alternative from Alistarh 2015
                         //if(part_load[pp] >= expected_workload) continue;
                         //float current_value = current_neighbours_in_partition[pp];
