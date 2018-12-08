@@ -72,10 +72,9 @@ namespace PRAW {
         int hyperedges_cut = 0;
         int total_edges = 0;
         int soed = 0; // Sum of External degrees
-        int connectivity_metric = 0; // hyperedges cut weighted by the number of participating partitions - 1
+        int hconnectivity_metric = 0; // hyperedges cut weighted by the number of participating partitions - 1
         int* vertices_in_partition = (int*)calloc(num_processes,sizeof(int)); // used for absorption
         float absorption = 0;
-        std::set<int> hyperedges_visited;
         double total_comm_cost = 0;
 
 #ifdef EVALUATE_PARTITIONING
@@ -94,46 +93,47 @@ namespace PRAW {
                 workload[partitioning[vid]] += 1;
                 total_workload += 1;
             }
-            for(int he = 0; he < hedge_ptr->at(vid).size(); he++) {
-                int he_id = hedge_ptr->at(vid)[he];
-                bool visited = hyperedges_visited.count(he_id) > 0;
-                total_edges++;
-                std::set<int> connectivity;
-                connectivity.insert(partitioning[vid]);
-                memset(vertices_in_partition,0,sizeof(int) * num_processes);
-                vertices_in_partition[partitioning[vid]]++;
-                for(int vt = 0; vt < hyperedges->at(he_id).size(); vt++) {
-                    int dest_vertex = hyperedges->at(he_id)[vt];
-                    if(dest_vertex == vid) continue;
-                    int dest_part = partitioning[dest_vertex];
-                    vertices_in_partition[dest_part]++;
-                    if(dest_part != partitioning[vid]) {
+        }
+        for(int ii=0; ii < hyperedges->size(); ii++){
+            std::set<int> connectivity;
+            memset(vertices_in_partition,0,sizeof(int) * num_processes);
+            for(int ff = 0; ff < hyperedges->at(ii).size(); ff++) {
+                int from = hyperedges->at(ii)[ff];
+                connectivity.insert(partitioning[from]);
+                vertices_in_partition[partitioning[from]]++; 
+
+                for(int tt=ff+1; tt < hyperedges->at(ii).size(); tt++) {
+                    int to = hyperedges->at(ii)[tt];
+                    total_edges++;
+                    int to_part = partitioning[to];
+                    vertices_in_partition[to_part]++;
+                    if(to_part != partitioning[from]) {
                         edgecut++;
-                        connectivity.insert(dest_part);
+                        connectivity.insert(to_part);
 #ifdef EVALUATE_PARTITIONING
-                        part_connectivity[partitioning[vid]][dest_part] += 1;
+                        part_connectivity[partitioning[from]][to_part] += 1;
 #endif
                     }
                     if(comm_cost_matrix != NULL) {
-                        total_comm_cost += comm_cost_matrix[partitioning[vid]][dest_part];
+                        total_comm_cost += comm_cost_matrix[partitioning[from]][to_part];
                     }
-                    
-                    total_edges++;
-                }
-                if(!visited) {
-                    connectivity_metric += connectivity.size()-1;
-                    if(connectivity.size() > 1) {
-                        soed += connectivity.size(); // counts as 1 external degree per partition participating
-                        hyperedges_cut++;
-                    }
-                    hyperedges_visited.insert(he_id);
-                    for(int ii = 0; ii < num_processes; ii++) {
-                        if(vertices_in_partition[ii] == 0) continue;
-                        absorption += (float)(vertices_in_partition[ii]-1) / (float)(hyperedges->at(he_id).size()-1);
-                    } 
                 }
             }
+            // metrics per hyperedge
+            //hconnectivity_metric += connectivity.size()-1;
+            if(connectivity.size() > 1) {
+                soed += connectivity.size(); // counts as 1 external degree per partition participating
+                hyperedges_cut++;
+                hconnectivity_metric += connectivity.size();
+            
+            }
+            for(int pp = 0; pp < num_processes; pp++) {
+                if(vertices_in_partition[pp] == 0) continue;
+                absorption += (float)(vertices_in_partition[pp]-1) / (float)(hyperedges->at(ii).size()-1);
+            } 
+            
         }
+
         float max_imbalance = 0;
         float expected_work = total_workload / num_processes;
         for(int ii=0; ii < num_processes; ii++) {
@@ -168,7 +168,7 @@ namespace PRAW {
         free(part_connectivity);
 #endif
 
-        printf("Quality: %i (hedgecut, %.3f total) %.3f (cut net), %i (connectivity metric), %i (SOED), %.1f (absorption) %.3f (max imbalance), %f (comm cost)\n",hyperedges_cut,(float)hyperedges_cut/hyperedges->size(),(float)edgecut/total_edges,connectivity_metric,soed,absorption,max_imbalance,total_comm_cost);
+        printf("Quality: %i (hedgecut, %.3f total) %.3f (cut net), %i (connectivity metric), %i (SOED), %.1f (absorption) %.3f (max imbalance), %f (comm cost)\n",hyperedges_cut,(float)hyperedges_cut/hyperedges->size(),(float)edgecut/total_edges,hconnectivity_metric,soed,absorption,max_imbalance,total_comm_cost);
         // store stats in a file
         experiment_name = getFileName(experiment_name);
         experiment_name += "_part_stats_";
@@ -183,7 +183,7 @@ namespace PRAW {
 		} else {
 			if(!fileexists) // file does not exist, add header
 			    fprintf(fp,"%s,%s,%s,%s,%s,%s,%s,%s\n","Quality (hedges cut)","Hedge cut ratio","Cut net","Connectivity metric","SOED","Absorption","Max imbalance","Comm cost");
-			fprintf(fp,"%i,%f,%f,%i,%i,%f,%f,%f\n",hyperedges_cut,(float)hyperedges_cut/hyperedges->size(),(float)edgecut/total_edges,connectivity_metric,soed,absorption,max_imbalance,total_comm_cost);
+			fprintf(fp,"%i,%f,%f,%i,%i,%f,%f,%f\n",hyperedges_cut,(float)hyperedges_cut/hyperedges->size(),(float)edgecut/total_edges,hconnectivity_metric,soed,absorption,max_imbalance,total_comm_cost);
         }
         fclose(fp);
 
