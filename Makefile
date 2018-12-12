@@ -21,7 +21,7 @@ LDFLAGS = -lmetis -lparmetis -lzoltan
 LSTATIC = 
 
 build: $(FILES)
-	$(CXX) -o $(OUT) $(INCLUDES) $(LIBS) $(FILES) $(LDFLAGS) $(LSTATIC) --std=c++11
+	$(CXX) -O3 -o $(OUT) $(INCLUDES) $(LIBS) $(FILES) $(LDFLAGS) $(LSTATIC) --std=c++11
 
 .PHONY: intelmpi
 intelmpi:
@@ -33,7 +33,7 @@ debug:
 
 .PHONY: archer
 archer:
-	$(ARCHER_CC) -o $(OUT) $(INCLUDES_ARCHER) $(ARCHER_LIBS) $(FILES) $(LDFLAGS) $(LSTATIC)
+	$(ARCHER_CC) -O3 -o $(OUT) $(INCLUDES_ARCHER) $(ARCHER_LIBS) $(FILES) $(LDFLAGS) $(LSTATIC)
 
 
 .PHONY: clean

@@ -335,9 +335,7 @@ namespace PRAW {
                 float max_value = std::numeric_limits<float>::lowest();
                 int best_partition = partitioning[ii];
                 for(int pp=0; pp < num_processes; pp++) {
-                    // objective function is a mix of Battaglino 2015 (second part) and Zheng 2016 (communication cost part)
-                    // (|P^t_i union N(v)| - commCost(v,Pi) - a * g/2 * |B|^(g-1))
-                    float current_value = (float)current_neighbours_in_partition[pp] - comm_cost_per_partition[pp]  - a * g/2 * pow(part_load[pp],g-1);
+                    float current_value = current_neighbours_in_partition[pp] - comm_cost_per_partition[pp]  - a * g/2 * pow(part_load[pp],g-1);
                     if(current_value > max_value) {
                         max_value = current_value;
                         best_partition = pp;
@@ -432,13 +430,22 @@ namespace PRAW {
                     float max_value = std::numeric_limits<float>::lowest();
                     int best_partition = partitioning[vid];
                     for(int pp=0; pp < num_processes; pp++) {
+
+                        // total cost of communication (edgecuts * number of participating partitions)
+                        int total_comm_cost = 0;
+                        for(int jj=0; jj < num_processes; jj++) {
+                            if(pp != jj)
+                                total_comm_cost += current_neighbours_in_partition[jj] > 0 ? 1 : 0;
+                        }
+                        
                         // testing objective function
-                        float current_value = current_neighbours_in_partition[pp] - current_neighbours_elsewhere[pp] - comm_cost_per_partition[pp]  - a * g/2 * pow(part_load[pp],g-1);
+                        //float current_value = current_neighbours_in_partition[pp] - current_neighbours_elsewhere[pp] - comm_cost_per_partition[pp]  - a * g/2 * pow(part_load[pp],g-1);
+                        float current_value = -total_comm_cost * comm_cost_per_partition[pp]  - a * g/2 * pow(part_load[pp],g-1);
                         
                         // objective function is a mix of Battaglino 2015 (second part) and Zheng 2016 (communication cost part)
                         // (|P^t_i union N(v)| - commCost(v,Pi) - a * g/2 * |B|^(g-1))
                         //float current_value = current_neighbours_in_partition[pp] - comm_cost_per_partition[pp]  - a * g/2 * pow(part_load[pp],g-1);
-                        
+                                        
                         // alternative from Battaglino 2015
                         //float current_value = current_neighbours_in_partition[pp] - a * g/2 * pow(part_load[pp],g-1);
                         // alternative from ARGO
@@ -480,6 +487,19 @@ namespace PRAW {
         // return successfully
         return 0;
     }
+
+    int ParallelRestreamingPartitioning(idx_t* partitioning, double** comm_cost_matrix, int num_vertices, std::vector<std::vector<int> >* hyperedges, std::vector<std::vector<int> >* hedge_ptr, int* vtx_wgt, int max_iterations, float imbalance_tolerance) {
+        // algorithm from GraSP (Battaglino 2016)
+        // 1 - Distributed vertices over partitions (partition = vertex_id // num_partitions)
+        // 2 - Divide the graph in a distributed CSR format (like ParMETIS)
+        // 3 - Initiate N number of iterations on each process:
+        //      a - one vertex at a time, assign to best partition (based on eval function)
+        //      b - update tempering parameters
+        //      c - share with all new partition assignments
+        //      d - (possible improvement) redistribute CSR graph based on partitioning
+        
+    }
+    
 
     
 }
