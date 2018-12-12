@@ -488,16 +488,33 @@ namespace PRAW {
         return 0;
     }
 
-    int ParallelRestreamingPartitioning(idx_t* partitioning, double** comm_cost_matrix, int num_vertices, std::vector<std::vector<int> >* hyperedges, std::vector<std::vector<int> >* hedge_ptr, int* vtx_wgt, int max_iterations, float imbalance_tolerance) {
+    int ParallelRestreamingPartitioning(idx_t* partitioning, double** comm_cost_matrix, int num_vertices, char* hypergraph_filename, int* vtx_wgt, int max_iterations, float imbalance_tolerance) {
+        int process_id;
+        MPI_Comm_rank(MPI_COMM_WORLD,&process_id);
+        int num_processes;
+        MPI_Comm_size(MPI_COMM_WORLD,&num_processes);
+
         // algorithm from GraSP (Battaglino 2016)
-        // 1 - Distributed vertices over partitions (partition = vertex_id // num_partitions)
+        // 1 - Distributed vertices over partitions (partition = vertex_id % num_partitions)
+        // needs to load num_vertices from file
+        for (int vid=0; vid < num_vertices; vid++) {
+            partitioning[vid] = vid % num_processes;
+        }
+
         // 2 - Divide the graph in a distributed CSR format (like ParMETIS)
+        //  compressed vertex or compressed hedge format? --> see zoltan
+        //  for each local vertex, store the list of vertices adjacent to it (belonging to same hedges)
+        
+        // each process must read from file only the info relevant to its data
         // 3 - Initiate N number of iterations on each process:
         //      a - one vertex at a time, assign to best partition (based on eval function)
         //      b - update tempering parameters
         //      c - share with all new partition assignments
         //      d - (possible improvement) redistribute CSR graph based on partitioning
         
+        MPI_Finalize();
+
+        return 0;
     }
     
 
