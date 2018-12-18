@@ -192,8 +192,37 @@ namespace PRAW {
         free(vertices_in_partition);
     }
 
+    // get number of vertices in hMETIS file
+    void get_hypergraph_file_header(std::string hypergraph_file, int* num_vertices, int* num_hyperedges) {
+        std::ifstream istream(hypergraph_file.c_str());
+        
+        if(!istream) {
+            printf("Error while opening hMETIS file %s\n",hypergraph_file.c_str());
+        }
+        std::string line;
+        // process header
+        std::getline(istream,line);
+        std::istringstream buf(line);
+        std::istream_iterator<int> beg(buf), end;
+        std::vector<int> tokens(beg, end);
+        *num_vertices = tokens[1];
+        *num_hyperedges = tokens[0];
+
+        istream.close();
+
+    }
     // Load hMETIS file (hypergraph)	
     int load_hypergraph_from_file(std::string filename, std::vector<std::vector<int> >* hyperedges, std::vector<std::vector<int> >* hedge_ptr) {
+        
+        // get header info
+        int total_vertices;;
+        int total_hyperedges;
+        get_hypergraph_file_header(filename,&total_vertices,&total_hyperedges);
+
+        hyperedges->resize(total_hyperedges);
+        hedge_ptr->resize(total_vertices);
+        
+        PRINTF("Loaded from file: Vertices: %i; hyperedges %i:\n",total_vertices,total_hyperedges);
         
         std::ifstream istream(filename.c_str());
         
@@ -201,20 +230,9 @@ namespace PRAW {
             printf("Error while opening hMETIS file %s\n",filename.c_str());
             return -1;
         }
-
         std::string line;
-        // process header
+        // skip header
         std::getline(istream,line);
-        std::istringstream buf(line);
-        std::istream_iterator<int> beg(buf), end;
-        std::vector<int> tokens(beg, end);
-        int total_vertices = tokens[1];
-        int total_hyperedges = tokens[0];
-        hyperedges->resize(total_hyperedges);
-        hedge_ptr->resize(total_vertices);
-        
-        PRINTF("Loaded from file: Vertices: %i; hyperedges %i:\n",total_vertices,total_hyperedges);
-        
         // read reminder of file (one line per hyperedge)
         int counter = 0;
         while(std::getline(istream,line)) {
@@ -228,6 +246,61 @@ namespace PRAW {
             }
             counter++;
             
+        }
+        istream.close();
+        return 0;
+        
+    }
+
+    // load to distributed CSR format
+    int load_hypergraph_from_file_dist_CSR(std::string filename, std::vector<std::vector<int> >* hyperedges, std::vector<std::vector<int> >* hedge_ptr, int process_id, idx_t* partitioning) {
+        
+        // get header info
+        int total_vertices;;
+        int total_hyperedges;
+        get_hypergraph_file_header(filename,&total_vertices,&total_hyperedges);
+
+        hyperedges->resize(total_hyperedges);
+        hedge_ptr->resize(total_vertices);
+        
+        PRINTF("Loaded from file: Vertices: %i; hyperedges %i:\n",total_vertices,total_hyperedges);
+        
+        std::ifstream istream(filename.c_str());
+        
+        if(!istream) {
+            printf("Error while opening hMETIS file %s\n",filename.c_str());
+            return -1;
+        }
+        
+        std::string line;
+        // skip header
+        std::getline(istream,line);
+        // read reminder of file (one line per hyperedge)
+        int counter = 0;
+        while(std::getline(istream,line)) {
+            std::istringstream buf(line);
+            std::istream_iterator<int> beg(buf), end;
+            std::vector<int> tokens(beg, end);
+            // check if any vertex is local
+            bool local = false;
+            for(int ii=0; ii < tokens.size(); ii++) {
+                int vertex_id = tokens[ii]-1;
+                if(partitioning[vertex_id] == process_id) {
+                    local = true;
+                    break;
+                }
+            }
+            // add to memory only if local
+            if(local) {
+                for(int ii=0; ii < tokens.size(); ii++) {
+                    int vertex_id = tokens[ii]-1;
+                    if(partitioning[vertex_id] == process_id) {
+                        hedge_ptr->at(vertex_id).push_back(counter);
+                    }
+                    hyperedges->at(counter).push_back(vertex_id);
+                }
+            }
+            counter++;            
         }
         istream.close();
         return 0;
@@ -488,32 +561,144 @@ namespace PRAW {
         return 0;
     }
 
-    int ParallelRestreamingPartitioning(idx_t* partitioning, double** comm_cost_matrix, int num_vertices, char* hypergraph_filename, int* vtx_wgt, int max_iterations, float imbalance_tolerance) {
+    int ParallelIndependentRestreamingPartitioning(idx_t* partitioning, double** comm_cost_matrix, std::string hypergraph_filename, int* vtx_wgt, int iterations, float imbalance_tolerance) {
+        
         int process_id;
         MPI_Comm_rank(MPI_COMM_WORLD,&process_id);
         int num_processes;
         MPI_Comm_size(MPI_COMM_WORLD,&num_processes);
 
+        // get meta info (num vertices and hyperedges)
+        int num_vertices, num_hyperedges;
+        get_hypergraph_file_header(hypergraph_filename, &num_vertices, &num_hyperedges);
+
+        //PARAMETERS: From Battaglino 2015 //
+        float g = 1.5;
+        float a = sqrt(2) * num_hyperedges / pow(num_vertices,g);
+        float ta = 1.7;
+        int part_load_update_after_vertices = 100; // in the paper it is 4096
+        ///////////////
+        
         // algorithm from GraSP (Battaglino 2016)
         // 1 - Distributed vertices over partitions (partition = vertex_id % num_partitions)
         // needs to load num_vertices from file
         for (int vid=0; vid < num_vertices; vid++) {
             partitioning[vid] = vid % num_processes;
         }
-
+        
         // 2 - Divide the graph in a distributed CSR format (like ParMETIS)
         //  compressed vertex or compressed hedge format? --> see zoltan
         //  for each local vertex, store the list of vertices adjacent to it (belonging to same hedges)
-        
+        std::vector<std::vector<int> > hyperedges;
+        std::vector<std::vector<int> > hedge_ptr;
+        load_hypergraph_from_file_dist_CSR(hypergraph_filename, &hyperedges, &hedge_ptr, process_id, partitioning);
+
         // each process must read from file only the info relevant to its data
         // 3 - Initiate N number of iterations on each process:
         //      a - one vertex at a time, assign to best partition (based on eval function)
         //      b - update tempering parameters
         //      c - share with all new partition assignments
-        //      d - (possible improvement) redistribute CSR graph based on partitioning
         
-        MPI_Finalize();
 
+        int* part_load = (int*)calloc(num_processes,sizeof(int));
+        idx_t* local_stream_partitioning = (idx_t*)malloc(num_vertices*sizeof(idx_t));
+        double* comm_cost_per_partition = (double*)malloc(num_processes*sizeof(double));
+        int* current_neighbours_in_partition = (int*)malloc(num_processes*sizeof(int));
+        int* part_load_update = (int*)calloc(num_processes,sizeof(int));
+
+        for(int iter=0; iter < iterations; iter++) {
+            memset(local_stream_partitioning,0,num_vertices * sizeof(idx_t));
+            memset(part_load,0,num_processes * sizeof(int));
+            memset(part_load_update,0,num_processes * sizeof(int));
+            for(int ii=0; ii < num_vertices; ii++) {
+                part_load[partitioning[ii]] += vtx_wgt[ii]; // workload for vertex
+            }
+            // go through own vertex list and reassign
+            for(int vid=0; vid < num_vertices; vid++) {
+                // share updated partition loads after constant number of iterations
+                if(vid % part_load_update_after_vertices == 0) {
+                    int* part_load_update_recv = (int*)malloc(num_processes*sizeof(int));
+                    MPI_Allreduce(part_load_update,part_load_update_recv,num_processes,MPI_INT,MPI_SUM,MPI_COMM_WORLD);
+                    for(int pl=0; pl < num_processes; pl++) {
+                        part_load[pl] += part_load_update_recv[pl];
+                    }
+                    memset(part_load_update,0,num_processes * sizeof(int));
+                    free(part_load_update_recv);
+                }
+                // always iterate through the same local list of vertices
+                if(vid % num_processes != process_id) continue; 
+                // reevaluate objective function per partition
+                // |P^t_i union N(v)| = number of vertices in partition i that are neighbours of vertex v 
+                // where are neighbours located
+                // new communication cost incurred
+                memset(current_neighbours_in_partition,0,num_processes * sizeof(int));
+                memset(comm_cost_per_partition,0,num_processes * sizeof(double));
+                for(int he = 0; he < hedge_ptr[vid].size(); he++) {
+                    int he_id = hedge_ptr[vid][he];
+                    for(int vt = 0; vt < hyperedges[he_id].size(); vt++) {
+                        int dest_vertex = hyperedges[he_id][vt];
+                        if(dest_vertex == vid) continue;
+                        int dest_part = partitioning[dest_vertex];
+                        current_neighbours_in_partition[dest_part] += 1;
+                        // recalculate comm cost for all possible partition assignments of vid
+                        //  commCost(v,Pi) = forall edge in edges(Pi) cost += w(e) * c(Pi,Pj) where i != j
+                        for(int fp=0; fp < num_processes; fp++) {
+                            comm_cost_per_partition[fp] += 1 * comm_cost_matrix[fp][dest_part];
+                        }
+                    }
+                }
+                float max_value = std::numeric_limits<float>::lowest();
+                int best_partition = partitioning[vid];
+                for(int pp=0; pp < num_processes; pp++) {
+                    // total cost of communication (edgecuts * number of participating partitions)
+                    int total_comm_cost = 0;
+                    for(int jj=0; jj < num_processes; jj++) {
+                        if(pp != jj)
+                            total_comm_cost += current_neighbours_in_partition[jj] > 0 ? 1 : 0;
+                    }
+                    
+                    float current_value = -total_comm_cost * comm_cost_per_partition[pp]  - a * g/2 * pow(part_load[pp],g-1);
+                    //float current_value = current_neighbours_in_partition[pp] - comm_cost_per_partition[pp]  - a * g/2 * pow(part_load[pp],g-1);
+                    
+                    if(current_value > max_value) {
+                        max_value = current_value;
+                        best_partition = pp;
+                    }
+                }
+                    
+                local_stream_partitioning[vid] = best_partition;
+                // update intermediate workload and assignment values
+                part_load[best_partition] += vtx_wgt[vid];
+                part_load[partitioning[vid]] -= vtx_wgt[vid];
+                // update local changes counter
+                part_load_update[partitioning[vid]] -= vtx_wgt[vid];
+                part_load_update[best_partition] += vtx_wgt[vid];
+                // update partitioning assignment
+                partitioning[vid] = best_partition;
+                
+            }
+
+            
+            // share new partitioning with other streams
+            MPI_Allreduce(local_stream_partitioning,partitioning,num_vertices,MPI_LONG,MPI_MAX,MPI_COMM_WORLD);
+            
+            // check if desired imbalance has been reached
+            float imbalance = calculateImbalance(partitioning,num_processes,num_vertices,vtx_wgt);
+            PRINTF("%i: %f (%f | %f)\n",iter,imbalance,a,ta);
+            if(imbalance < imbalance_tolerance) break;
+
+            // update parameters
+            a *= ta;
+            //if(ta > 1.05f) ta *= tta;
+        }
+        
+        // clean up
+        free(part_load);
+        free(local_stream_partitioning);
+        free(comm_cost_per_partition);
+        free(current_neighbours_in_partition);
+
+        
         return 0;
     }
     
