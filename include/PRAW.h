@@ -43,8 +43,8 @@ namespace PRAW {
     }
 
     float calculateImbalance(idx_t* partitioning, int num_processes, int num_vertices, int* vtx_wgt) {
-        int* workload = (int*)calloc(num_processes,sizeof(int));
-        int total_workload = 0;
+        long int* workload = (long int*)calloc(num_processes,sizeof(long int));
+        long int total_workload = 0;
         for(int vid=0; vid < num_vertices; vid++) {
             workload[partitioning[vid]] += vtx_wgt[vid];
             total_workload += vtx_wgt[vid];
@@ -571,12 +571,12 @@ namespace PRAW {
         // get meta info (num vertices and hyperedges)
         int num_vertices, num_hyperedges;
         get_hypergraph_file_header(hypergraph_filename, &num_vertices, &num_hyperedges);
-
+        
         //PARAMETERS: From Battaglino 2015 //
         float g = 1.5;
         float a = sqrt(2) * num_hyperedges / pow(num_vertices,g);
         float ta = 1.7;
-        int part_load_update_after_vertices = 100; // in the paper it is 4096
+        int part_load_update_after_vertices = 4000; // in the paper it is 4096
         ///////////////
         
         // algorithm from GraSP (Battaglino 2016)
@@ -592,7 +592,7 @@ namespace PRAW {
         std::vector<std::vector<int> > hyperedges;
         std::vector<std::vector<int> > hedge_ptr;
         load_hypergraph_from_file_dist_CSR(hypergraph_filename, &hyperedges, &hedge_ptr, process_id, partitioning);
-
+        
         // each process must read from file only the info relevant to its data
         // 3 - Initiate N number of iterations on each process:
         //      a - one vertex at a time, assign to best partition (based on eval function)
@@ -600,15 +600,19 @@ namespace PRAW {
         //      c - share with all new partition assignments
         
 
-        int* part_load = (int*)calloc(num_processes,sizeof(int));
+        long int* part_load = (long int*)calloc(num_processes,sizeof(long int));
         idx_t* local_stream_partitioning = (idx_t*)malloc(num_vertices*sizeof(idx_t));
         double* comm_cost_per_partition = (double*)malloc(num_processes*sizeof(double));
         int* current_neighbours_in_partition = (int*)malloc(num_processes*sizeof(int));
         int* part_load_update = (int*)calloc(num_processes,sizeof(int));
-
+        int* part_load_update_recv = (int*)malloc(num_processes*sizeof(int));
+        double timing = 0;
+        double ttt;
         for(int iter=0; iter < iterations; iter++) {
+            timing = 0;
+
             memset(local_stream_partitioning,0,num_vertices * sizeof(idx_t));
-            memset(part_load,0,num_processes * sizeof(int));
+            memset(part_load,0,num_processes * sizeof(long int));
             memset(part_load_update,0,num_processes * sizeof(int));
             for(int ii=0; ii < num_vertices; ii++) {
                 part_load[partitioning[ii]] += vtx_wgt[ii]; // workload for vertex
@@ -617,13 +621,11 @@ namespace PRAW {
             for(int vid=0; vid < num_vertices; vid++) {
                 // share updated partition loads after constant number of iterations
                 if(vid % part_load_update_after_vertices == 0) {
-                    int* part_load_update_recv = (int*)malloc(num_processes*sizeof(int));
                     MPI_Allreduce(part_load_update,part_load_update_recv,num_processes,MPI_INT,MPI_SUM,MPI_COMM_WORLD);
                     for(int pl=0; pl < num_processes; pl++) {
                         part_load[pl] += part_load_update_recv[pl];
                     }
                     memset(part_load_update,0,num_processes * sizeof(int));
-                    free(part_load_update_recv);
                 }
                 // always iterate through the same local list of vertices
                 if(vid % num_processes != process_id) continue; 
@@ -631,6 +633,7 @@ namespace PRAW {
                 // |P^t_i union N(v)| = number of vertices in partition i that are neighbours of vertex v 
                 // where are neighbours located
                 // new communication cost incurred
+                ttt = MPI_Wtime();
                 memset(current_neighbours_in_partition,0,num_processes * sizeof(int));
                 memset(comm_cost_per_partition,0,num_processes * sizeof(double));
                 for(int he = 0; he < hedge_ptr[vid].size(); he++) {
@@ -647,11 +650,12 @@ namespace PRAW {
                         }
                     }
                 }
+                timing += MPI_Wtime() - ttt;
                 float max_value = std::numeric_limits<float>::lowest();
                 int best_partition = partitioning[vid];
                 for(int pp=0; pp < num_processes; pp++) {
                     // total cost of communication (edgecuts * number of participating partitions)
-                    int total_comm_cost = 0;
+                    long int total_comm_cost = 0;
                     for(int jj=0; jj < num_processes; jj++) {
                         if(pp != jj)
                             total_comm_cost += current_neighbours_in_partition[jj] > 0 ? 1 : 0;
@@ -665,7 +669,7 @@ namespace PRAW {
                         best_partition = pp;
                     }
                 }
-                    
+
                 local_stream_partitioning[vid] = best_partition;
                 // update intermediate workload and assignment values
                 part_load[best_partition] += vtx_wgt[vid];
@@ -677,11 +681,11 @@ namespace PRAW {
                 partitioning[vid] = best_partition;
                 
             }
-
+            printf("%f \\ %f\n",timing);
             
             // share new partitioning with other streams
             MPI_Allreduce(local_stream_partitioning,partitioning,num_vertices,MPI_LONG,MPI_MAX,MPI_COMM_WORLD);
-            
+
             // check if desired imbalance has been reached
             float imbalance = calculateImbalance(partitioning,num_processes,num_vertices,vtx_wgt);
             PRINTF("%i: %f (%f | %f)\n",iter,imbalance,a,ta);
@@ -691,13 +695,13 @@ namespace PRAW {
             a *= ta;
             //if(ta > 1.05f) ta *= tta;
         }
-        
+
         // clean up
-        free(part_load);
         free(local_stream_partitioning);
+        free(part_load);
         free(comm_cost_per_partition);
         free(current_neighbours_in_partition);
-
+        free(part_load_update_recv);
         
         return 0;
     }

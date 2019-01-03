@@ -41,7 +41,7 @@ int main(int argc, char** argv) {
 			case 'b':
 				bandwidth_file = optarg;
 				break;
-			case 'W': // processes per node
+			case 'W': 
 				use_bandwidth_in_partitioning = true;
 				break;
 		}
@@ -107,7 +107,6 @@ int main(int argc, char** argv) {
     //PRAW::SequentialStreamingPartitioning(partitioning,comm_cost_matrix, num_vertices,&hyperedges,&hedge_ptr,vtx_wgt,iterations, imbalance_tolerance);
     //PRAW::ParallelStreamingPartitioning(partitioning,comm_cost_matrix, num_vertices,&hyperedges,&hedge_ptr,vtx_wgt,iterations, imbalance_tolerance);
     PRAW::ParallelIndependentRestreamingPartitioning(partitioning, comm_cost_matrix, filename, vtx_wgt, iterations, imbalance_tolerance);
-    
     if(process_id == 0) {
         // if bandwidth file was not used in partitioning but was provided, use it in evaluation
         if(!use_bandwidth_in_partitioning && bandwidth_file != NULL) {
