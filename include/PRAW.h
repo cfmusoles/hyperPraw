@@ -102,11 +102,12 @@ namespace PRAW {
                 connectivity.insert(partitioning[from]);
                 vertices_in_partition[partitioning[from]]++; 
 
-                for(int tt=ff+1; tt < hyperedges->at(ii).size(); tt++) {
+                for(int tt=0; tt < hyperedges->at(ii).size(); tt++) {
+                    if(tt==ff) continue;
                     int to = hyperedges->at(ii)[tt];
                     total_edges++;
                     int to_part = partitioning[to];
-                    vertices_in_partition[to_part]++;
+                    //vertices_in_partition[to_part]++;
                     if(to_part != partitioning[from]) {
                         edgecut++;
                         connectivity.insert(to_part);
