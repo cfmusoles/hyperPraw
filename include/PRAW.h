@@ -68,9 +68,9 @@ namespace PRAW {
         // quality measurements from hMETIS: Sum of External Degrees, Absorption
         int* workload = (int*)calloc(num_processes,sizeof(int));
         int total_workload = 0;
-        int edgecut = 0;
+        long int edgecut = 0;
         int hyperedges_cut = 0;
-        int total_edges = 0;
+        long int total_edges = 0;
         int soed = 0; // Sum of External degrees
         int hconnectivity_metric = 0; // hyperedges cut weighted by the number of participating partitions - 1
         int* vertices_in_partition = (int*)calloc(num_processes,sizeof(int)); // used for absorption
@@ -573,10 +573,15 @@ namespace PRAW {
         get_hypergraph_file_header(hypergraph_filename, &num_vertices, &num_hyperedges);
         
         //PARAMETERS: From Battaglino 2015 //
+        // g and a determine load balance importance in cost function
         float g = 1.5;
         float a = sqrt(2) * num_hyperedges / pow(num_vertices,g);
+        // ta is the update rate of parameter a
         float ta = 1.7;
+        // after how many vertices checked in the stream the partitio load is sync across processes
         int part_load_update_after_vertices = 4000; // in the paper it is 4096
+        // minimum number of iterations run (not checking imbalance threshold)
+        int frozen_iters = ceil(0.1f * iterations);
         ///////////////
         
         // algorithm from GraSP (Battaglino 2016)
@@ -606,6 +611,7 @@ namespace PRAW {
         int* current_neighbours_in_partition = (int*)malloc(num_processes*sizeof(int));
         int* part_load_update = (int*)calloc(num_processes,sizeof(int));
         int* part_load_update_recv = (int*)malloc(num_processes*sizeof(int));
+        bool* communicating_with = (bool*)malloc(num_processes*sizeof(bool));
         double timing = 0;
         double ttt;
         for(int iter=0; iter < iterations; iter++) {
@@ -636,6 +642,7 @@ namespace PRAW {
                 ttt = MPI_Wtime();
                 memset(current_neighbours_in_partition,0,num_processes * sizeof(int));
                 memset(comm_cost_per_partition,0,num_processes * sizeof(double));
+                memset(communicating_with,0,num_processes * sizeof(bool));
                 for(int he = 0; he < hedge_ptr[vid].size(); he++) {
                     int he_id = hedge_ptr[vid][he];
                     for(int vt = 0; vt < hyperedges[he_id].size(); vt++) {
@@ -664,6 +671,14 @@ namespace PRAW {
                     float current_value = -total_comm_cost * comm_cost_per_partition[pp]  - a * g/2 * pow(part_load[pp],g-1);
                     //float current_value = current_neighbours_in_partition[pp] - comm_cost_per_partition[pp]  - a * g/2 * pow(part_load[pp],g-1);
                     
+                    // lesson learned, global hygergraph partitioners use connectivity metric as cost function
+                    // try lotfifar 2015
+                    //  cost function is connectivity degree * weight for each he
+                    //  balance is bounded on both sides, +and- imbalance tolerance
+                    // can we try coarsening the hypergraph to speed up partitioning?
+                    //  can use zoltan's / patoh inner product matching / heavy connectivity matching
+                    //  other similarity metrics such as Jaccard Index or Cosine measure (lotfifar 2015)
+                    // we are not measuring migration costs (cataluyrek 2007 models it well)
                     if(current_value > max_value) {
                         max_value = current_value;
                         best_partition = pp;
@@ -681,7 +696,7 @@ namespace PRAW {
                 partitioning[vid] = best_partition;
                 
             }
-            printf("%f \\ %f\n",timing);
+            //printf("%f\n",timing);
             
             // share new partitioning with other streams
             MPI_Allreduce(local_stream_partitioning,partitioning,num_vertices,MPI_LONG,MPI_MAX,MPI_COMM_WORLD);
@@ -689,7 +704,7 @@ namespace PRAW {
             // check if desired imbalance has been reached
             float imbalance = calculateImbalance(partitioning,num_processes,num_vertices,vtx_wgt);
             PRINTF("%i: %f (%f | %f)\n",iter,imbalance,a,ta);
-            if(imbalance < imbalance_tolerance) break;
+            if(frozen_iters <= iter && imbalance < imbalance_tolerance) break;
 
             // update parameters
             a *= ta;
