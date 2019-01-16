@@ -579,7 +579,7 @@ namespace PRAW {
         // ta is the update rate of parameter a
         float ta = 1.7;
         // after how many vertices checked in the stream the partitio load is sync across processes
-        int part_load_update_after_vertices = 4000; // in the paper it is 4096
+        int part_load_update_after_vertices = 100; // in the paper it is 4096
         // minimum number of iterations run (not checking imbalance threshold)
         int frozen_iters = ceil(0.1f * iterations);
         ///////////////
