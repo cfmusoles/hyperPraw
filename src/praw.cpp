@@ -10,6 +10,23 @@
 #include <iterator>
 #include <numeric>
 
+/*
+TODO:
+    Create basic simulation where each hypergraph represents communication
+        Parallel communication should increase with
+            Hedge cut
+            SOED
+        Parallel communication should decrease with
+            Absorption
+    Create Partitioning classes
+        zoltan
+        praw
+    Store metrics
+        simulation time
+        communication time
+        partitioning stats (hedge cut, SOED, absorption)    
+*/
+
 int main(int argc, char** argv) {
 
     // DEFAULT PARAMETERS
