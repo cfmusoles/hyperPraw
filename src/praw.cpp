@@ -7,6 +7,10 @@
 #include <stdlib.h>
 #include <vector>
 #include "PRAW.h"
+#include "Partitioning.h"
+#include "RandomBalancedPartitioning.h"
+#include "ZoltanPartitioning.h"
+#include "HyperPRAWPartitioning.h"
 #include <iterator>
 #include <numeric>
 
@@ -28,6 +32,90 @@ TODO:
 */
 
 int main(int argc, char** argv) {
+    // initialise MPI
+    MPI_Init(&argc,&argv);
+    int process_id;
+    int num_processes;
+    MPI_Comm_rank(MPI_COMM_WORLD,&process_id);
+    MPI_Comm_size(MPI_COMM_WORLD,&num_processes);
+
+    // DEFAULT PARAMETERS
+    char* graph_file = NULL;
+    int iterations = 1;
+    float imbalance_tolerance = 1.05f;
+    char* bandwidth_file = NULL;
+    bool use_bandwidth_in_partitioning = false;
+    int rand_seed = time(NULL);
+    char* part_method = NULL;
+
+    // getting command line parameters
+    extern char *optarg;
+	extern int optind, opterr, optopt;
+	int c;
+	while( (c = getopt(argc,argv,"h:i:m:b:Ws:p:")) != -1 ) {
+		switch(c) {
+			case 'h': // hypergraph filename
+				graph_file = optarg;
+				break;
+			case 'i': // max iterations
+				iterations = atoi(optarg);
+				break;
+            case 's': // random seed
+				rand_seed = atoi(optarg);
+				break;
+            case 'm': // max imbalance (in thousands)
+				imbalance_tolerance = atoi(optarg) * 0.001f;
+				break;
+			case 'b': // network bandwidth file
+				bandwidth_file = optarg;
+				break;
+			case 'W': // use bandwith file in partitioning
+				use_bandwidth_in_partitioning = true;
+				break;
+            case 'p': // partitioning method
+				part_method = optarg;
+				break;
+		}
+	}
+
+    // set and propagate random seed
+    MPI_Bcast(&rand_seed, 1, MPI_INT, 0, MPI_COMM_WORLD);
+    srand(rand_seed);
+
+    // Create partition object to hold connections and partitioning information across processes
+	Partitioning* partition;
+	if(strcmp(part_method,"zoltan") == 0) {
+		PRINTF("%i: Partitioning: zoltan\n",process_id);
+		partition = new ZoltanPartitioning(graph_file,imbalance_tolerance);
+	} else if(strcmp(part_method,"praw") == 0) {  
+		PRINTF("%i: Partitioning: hyperPRAW\n",process_id);
+		partition = new HyperPRAWPartitioning(graph_file,imbalance_tolerance,iterations,bandwidth_file,true,use_bandwidth_in_partitioning);
+	} else { // default is random
+		PRINTF("%i: Partitioning: random\n",process_id);
+		partition = new RandomBalancedPartitioning(graph_file,imbalance_tolerance);
+	}
+	partition->perform_partitioning(num_processes,process_id);
+
+    // set simulation to test hypergraph partitioning
+    // load model
+
+    // Parallel communication should increase with
+    //        Hedge cut
+    //        SOED
+    //    Parallel communication should decrease with
+    //        Absorption
+
+    //Store metrics
+    //    simulation time
+    //    communication time
+    //    partitioning stats (hedge cut, SOED, absorption)
+
+    // finalise MPI and application
+    MPI_Finalize();
+    return 0;
+}
+
+/*int main(int argc, char** argv) {
 
     // DEFAULT PARAMETERS
     char* graph_file = NULL;
@@ -141,4 +229,4 @@ int main(int argc, char** argv) {
 
     MPI_Finalize();
     return 0;
-}
+}*/

@@ -3,21 +3,18 @@
 
 #include "zoltan.h"
 #include <vector>
-#include "Simulation.h"
 #include "Partitioning.h"
-#include "Utils.h"
-#include "HypergraphPartitioning.h"
 #include "PRAW.h"
 #include <cstring>
 #include <cstdio>
 #include <stdlib.h>
+#include <string>
 
-class ZoltanFilePartitioning : public Partitioning {
+class ZoltanPartitioning : public Partitioning {
 public:
 	
-	ZoltanFilePartitioning(std::vector<Population*>* pops, int population_size,char* comm_bandwidth_file) : Partitioning(pops,population_size) {
-		comm_bandwidth_filename = comm_bandwidth_file;
-        float ver;
+	ZoltanPartitioning(char* graph_file, float imbalance_tolerance) : Partitioning(graph_file, imbalance_tolerance) {
+		float ver;
 		rc = Zoltan_Initialize(0, NULL, &ver);
 	
 		if (rc != ZOLTAN_OK){
@@ -30,17 +27,17 @@ public:
 
 		setZoltanParams();
 		// initialise hg struct
-		hg.vtxGID = NULL;
+		/*hg.vtxGID = NULL;
 		hg.vtx_wgts = NULL;
 		hg.vtxedge_ptr = NULL;
-		hg.pin_GID = NULL;
+		hg.pin_GID = NULL;*/
 	}
-	virtual ~ZoltanFilePartitioning() {
+	virtual ~ZoltanPartitioning() {
 		Zoltan_Destroy(&zz);
 	}
 	
-	virtual void perform_partitioning(Model* model, int partitions, int process_id, std::vector<int>* previous_activity) {
-		
+	virtual void perform_partitioning(int num_processes,int process_id) {
+		/*
 		// Assign unique vertices to partitions
 		hg.numMyVertices = 0;
 		for(int ii=0; ii < model->population_size; ii++) {
@@ -194,7 +191,7 @@ public:
 		if(hg.pin_GID != NULL) free(hg.pin_GID);
 		if(hg.vtxedge_ptr != NULL) free(hg.vtxedge_ptr);
 		if(hg.vtx_wgts != NULL) free(hg.vtx_wgts);
-
+		*/
 		
 	}
 
@@ -202,13 +199,13 @@ public:
 private:
 
 	struct Zoltan_Struct *zz;	
-	HGRAPH_DATA hg;
+	//HGRAPH_DATA hg;
 	int rc;
-	char* comm_bandwidth_filename = NULL;
-
+	
 	void setZoltanParams() {
 		/* General parameters */
-	
+		std::string imbalance = std::to_string(imbalance_tolerance);
+
 		Zoltan_Set_Param(zz, "DEBUG_LEVEL", "0");
 		Zoltan_Set_Param(zz, "LB_METHOD", "HYPERGRAPH");   /* partitioning method */
 		Zoltan_Set_Param(zz, "HYPERGRAPH_PACKAGE", "PHG"); /* version of method */
@@ -217,7 +214,7 @@ private:
 		Zoltan_Set_Param(zz, "RETURN_LISTS", "ALL"); /* export AND import lists */
 		Zoltan_Set_Param(zz, "OBJ_WEIGHT_DIM", "1"); /* use Zoltan default vertex weights */
 		Zoltan_Set_Param(zz, "EDGE_WEIGHT_DIM", "0");/* use Zoltan default hyperedge weights */
-		Zoltan_Set_Param(zz, "IMBALANCE_TOL", "1.1");/* imbalance tolerance */
+		Zoltan_Set_Param(zz, "IMBALANCE_TOL", imbalance.c_str());/* imbalance tolerance */
 
 		// parameters for PHG: http://www.cs.sandia.gov/zoltan/ug_html/ug_alg_phg.html
 		
@@ -234,16 +231,16 @@ private:
 		
 		/* Application defined query functions */
 		/* To set partitioning callbacks, see: http://www.cs.sandia.gov/zoltan/ug_html/ug_query_lb.html */
-		Zoltan_Set_Num_Obj_Fn(zz, get_number_of_vertices, &hg);	// number of objects owned by processor
-		Zoltan_Set_Obj_List_Fn(zz, get_vertex_list, &hg);			// list of weights for owned objects
-		Zoltan_Set_HG_Size_CS_Fn(zz, get_hypergraph_size, &hg);	// dimensionality of the problem
-		Zoltan_Set_HG_CS_Fn(zz, get_hypergraph, &hg);				//  coordinate system (or connectivity)
+		//Zoltan_Set_Num_Obj_Fn(zz, get_number_of_vertices, &hg);	// number of objects owned by processor
+		//Zoltan_Set_Obj_List_Fn(zz, get_vertex_list, &hg);			// list of weights for owned objects
+		//Zoltan_Set_HG_Size_CS_Fn(zz, get_hypergraph_size, &hg);	// dimensionality of the problem
+		//Zoltan_Set_HG_CS_Fn(zz, get_hypergraph, &hg);				//  coordinate system (or connectivity)
 		//Zoltan_Set_HG_Edge_Wts_Fn(zz, get_hyperedges_weights, &hg);  // get hyperedges weights
 		//Zoltan_Set_HG_Size_Edge_Wts_Fn(zz, get_hyperedges_size_weights, &hg); // get length of hyperedges weights
 		/* for migration */
-		Zoltan_Set_Obj_Size_Multi_Fn(zz, user_migration_multi_object_size, &hg);
-		Zoltan_Set_Pack_Obj_Multi_Fn(zz, user_pack_multi_obj, &hg);
-		Zoltan_Set_Unpack_Obj_Multi_Fn(zz, user_unpack_multi_obj, &hg);
+		//Zoltan_Set_Obj_Size_Multi_Fn(zz, user_migration_multi_object_size, &hg);
+		//Zoltan_Set_Pack_Obj_Multi_Fn(zz, user_pack_multi_obj, &hg);
+		//Zoltan_Set_Unpack_Obj_Multi_Fn(zz, user_unpack_multi_obj, &hg);
 	}
 };
 
