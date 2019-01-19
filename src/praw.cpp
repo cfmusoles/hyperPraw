@@ -1,37 +1,22 @@
 // Test harness for SPAAW (Streaming parallel Partitioning Architecture AWare)
-#define VERBOSE                 // extra debug info printed out during runtime
-#define EVALUATE_PARTITIONING   // evaluate resulting partitioning with predicted null compute traffic
+//#define VERBOSE                 // extra debug info printed out during runtime
 
 #include <mpi.h>
 #include <cstdio>
 #include <stdlib.h>
 #include <vector>
+#include <set>
 #include "PRAW.h"
 #include "Partitioning.h"
-#include "RandomBalancedPartitioning.h"
+#include "RandomPartitioning.h"
 #include "ZoltanPartitioning.h"
 #include "HyperPRAWPartitioning.h"
 #include <iterator>
 #include <numeric>
 
-/*
-TODO:
-    Create basic simulation where each hypergraph represents communication
-        Parallel communication should increase with
-            Hedge cut
-            SOED
-        Parallel communication should decrease with
-            Absorption
-    Create Partitioning classes
-        zoltan
-        praw
-    Store metrics
-        simulation time
-        communication time
-        partitioning stats (hedge cut, SOED, absorption)    
-*/
 
 int main(int argc, char** argv) {
+
     // initialise MPI
     MPI_Init(&argc,&argv);
     int process_id;
@@ -40,6 +25,7 @@ int main(int argc, char** argv) {
     MPI_Comm_size(MPI_COMM_WORLD,&num_processes);
 
     // DEFAULT PARAMETERS
+    char* experiment_name = NULL;
     char* graph_file = NULL;
     int iterations = 1;
     float imbalance_tolerance = 1.05f;
@@ -47,14 +33,18 @@ int main(int argc, char** argv) {
     bool use_bandwidth_in_partitioning = false;
     int rand_seed = time(NULL);
     char* part_method = NULL;
+    int sim_steps  = 100;
 
     // getting command line parameters
     extern char *optarg;
 	extern int optind, opterr, optopt;
 	int c;
-	while( (c = getopt(argc,argv,"h:i:m:b:Ws:p:")) != -1 ) {
+	while( (c = getopt(argc,argv,"n:h:i:m:b:Ws:p:t:")) != -1 ) {
 		switch(c) {
-			case 'h': // hypergraph filename
+			case 'n': // test name
+				experiment_name = optarg;
+				break;
+            case 'h': // hypergraph filename
 				graph_file = optarg;
 				break;
 			case 'i': // max iterations
@@ -75,12 +65,17 @@ int main(int argc, char** argv) {
             case 'p': // partitioning method
 				part_method = optarg;
 				break;
+            case 't': // simulated steps
+				sim_steps = atoi(optarg);
+				break;
 		}
 	}
 
     // set and propagate random seed
     MPI_Bcast(&rand_seed, 1, MPI_INT, 0, MPI_COMM_WORLD);
     srand(rand_seed);
+
+    double partition_timer = MPI_Wtime();
 
     // Create partition object to hold connections and partitioning information across processes
 	Partitioning* partition;
@@ -92,141 +87,122 @@ int main(int argc, char** argv) {
 		partition = new HyperPRAWPartitioning(graph_file,imbalance_tolerance,iterations,bandwidth_file,true,use_bandwidth_in_partitioning);
 	} else { // default is random
 		PRINTF("%i: Partitioning: random\n",process_id);
-		partition = new RandomBalancedPartitioning(graph_file,imbalance_tolerance);
+		partition = new RandomPartitioning(graph_file,imbalance_tolerance);
 	}
+    srand(rand_seed);
 	partition->perform_partitioning(num_processes,process_id);
 
+    partition_timer = MPI_Wtime() - partition_timer;
+
     // set simulation to test hypergraph partitioning
-    // load model
+    // load model (only local hyperedges loaded)
+    std::vector<std::vector<int> > hyperedges;
+    std::vector<std::vector<int> > hedge_ptr;
+    PRAW::load_hypergraph_from_file_dist_CSR(graph_file, &hyperedges, &hedge_ptr, process_id, partition->partitioning);
 
     // Parallel communication should increase with
     //        Hedge cut
     //        SOED
     //    Parallel communication should decrease with
     //        Absorption
+    double timer = MPI_Wtime();
+    for(int tt = 0; tt < sim_steps; tt++) {
+        // for each local hyperedge
+        //      if any vertex is not local, add destination to target list
+        //      send messages all to all for processes in target list plus local
+        //          use hedge id as flag for the messages
+        //          send messages in a ring order
+        for(int he_id = 0; he_id < hyperedges.size(); he_id++) {
+            std::set<int> partitions;
+            for(int vid = 0; vid < hyperedges[he_id].size(); vid++) {
+                int dest_vertex = hyperedges[he_id][vid];
+                partitions.insert(partition->partitioning[dest_vertex]);
+            }
+            if(partitions.size() > 1) {
+                for (std::set<int>::iterator it=partitions.begin(); it!=partitions.end(); ++it) {
+                    int sender_id = *it;
+                    if(sender_id == process_id) { // turn to send messages
+                        // send as many messages as targets (not counting local)
+                        for (std::set<int>::iterator receiver=partitions.begin(); receiver!=partitions.end(); ++receiver) {
+                            int receiver_id = *receiver;
+                            if(sender_id == receiver_id) continue;
+                            MPI_Send(&sender_id,1,MPI_INT,receiver_id,he_id,MPI_COMM_WORLD);
+                        }
+                    } else { // turn to receive messages
+                        // receive one message from sender id
+                        int dummy;
+                        MPI_Recv(&dummy,1,MPI_INT,sender_id,he_id,MPI_COMM_WORLD,MPI_STATUS_IGNORE);
+                    }
+                }
+            }
+        }
+    }
+    // wait for all processes to finish
+    MPI_Barrier(MPI_COMM_WORLD);
+
+    double total_sim_time = MPI_Wtime() - timer;
 
     //Store metrics
     //    simulation time
     //    communication time
     //    partitioning stats (hedge cut, SOED, absorption)
+    PRINTF("%i: simulation time (%i steps): %f secs\n",process_id,sim_steps,total_sim_time);
+
+    if(process_id == 0) {
+        // used to calculate the theoretical cost of communication
+        // if bandwidth file is not provided, then assumes all costs are equal
+        // initialise comm cost matrix (for theoretical cost analysis)
+        double** comm_cost_matrix = (double**)malloc(sizeof(double*) * num_processes);
+        for(int ii=0; ii < num_processes; ii++) {
+            comm_cost_matrix[ii] = (double*)calloc(num_processes,sizeof(double));
+        }
+        PRAW::get_comm_cost_matrix_from_bandwidth(bandwidth_file,comm_cost_matrix,num_processes);
+            
+        // calculate partitioning stats
+        float hyperedges_cut_ratio;
+        float edges_cut_ratio;
+        int soed;
+        float absorption;
+        float max_imbalance;
+        double total_comm_cost;
+        PRAW::getPartitionStats(partition->partitioning, num_processes, partition->num_vertices, &hyperedges, &hedge_ptr, NULL,comm_cost_matrix,
+                                &hyperedges_cut_ratio, &edges_cut_ratio, &soed, &absorption, &max_imbalance, &total_comm_cost);
+
+        printf("Partition time %.2fs, sim time %.2fs\nHedgecut, %.3f, %.3f (cut net), %i (SOED), %.1f (absorption) %.3f (max imbalance), %.0f (comm cost)\n",partition_timer,total_sim_time,hyperedges_cut_ratio,edges_cut_ratio,soed,absorption,max_imbalance,total_comm_cost);
+        
+        // store stats in file
+        std::string filename = experiment_name;
+        filename += "_";
+        std::string graph_string = graph_file;
+        filename += PRAW::getFileName(graph_string);
+        filename += "_";
+        filename += part_method;
+        char str_int[16];
+        sprintf(str_int,"%i",num_processes);
+        filename += "__";
+        filename +=  str_int;
+        bool fileexists = access(filename.c_str(), F_OK) != -1;
+        FILE *fp = fopen(filename.c_str(), "ab+");
+        if(fp == NULL) {
+            printf("Error when storing results into file\n");
+        } else {
+            if(!fileexists) // file does not exist, add header
+                fprintf(fp,"%s,%s,%s,%s,%s,%s,%s,%s\n","Partition time","Sim time","Hedge cut ratio","Cut net","SOED","Absorption","Max imbalance","Comm cost");
+            fprintf(fp,"%.3f,%.3f,%.3f,%.3f,%i,%.1f,%.3f,%.0f\n",partition_timer,total_sim_time,hyperedges_cut_ratio,edges_cut_ratio,soed,absorption,max_imbalance,total_comm_cost);
+        }
+        fclose(fp);
+
+        // clean up operations
+        for(int ii=0; ii < num_processes; ii++) {
+            free(comm_cost_matrix[ii]);
+        }
+        free(comm_cost_matrix);
+    }
+
+    // clean up
+    free(partition);
 
     // finalise MPI and application
     MPI_Finalize();
     return 0;
 }
-
-/*int main(int argc, char** argv) {
-
-    // DEFAULT PARAMETERS
-    char* graph_file = NULL;
-    int iterations = 1;
-    float imbalance_tolerance = 1.05f;
-    char* bandwidth_file = NULL;
-    bool use_bandwidth_in_partitioning = false;
-    int rand_seed = time(NULL);
-
-	// getting command line parameters
-    extern char *optarg;
-	extern int optind, opterr, optopt;
-	int c;
-	while( (c = getopt(argc,argv,"h:i:m:b:Ws:")) != -1 ) {
-		switch(c) {
-			case 'h': // hypergraph filename
-				graph_file = optarg;
-				break;
-			case 'i': // max iterations
-				iterations = atoi(optarg);
-				break;
-            case 's': // random seed
-				rand_seed = atoi(optarg);
-				break;
-            case 'm': // max imbalance (in thousands)
-				imbalance_tolerance = atoi(optarg) * 0.001f;
-				break;
-			case 'b':
-				bandwidth_file = optarg;
-				break;
-			case 'W': 
-				use_bandwidth_in_partitioning = true;
-				break;
-		}
-	}
-
-    if(graph_file == NULL || (use_bandwidth_in_partitioning && bandwidth_file == NULL)) {
-        printf("Error: usage praw -h graph_filename -i iterations -m max_imbalance -b bandwidth_file [-W]\n");    
-        return -1;
-    }
-
-    MPI_Init(&argc,&argv);
-    int process_id;
-    int num_processes;
-    MPI_Comm_rank(MPI_COMM_WORLD,&process_id);
-    MPI_Comm_size(MPI_COMM_WORLD,&num_processes);
-
-    if(process_id == 0) {
-        PRINTF("\nPARAMETER LIST:\n%s%s\n%s%i\n%s%f\n%s%s\n%s%i\n%s%i\n\n",
-            "graph file: ",graph_file,
-            "iterations: ",iterations,
-            "imbalance tolerance: ",imbalance_tolerance,
-            "bandwidth file: ",bandwidth_file,
-            "use bandwidth file in partitionin: ",use_bandwidth_in_partitioning,
-            "random seed: ",rand_seed);
-    }
-
-    std::string filename = graph_file;
-
-    std::vector<std::vector<int> > hyperedges;
-    std::vector<std::vector<int> > hedge_ptr;
-
-    if(PRAW::load_hypergraph_from_file(filename,&hyperedges,&hedge_ptr) != 0) {
-        printf("Error, could not find hypergraph file\n");
-        MPI_Finalize();
-        return 0;
-    }
-    int num_vertices = hedge_ptr.size();
-    idx_t* partitioning = (idx_t*)calloc(num_vertices,sizeof(idx_t));
-    // Assign unique vertices to partitions (common seed)
-    MPI_Bcast(&rand_seed, 1, MPI_INT, 0, MPI_COMM_WORLD);
-    srand(rand_seed);
-    
-    for(int ii=0; ii < num_vertices; ii++) {
-        partitioning[ii] = (double)rand() / (double)RAND_MAX * num_processes;
-        if(partitioning[ii] == num_processes) partitioning[ii] -= 1;
-    }
-    // initialise comm cost matrix
-    double** comm_cost_matrix = (double**)malloc(sizeof(double*) * num_processes);
-    for(int ii=0; ii < num_processes; ii++) {
-        comm_cost_matrix[ii] = (double*)calloc(num_processes,sizeof(double));
-    }
-    
-    if(use_bandwidth_in_partitioning)
-        PRAW::get_comm_cost_matrix_from_bandwidth(bandwidth_file,comm_cost_matrix,num_processes);
-    else 
-        PRAW::get_comm_cost_matrix_from_bandwidth(NULL,comm_cost_matrix,num_processes);
-    
-    // initialise vertex weight values
-    int* vtx_wgt = (int*)calloc(num_vertices,sizeof(int));
-    for(int ii =0; ii < num_vertices; ii++) {
-        vtx_wgt[ii] = 1;
-    }
-    //PRAW::SequentialStreamingPartitioning(partitioning,comm_cost_matrix, num_vertices,&hyperedges,&hedge_ptr,vtx_wgt,iterations, imbalance_tolerance);
-    //PRAW::ParallelStreamingPartitioning(partitioning,comm_cost_matrix, num_vertices,&hyperedges,&hedge_ptr,vtx_wgt,iterations, imbalance_tolerance);
-    PRAW::ParallelIndependentRestreamingPartitioning(partitioning, comm_cost_matrix, filename, vtx_wgt, iterations, imbalance_tolerance);
-    if(process_id == 0) {
-        // if bandwidth file was not used in partitioning but was provided, use it in evaluation
-        if(!use_bandwidth_in_partitioning && bandwidth_file != NULL) {
-            PRAW::get_comm_cost_matrix_from_bandwidth(bandwidth_file,comm_cost_matrix,num_processes);
-        }
-        PRAW::storePartitionStats(filename,partitioning,num_processes,num_vertices,&hyperedges,&hedge_ptr,vtx_wgt,comm_cost_matrix);
-    }
-    // clear memory
-    free(partitioning);
-    free(vtx_wgt);
-    for(int ii=0; ii < num_processes; ii++) {
-        free(comm_cost_matrix[ii]);
-    }
-    free(comm_cost_matrix);
-
-    MPI_Finalize();
-    return 0;
-}*/

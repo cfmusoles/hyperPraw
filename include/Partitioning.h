@@ -11,16 +11,16 @@ class Partitioning {
 public:
 	idx_t* partitioning;
 	char* hgraph_name = NULL;
-
+	int num_vertices;
+	
 	Partitioning(char* graph_name, float imbalance) {
 		hgraph_name = graph_name;
 		imbalance_tolerance = imbalance;
 
-		int vertices;
 		int hedges;
-		PRAW::get_hypergraph_file_header(hgraph_name,&vertices,&hedges);
+		PRAW::get_hypergraph_file_header(hgraph_name,&num_vertices,&hedges);
 
-		partitioning = (idx_t*)calloc(vertices,sizeof(idx_t));
+		partitioning = (idx_t*)calloc(num_vertices,sizeof(idx_t));
 	}
 	virtual ~Partitioning() {
 		free(partitioning);

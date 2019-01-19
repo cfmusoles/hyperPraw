@@ -62,29 +62,26 @@ namespace PRAW {
         return  max_imbalance;
     }
 
-    void storePartitionStats(std::string experiment_name, idx_t* partitioning, int num_processes, int num_vertices, std::vector<std::vector<int> >* hyperedges, std::vector<std::vector<int> >* hedge_ptr, int* vtx_wgt,double** comm_cost_matrix) {
+    void getPartitionStats(idx_t* partitioning, int num_processes, int num_vertices, std::vector<std::vector<int> >* hyperedges, std::vector<std::vector<int> >* hedge_ptr, int* vtx_wgt,double** comm_cost_matrix, // input
+                            float* hyperedges_cut_ratio, float* edges_cut_ratio, int* soed, float* absorption, float* max_imbalance, double* total_comm_cost) { // output
+        
         // For hypergraph partitioning, two common metrics for objective functions Heuer 2017 (connectivity vs hyperedge cut):
         // communication cost estimate (given network bandwidth estimates)
         // quality measurements from hMETIS: Sum of External Degrees, Absorption
+        *hyperedges_cut_ratio=0;
+        *edges_cut_ratio=0;
+        *soed=0;
+        *absorption=0;
+        *max_imbalance=0;
+        *total_comm_cost=0;
+
         int* workload = (int*)calloc(num_processes,sizeof(int));
         int total_workload = 0;
         long int edgecut = 0;
         int hyperedges_cut = 0;
         long int total_edges = 0;
-        int soed = 0; // Sum of External degrees
-        int hconnectivity_metric = 0; // hyperedges cut weighted by the number of participating partitions - 1
         int* vertices_in_partition = (int*)calloc(num_processes,sizeof(int)); // used for absorption
-        float absorption = 0;
-        double total_comm_cost = 0;
-
-#ifdef EVALUATE_PARTITIONING
-        // Evaluate partitioning by predicting amount of data transferred in null compute sim
-        int** part_connectivity = (int**)malloc(sizeof(int*) * num_processes);
-        for(int ii=0; ii < num_processes; ii++) {
-            part_connectivity[ii] = (int*)calloc(num_processes,sizeof(int));
-        }
-#endif
-
+        
         for(int vid=0; vid < num_vertices; vid++) {
             if(vtx_wgt != NULL) {
                 workload[partitioning[vid]] += vtx_wgt[vid];
@@ -111,65 +108,54 @@ namespace PRAW {
                     if(to_part != partitioning[from]) {
                         edgecut++;
                         connectivity.insert(to_part);
-#ifdef EVALUATE_PARTITIONING
-                        part_connectivity[partitioning[from]][to_part] += 1;
-#endif
                     }
                     if(comm_cost_matrix != NULL) {
-                        total_comm_cost += comm_cost_matrix[partitioning[from]][to_part];
+                        *total_comm_cost += comm_cost_matrix[partitioning[from]][to_part];
                     }
                 }
             }
             // metrics per hyperedge
-            //hconnectivity_metric += connectivity.size()-1;
             if(connectivity.size() > 1) {
-                soed += connectivity.size(); // counts as 1 external degree per partition participating
+                *soed += connectivity.size(); // counts as 1 external degree per partition participating
                 hyperedges_cut++;
-                hconnectivity_metric += connectivity.size();
             
             }
             for(int pp = 0; pp < num_processes; pp++) {
                 if(vertices_in_partition[pp] == 0) continue;
-                absorption += (float)(vertices_in_partition[pp]-1) / (float)(hyperedges->at(ii).size()-1);
+                *absorption += (float)(vertices_in_partition[pp]-1) / (float)(hyperedges->at(ii).size()-1);
             } 
             
         }
 
-        float max_imbalance = 0;
         float expected_work = total_workload / num_processes;
         for(int ii=0; ii < num_processes; ii++) {
-            PRINTF("%i workload: %i\n",ii,workload[ii]);
             float imbalance = (workload[ii] / expected_work);
-            if(imbalance > max_imbalance)
-                max_imbalance = imbalance;
+            if(imbalance > *max_imbalance)
+                *max_imbalance = imbalance;
         }
 
-#ifdef EVALUATE_PARTITIONING
-        // store partitioning connectivity in file
-        std::string fname = "prediction_comm_matrix_";
-        char str_to_int[16];
-        sprintf(str_to_int,"%i",num_processes);
-		fname +=  str_to_int;
-        FILE *comm_matrix_file = fopen(fname.c_str(), "w");
-        if(comm_matrix_file == NULL) {
-		    printf("Error when storing results into file\n");
-		} else {
-            for(int from =0; from < num_processes; from++) {
-                for(int to =0; to < num_processes; to++) {
-                    fprintf(comm_matrix_file,"%i ",part_connectivity[from][to]);
-                }
-                fprintf(comm_matrix_file,"\n");
-            }
-        }
-        fclose(comm_matrix_file);
-        // clear memory
-        for(int ii=0; ii < num_processes; ii++) {
-            free(part_connectivity[ii]);
-        }
-        free(part_connectivity);
-#endif
+        *hyperedges_cut_ratio=(float)hyperedges_cut/hyperedges->size();
+        *edges_cut_ratio=(float)edgecut/total_edges;
+        
 
-        printf("Quality: %i (hedgecut, %.3f total) %.3f (cut net), %i (connectivity metric), %i (SOED), %.1f (absorption) %.3f (max imbalance), %f (comm cost)\n",hyperedges_cut,(float)hyperedges_cut/hyperedges->size(),(float)edgecut/total_edges,hconnectivity_metric,soed,absorption,max_imbalance,total_comm_cost);
+        PRINTF("Quality: %i (hedgecut, %.3f total) %.3f (cut net), %i (SOED), %.1f (absorption) %.3f (max imbalance), %f (comm cost)\n",hyperedges_cut,*hyperedges_cut_ratio,*edges_cut_ratio,*soed,*absorption,*max_imbalance,*total_comm_cost);
+        
+        // clean up
+        free(workload);
+        free(vertices_in_partition);
+    }
+
+    void storePartitionStats(std::string experiment_name, idx_t* partitioning, int num_processes, int num_vertices, std::vector<std::vector<int> >* hyperedges, std::vector<std::vector<int> >* hedge_ptr, int* vtx_wgt,double** comm_cost_matrix) {
+        float hyperedges_cut_ratio;
+        float edges_cut_ratio;
+        int soed;
+        float absorption;
+        float max_imbalance;
+        double total_comm_cost;
+        getPartitionStats(partitioning, num_processes, num_vertices, hyperedges, hedge_ptr, vtx_wgt,comm_cost_matrix,
+                            &hyperedges_cut_ratio, &edges_cut_ratio, &soed, &absorption, &max_imbalance, &total_comm_cost);
+        
+        printf("Hedgecut, %.3f, %.3f (cut net), %i (SOED), %.1f (absorption) %.3f (max imbalance), %f (comm cost)\n",hyperedges_cut_ratio,edges_cut_ratio,soed,absorption,max_imbalance,total_comm_cost);
         // store stats in a file
         experiment_name = getFileName(experiment_name);
         experiment_name += "_part_stats_";
@@ -183,14 +169,10 @@ namespace PRAW {
 		    printf("Error when storing results into file\n");
 		} else {
 			if(!fileexists) // file does not exist, add header
-			    fprintf(fp,"%s,%s,%s,%s,%s,%s,%s,%s\n","Quality (hedges cut)","Hedge cut ratio","Cut net","Connectivity metric","SOED","Absorption","Max imbalance","Comm cost");
-			fprintf(fp,"%i,%f,%f,%i,%i,%f,%f,%f\n",hyperedges_cut,(float)hyperedges_cut/hyperedges->size(),(float)edgecut/total_edges,hconnectivity_metric,soed,absorption,max_imbalance,total_comm_cost);
+			    fprintf(fp,"%s,%s,%s,%s,%s,%s\n","Hedge cut ratio","Cut net","SOED","Absorption","Max imbalance","Comm cost");
+			fprintf(fp,"%f,%f,%i,%f,%f,%f\n",hyperedges_cut_ratio,edges_cut_ratio,soed,absorption,max_imbalance,total_comm_cost);
         }
         fclose(fp);
-
-        // clean up
-        free(workload);
-        free(vertices_in_partition);
     }
 
     // get number of vertices in hMETIS file
