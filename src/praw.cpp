@@ -165,13 +165,21 @@ int main(int argc, char** argv) {
         float absorption;
         float max_imbalance;
         double total_comm_cost;
+        // needs to load entire hypergraph
+        hyperedges.clear();
+        hyperedges.swap(hyperedges);
+        hedge_ptr.clear();
+        hedge_ptr.swap(hedge_ptr);
+        std::string filename = graph_file;
+        PRAW::load_hypergraph_from_file(filename, &hyperedges, &hedge_ptr);
+
         PRAW::getPartitionStats(partition->partitioning, num_processes, partition->num_vertices, &hyperedges, &hedge_ptr, NULL,comm_cost_matrix,
                                 &hyperedges_cut_ratio, &edges_cut_ratio, &soed, &absorption, &max_imbalance, &total_comm_cost);
 
         printf("Partition time %.2fs, sim time %.2fs\nHedgecut, %.3f, %.3f (cut net), %i (SOED), %.1f (absorption) %.3f (max imbalance), %.0f (comm cost)\n",partition_timer,total_sim_time,hyperedges_cut_ratio,edges_cut_ratio,soed,absorption,max_imbalance,total_comm_cost);
         
         // store stats in file
-        std::string filename = experiment_name;
+        filename = experiment_name;
         filename += "_";
         std::string graph_string = graph_file;
         filename += PRAW::getFileName(graph_string);
