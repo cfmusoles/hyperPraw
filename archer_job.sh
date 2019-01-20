@@ -10,18 +10,17 @@
 #PBS -A e582  
 
 PROCESSES=192
-TEST_REPETITIONS=3
+TEST_REPETITIONS=2
 
 # bandwidth probing parameters
-SIZE=4096
+SIZE=512
 ITERATIONS=20
 WINDOW=10
 # comm benchmark parameters
-SIM_TIME=15000
+SIM_TIME=10000
 BYTES_PER_PROCESS=100
 # simulation parameters
-HYPERGRAPH_FILE="2D_54019_highK.mtx.hgr"
-COMM_PATTERN="nbx"
+HYPERGRAPH_FILE="2D_54019_highK.mtx.hgr" #"sparsine.mtx.hgr"
 
 # This shifts to the directory that you submitted the job from
 cd $PBS_O_WORKDIR
@@ -36,13 +35,17 @@ aprun -n $PROCESSES mpi_perf $SIZE $ITERATIONS $WINDOW
 for i in $(seq 1 $TEST_REPETITIONS)
 do
 	SEED=$RANDOM
-        aprun -n $PROCESSES comm_benchmark $SIM_TIME $BYTES_PER_PROCESS benchmark_default
-        sleep 1
-        aprun -n $PROCESSES comm_benchmark $SIM_TIME $BYTES_PER_PROCESS benchmark_bm $BM_FILE
-        sleep 1
-	aprun -n $PROCESSES distSim -n nullcompute_zoltanFile -c $COMM_PATTERN -p "zoltanFile" -s $SEED -k 1000 -f 1000 -t 500 -h $HYPERGRAPH_FILE -i 24 -N
-	aprun -n $PROCESSES distSim -n nullcompute_praw_default -c $COMM_PATTERN -p "prawS" -s $SEED -k 1000 -f 1000 -t 500 -h $HYPERGRAPH_FILE -i 24 -N
-	aprun -n $PROCESSES distSim -n nullcompute_praw_bandwidth -c $COMM_PATTERN -p "prawS" -s $SEED -k 1000 -f 1000 -t 500 -h $HYPERGRAPH_FILE -i 24 -N -b $BM_FILE
+        #aprun -n $PROCESSES comm_benchmark $SIM_TIME $BYTES_PER_PROCESS benchmark_default
+        #sleep 1
+        #aprun -n $PROCESSES comm_benchmark $SIM_TIME $BYTES_PER_PROCESS benchmark_bm $BM_FILE
+        #sleep 1	
+	aprun -n $PROCESSES hyperPraw -n zoltan -h $HYPERGRAPH_FILE -i 100 -m 1100 -p zoltan -t 50 -s 111 -b $BM_FILE -W
+	sleep 1
+	aprun -n $PROCESSES hyperPraw -n praw_default -h $HYPERGRAPH_FILE -i 100 -m 1100 -p praw -t 50 -s 111 -b $BM_FILE
+	sleep 1
+	aprun -n $PROCESSES hyperPraw -n praw_bandwidth -h $HYPERGRAPH_FILE -i 100 -m 1100 -p praw -t 50 -s 111 -b $BM_FILE -W	
+	sleep 1
+	aprun -n $PROCESSES hyperPraw -n random -h $HYPERGRAPH_FILE -i 100 -m 1100 -p random -t 50 -s 111 -b $BM_FILE -W
 	sleep 1
 done
 
