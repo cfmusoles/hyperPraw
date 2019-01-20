@@ -20,8 +20,8 @@ WINDOW=10
 SIM_TIME=10000
 BYTES_PER_PROCESS=100
 # simulation parameters
-HYPERGRAPH_FILE="2D_54019_highK.mtx.hgr" #"sparsine.mtx.hgr"
-
+HYPERGRAPH_FILE="sparsine.mtx.hgr" #"2D_54019_highK.mtx.hgr" #"sparsine.mtx.hgr"
+SIM_STEPS=10
 # This shifts to the directory that you submitted the job from
 cd $PBS_O_WORKDIR
 
@@ -39,13 +39,13 @@ do
         #sleep 1
         #aprun -n $PROCESSES comm_benchmark $SIM_TIME $BYTES_PER_PROCESS benchmark_bm $BM_FILE
         #sleep 1	
-	aprun -n $PROCESSES hyperPraw -n zoltan -h $HYPERGRAPH_FILE -i 100 -m 1100 -p zoltan -t 50 -s 111 -b $BM_FILE -W
+	aprun -n $PROCESSES hyperPraw -n zoltan -h $HYPERGRAPH_FILE -i 100 -m 1100 -p zoltan -t $SIM_STEPS -s 111 -b $BM_FILE -W
 	sleep 1
-	aprun -n $PROCESSES hyperPraw -n praw_default -h $HYPERGRAPH_FILE -i 100 -m 1100 -p praw -t 50 -s 111 -b $BM_FILE
+	aprun -n $PROCESSES hyperPraw -n praw_default -h $HYPERGRAPH_FILE -i 100 -m 1100 -p praw -t $SIM_STEPS -s 111 -b $BM_FILE
 	sleep 1
-	aprun -n $PROCESSES hyperPraw -n praw_bandwidth -h $HYPERGRAPH_FILE -i 100 -m 1100 -p praw -t 50 -s 111 -b $BM_FILE -W	
+	aprun -n $PROCESSES hyperPraw -n praw_bandwidth -h $HYPERGRAPH_FILE -i 100 -m 1100 -p praw -t $SIM_STEPS -s 111 -b $BM_FILE -W	
 	sleep 1
-	aprun -n $PROCESSES hyperPraw -n random -h $HYPERGRAPH_FILE -i 100 -m 1100 -p random -t 50 -s 111 -b $BM_FILE -W
+	aprun -n $PROCESSES hyperPraw -n random -h $HYPERGRAPH_FILE -i 100 -m 1100 -p random -t $SIM_STEPS -s 111 -b $BM_FILE -W
 	sleep 1
 done
 
