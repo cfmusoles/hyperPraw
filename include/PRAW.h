@@ -120,11 +120,12 @@ namespace PRAW {
                 hyperedges_cut++;
             
             }
-            for(int pp = 0; pp < num_processes; pp++) {
-                if(vertices_in_partition[pp] == 0) continue;
-                *absorption += (float)(vertices_in_partition[pp]-1) / (float)(hyperedges->at(ii).size()-1);
-            } 
-            
+            if(hyperedges->at(ii).size() > 1) {
+                for(int pp = 0; pp < num_processes; pp++) {
+                    if(vertices_in_partition[pp] == 0) continue;
+                    *absorption += (float)(vertices_in_partition[pp]-1) / (float)(hyperedges->at(ii).size()-1);
+                } 
+            }
         }
 
         float expected_work = total_workload / num_processes;
