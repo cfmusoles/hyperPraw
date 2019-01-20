@@ -2,7 +2,7 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 import numpy as np
 
-hgraph_file = "../resources/sat14_11pipe_q0_k.cnf.hgr" #2D_54019_highK.mtx.hgr #sparsine.mtx.hgr sat14_11pipe_q0_k.cnf.hgr
+hgraph_file = "../resources/sparsine.mtx.hgr" #2D_54019_highK.mtx.hgr #sparsine.mtx.hgr sat14_11pipe_q0_k.cnf.hgr
 
 # data structure to hold hedge sizes: 1d list corresponding to each hedge size
 # data structure to hold vertex degree: 1d list corresponding to each vertex degree
