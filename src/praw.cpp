@@ -82,9 +82,12 @@ int main(int argc, char** argv) {
 	if(strcmp(part_method,"zoltan") == 0) {
 		PRINTF("%i: Partitioning: zoltan\n",process_id);
 		partition = new ZoltanPartitioning(graph_file,imbalance_tolerance);
-	} else if(strcmp(part_method,"praw") == 0) {  
-		PRINTF("%i: Partitioning: hyperPRAW\n",process_id);
+	} else if(strcmp(part_method,"prawP") == 0) {  
+		PRINTF("%i: Partitioning: parallel hyperPRAW\n",process_id);
 		partition = new HyperPRAWPartitioning(graph_file,imbalance_tolerance,iterations,bandwidth_file,true,use_bandwidth_in_partitioning);
+	} else if(strcmp(part_method,"prawS") == 0) {  
+		PRINTF("%i: Partitioning: sequential hyperPRAW\n",process_id);
+		partition = new HyperPRAWPartitioning(graph_file,imbalance_tolerance,iterations,bandwidth_file,false,use_bandwidth_in_partitioning);
 	} else { // default is random
 		PRINTF("%i: Partitioning: random\n",process_id);
 		partition = new RandomPartitioning(graph_file,imbalance_tolerance);

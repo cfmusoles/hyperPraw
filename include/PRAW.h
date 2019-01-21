@@ -432,7 +432,7 @@ namespace PRAW {
         return 0;
     }
 
-    int SequentialStreamingPartitioning(idx_t* partitioning, double** comm_cost_matrix, int num_vertices, std::vector<std::vector<int> >* hyperedges, std::vector<std::vector<int> >* hedge_ptr, int* vtx_wgt, int max_iterations, float imbalance_tolerance) {
+    int SequentialStreamingPartitioning(idx_t* partitioning, int num_processes, double** comm_cost_matrix, int num_vertices, std::vector<std::vector<int> >* hyperedges, std::vector<std::vector<int> >* hedge_ptr, int* vtx_wgt, int max_iterations, float imbalance_tolerance) {
         
         //PARAMETERS: From Battaglino 2015 //
         float g = 1.5;
@@ -440,107 +440,95 @@ namespace PRAW {
         float ta = 1.7;
         ///////////////
         
-        int process_id;
-        MPI_Comm_rank(MPI_COMM_WORLD,&process_id);
-        int num_processes;
-        MPI_Comm_size(MPI_COMM_WORLD,&num_processes);
-
-        if(process_id == 0) {
-            // Do partitioning only on master node
-            double expected_workload = 0;
-            int* part_load = (int*)calloc(num_processes,sizeof(int));
-            for(int ii=0; ii < num_vertices; ii++) {
-                expected_workload += vtx_wgt[ii];
-                part_load[partitioning[ii]] += vtx_wgt[ii]; // workload for vertex
-            }
-            expected_workload /= num_processes;
-            double* comm_cost_per_partition = (double*)malloc(num_processes*sizeof(double));
-            int* current_neighbours_in_partition = (int*)malloc(num_processes*sizeof(int));
-            int* current_neighbours_elsewhere = (int*)malloc(num_processes*sizeof(int));
-            for(int iter=0; iter < max_iterations; iter++) {
-                // go through own vertex list and reassign
-                for(int vid=0; vid < num_vertices; vid++) {
-                    // reevaluate objective function per partition
-                    // |P^t_i union N(v)| = number of vertices in partition i that are neighbours of vertex v 
-                    // where are neighbours located
-                    // new communication cost incurred
-                    memset(current_neighbours_in_partition,0,num_processes * sizeof(int));
-                    memset(current_neighbours_elsewhere,0,num_processes * sizeof(int));
-                    memset(comm_cost_per_partition,0,num_processes * sizeof(double));
-                    for(int he = 0; he < hedge_ptr->at(vid).size(); he++) {
-                        int he_id = hedge_ptr->at(vid)[he];
-                        for(int vt = 0; vt < hyperedges->at(he_id).size(); vt++) {
-                            int dest_vertex = hyperedges->at(he_id)[vt];
-                            if(dest_vertex == vid) continue;
-                            int dest_part = partitioning[dest_vertex];
-                            current_neighbours_in_partition[dest_part] += 1; //  we may be counting twice a dest_node that appears in more than one hedge
-                            // recalculate comm cost for all possible partition assignments of ii
-                            //  commCost(v,Pi) = forall edge in edges(Pi) cost += w(e) * c(Pi,Pj) where i != j
-                            for(int fp=0; fp < num_processes; fp++) {
-                                comm_cost_per_partition[fp] += 1 * comm_cost_matrix[fp][dest_part];
-                                if(fp != dest_part) {
-                                    current_neighbours_elsewhere[fp] += 1;
-                                }
+        // Do partitioning only on master node
+        double expected_workload = 0;
+        int* part_load = (int*)calloc(num_processes,sizeof(int));
+        for(int ii=0; ii < num_vertices; ii++) {
+            expected_workload += vtx_wgt[ii];
+            part_load[partitioning[ii]] += vtx_wgt[ii]; // workload for vertex
+        }
+        expected_workload /= num_processes;
+        double* comm_cost_per_partition = (double*)malloc(num_processes*sizeof(double));
+        int* current_neighbours_in_partition = (int*)malloc(num_processes*sizeof(int));
+        int* current_neighbours_elsewhere = (int*)malloc(num_processes*sizeof(int));
+        for(int iter=0; iter < max_iterations; iter++) {
+            // go through own vertex list and reassign
+            for(int vid=0; vid < num_vertices; vid++) {
+                // reevaluate objective function per partition
+                // |P^t_i union N(v)| = number of vertices in partition i that are neighbours of vertex v 
+                // where are neighbours located
+                // new communication cost incurred
+                memset(current_neighbours_in_partition,0,num_processes * sizeof(int));
+                memset(current_neighbours_elsewhere,0,num_processes * sizeof(int));
+                memset(comm_cost_per_partition,0,num_processes * sizeof(double));
+                for(int he = 0; he < hedge_ptr->at(vid).size(); he++) {
+                    int he_id = hedge_ptr->at(vid)[he];
+                    for(int vt = 0; vt < hyperedges->at(he_id).size(); vt++) {
+                        int dest_vertex = hyperedges->at(he_id)[vt];
+                        if(dest_vertex == vid) continue;
+                        int dest_part = partitioning[dest_vertex];
+                        current_neighbours_in_partition[dest_part] += 1; //  we may be counting twice a dest_node that appears in more than one hedge
+                        // recalculate comm cost for all possible partition assignments of ii
+                        //  commCost(v,Pi) = forall edge in edges(Pi) cost += w(e) * c(Pi,Pj) where i != j
+                        for(int fp=0; fp < num_processes; fp++) {
+                            comm_cost_per_partition[fp] += 1 * comm_cost_matrix[fp][dest_part];
+                            if(fp != dest_part) {
+                                current_neighbours_elsewhere[fp] += 1;
                             }
                         }
                     }
-                    float max_value = std::numeric_limits<float>::lowest();
-                    int best_partition = partitioning[vid];
-                    for(int pp=0; pp < num_processes; pp++) {
-
-                        // total cost of communication (edgecuts * number of participating partitions)
-                        int total_comm_cost = 0;
-                        for(int jj=0; jj < num_processes; jj++) {
-                            if(pp != jj)
-                                total_comm_cost += current_neighbours_in_partition[jj] > 0 ? 1 : 0;
-                        }
-                        
-                        // testing objective function
-                        //float current_value = current_neighbours_in_partition[pp] - current_neighbours_elsewhere[pp] - comm_cost_per_partition[pp]  - a * g/2 * pow(part_load[pp],g-1);
-                        float current_value = -total_comm_cost * comm_cost_per_partition[pp]  - a * g/2 * pow(part_load[pp],g-1);
-                        
-                        // objective function is a mix of Battaglino 2015 (second part) and Zheng 2016 (communication cost part)
-                        // (|P^t_i union N(v)| - commCost(v,Pi) - a * g/2 * |B|^(g-1))
-                        //float current_value = current_neighbours_in_partition[pp] - comm_cost_per_partition[pp]  - a * g/2 * pow(part_load[pp],g-1);
-                                        
-                        // alternative from Battaglino 2015
-                        //float current_value = current_neighbours_in_partition[pp] - a * g/2 * pow(part_load[pp],g-1);
-                        // alternative from ARGO
-                        //float current_value = (1.0f/(comm_cost_per_partition[pp]+1)) * (1-part_load[pp]/expected_workload);
-                        // alternative from Alistarh 2015
-                        //if(part_load[pp] >= expected_workload) continue;
-                        //float current_value = current_neighbours_in_partition[pp];
-                        
-                        if(current_value > max_value) {
-                            max_value = current_value;
-                            best_partition = pp;
-                        }
-                    }
-                    
-                    // update intermediate workload and assignment values
-                    part_load[partitioning[vid]] -= vtx_wgt[vid];
-                    partitioning[vid] = best_partition;
-                    part_load[best_partition] += vtx_wgt[vid];
                 }
-                
-                // check if desired imbalance has been reached
-                float imbalance = calculateImbalance(partitioning,num_processes,num_vertices,vtx_wgt);
-                PRINTF("%i: %f (%f | %f)\n",iter,imbalance,a,ta);
-                if(imbalance < imbalance_tolerance) break;
+                float max_value = std::numeric_limits<float>::lowest();
+                int best_partition = partitioning[vid];
+                for(int pp=0; pp < num_processes; pp++) {
 
-                // update parameters
-                a *= ta;
+                    // total cost of communication (edgecuts * number of participating partitions)
+                    int total_comm_cost = 0;
+                    for(int jj=0; jj < num_processes; jj++) {
+                        if(pp != jj)
+                            total_comm_cost += current_neighbours_in_partition[jj] > 0 ? 1 : 0;
+                    }
+                        
+                    // testing objective function
+                    //float current_value = current_neighbours_in_partition[pp] - current_neighbours_elsewhere[pp] - comm_cost_per_partition[pp]  - a * g/2 * pow(part_load[pp],g-1);
+                    float current_value = -total_comm_cost * comm_cost_per_partition[pp]  - a * g/2 * pow(part_load[pp],g-1);
+                        
+                    // objective function is a mix of Battaglino 2015 (second part) and Zheng 2016 (communication cost part)
+                    // (|P^t_i union N(v)| - commCost(v,Pi) - a * g/2 * |B|^(g-1))
+                    //float current_value = current_neighbours_in_partition[pp] - comm_cost_per_partition[pp]  - a * g/2 * pow(part_load[pp],g-1);
+                                        
+                    // alternative from Battaglino 2015
+                    //float current_value = current_neighbours_in_partition[pp] - a * g/2 * pow(part_load[pp],g-1);
+                    // alternative from ARGO
+                    //float current_value = (1.0f/(comm_cost_per_partition[pp]+1)) * (1-part_load[pp]/expected_workload);
+                    // alternative from Alistarh 2015
+                    //if(part_load[pp] >= expected_workload) continue;
+                    //float current_value = current_neighbours_in_partition[pp];
+                        
+                    if(current_value > max_value) {
+                        max_value = current_value;
+                        best_partition = pp;
+                    }
+                }
+                    
+                // update intermediate workload and assignment values
+                part_load[partitioning[vid]] -= vtx_wgt[vid];
+                partitioning[vid] = best_partition;
+                part_load[best_partition] += vtx_wgt[vid];
             }
-            // clean up
-            free(part_load);
-            free(current_neighbours_in_partition);
+                
+            // check if desired imbalance has been reached
+            float imbalance = calculateImbalance(partitioning,num_processes,num_vertices,vtx_wgt);
+            PRINTF("%i: %f (%f | %f)\n",iter,imbalance,a,ta);
+            if(imbalance < imbalance_tolerance) break;
+
+            // update parameters
+            a *= ta;
         }
-
-        // share new partitioning with other processes
-        MPI_Bcast(partitioning,num_vertices,MPI_LONG,0,MPI_COMM_WORLD);
-
-        //printPartitionStats(partitioning,num_processes,num_vertices,hyperedges,hedge_ptr,vtx_wgt,comm_cost_matrix);
-        
+        // clean up
+        free(part_load);
+        free(current_neighbours_in_partition);
+    
         // return successfully
         return 0;
     }
