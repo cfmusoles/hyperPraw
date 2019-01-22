@@ -41,12 +41,9 @@ do
         #sleep 1	
 	aprun -n $PROCESSES hyperPraw -n zoltan -h $HYPERGRAPH_FILE -i 100 -m 1100 -p zoltan -t $SIM_STEPS -s 111 -b $BM_FILE -W
 	sleep 1
-	aprun -n $PROCESSES hyperPraw -n praw_default -h $HYPERGRAPH_FILE -i 100 -m 1100 -p praw -t $SIM_STEPS -s 111 -b $BM_FILE
+	aprun -n $PROCESSES hyperPraw -n praw_default -h $HYPERGRAPH_FILE -i 100 -m 1100 -p prawS -t $SIM_STEPS -s 111 -b $BM_FILE
 	sleep 1
-	aprun -n $PROCESSES hyperPraw -n praw_bandwidth -h $HYPERGRAPH_FILE -i 100 -m 1100 -p praw -t $SIM_STEPS -s 111 -b $BM_FILE -W	
-	sleep 1
-	aprun -n $PROCESSES hyperPraw -n random -h $HYPERGRAPH_FILE -i 100 -m 1100 -p random -t $SIM_STEPS -s 111 -b $BM_FILE -W
-	sleep 1
+	aprun -n $PROCESSES hyperPraw -n praw_bandwidth -h $HYPERGRAPH_FILE -i 100 -m 1100 -p prawS -t $SIM_STEPS -s 111 -b $BM_FILE -W
 done
 
 
