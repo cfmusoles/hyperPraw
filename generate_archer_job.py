@@ -67,8 +67,8 @@ min_processes = int(sys.argv[2])
 num_experiments = int(sys.argv[3])
 geometric_step = int(sys.argv[4])
 big_mem = (sys.argv[5] == "true" or sys.argv[5] == "True")
-hgraph_file = sys.argv[5]
-sim_steps = int(sys.argv[6])
+hgraph_file = sys.argv[6]
+sim_steps = int(sys.argv[7])
 
 process_counts = [min_processes * geometric_step ** (n-1) for n in range (1, num_experiments+1)]
 print("Generating experiments")
