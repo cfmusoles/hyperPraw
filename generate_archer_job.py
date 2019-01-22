@@ -14,7 +14,7 @@ template_2 = '''
 template_3=''':bigmem='''
 template_4='''
 # walltime
-#PBS -l walltime=1:00:0
+#PBS -l walltime=0:20:0
 # budget code
 #PBS -A e582
 
