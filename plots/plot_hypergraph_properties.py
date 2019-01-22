@@ -2,13 +2,13 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 import numpy as np
 
-hgraph_file = "../resources/sparsine.mtx.hgr" #2D_54019_highK.mtx.hgr #sparsine.mtx.hgr sat14_11pipe_q0_k.cnf.hgr
+hgraph_file = "../resources/ISPD98_ibm18.hgr" #2D_54019_highK.mtx.hgr #sparsine.mtx.hgr sat14_11pipe_q0_k.cnf.hgr
 
 # data structure to hold hedge sizes: 1d list corresponding to each hedge size
 # data structure to hold vertex degree: 1d list corresponding to each vertex degree
 with open(hgraph_file) as f:
     print(f.readline()) #skip header info
-    hedges = [x.split(" ") for x in f]
+    hedges = [x.rstrip().split(" ") for x in f]
     hedge_sizes = [len(x) for x in hedges]
     hedges = [int(vid.replace("\n","")) for hedge in hedges for vid in hedge] #np.array([int(x.replace("\n","")) for x in hedges]).flatten()
     unique, vertex_counts = np.unique(hedges,return_counts=True)

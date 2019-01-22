@@ -1,5 +1,5 @@
 // Test harness for SPAAW (Streaming parallel Partitioning Architecture AWare)
-//#define VERBOSE                 // extra debug info printed out during runtime
+#define VERBOSE                 // extra debug info printed out during runtime
 
 #include <mpi.h>
 #include <cstdio>
@@ -109,6 +109,7 @@ int main(int argc, char** argv) {
     //    Parallel communication should decrease with
     //        Absorption
     double timer = MPI_Wtime();
+    long int messages_sent = 0;
     for(int tt = 0; tt < sim_steps; tt++) {
         // for each local hyperedge
         //      if any vertex is not local, add destination to target list
@@ -129,6 +130,7 @@ int main(int argc, char** argv) {
                         for (std::set<int>::iterator receiver=partitions.begin(); receiver!=partitions.end(); ++receiver) {
                             int receiver_id = *receiver;
                             if(sender_id == receiver_id) continue;
+                            messages_sent++;
                             MPI_Send(&sender_id,1,MPI_INT,receiver_id,he_id,MPI_COMM_WORLD);
                         }
                     } else { // turn to receive messages
@@ -144,14 +146,17 @@ int main(int argc, char** argv) {
     MPI_Barrier(MPI_COMM_WORLD);
 
     double total_sim_time = MPI_Wtime() - timer;
+    //total number of messages exchanged
+    long int total_messages_sent;
+	MPI_Allreduce(&messages_sent, &total_messages_sent, 1, MPI_LONG, MPI_SUM, MPI_COMM_WORLD);
 
     //Store metrics
     //    simulation time
     //    communication time
     //    partitioning stats (hedge cut, SOED, absorption)
-    PRINTF("%i: simulation time (%i steps): %f secs\n",process_id,sim_steps,total_sim_time);
-
+    
     if(process_id == 0) {
+        PRINTF("%i: simulation time (%i steps): %f secs\nMessages sent %li\n",process_id,sim_steps,total_sim_time,total_messages_sent);
         // used to calculate the theoretical cost of communication
         // if bandwidth file is not provided, then assumes all costs are equal
         // initialise comm cost matrix (for theoretical cost analysis)
@@ -179,7 +184,7 @@ int main(int argc, char** argv) {
         PRAW::getPartitionStats(partition->partitioning, num_processes, partition->num_vertices, &hyperedges, &hedge_ptr, NULL,comm_cost_matrix,
                                 &hyperedges_cut_ratio, &edges_cut_ratio, &soed, &absorption, &max_imbalance, &total_comm_cost);
 
-        printf("Partition time %.2fs, sim time %.2fs\nHedgecut, %.3f, %.3f (cut net), %i (SOED), %.1f (absorption) %.3f (max imbalance), %.0f (comm cost)\n",partition_timer,total_sim_time,hyperedges_cut_ratio,edges_cut_ratio,soed,absorption,max_imbalance,total_comm_cost);
+        printf("Partition time %.2fs, sim time %.2fs\nHedgecut, %.3f, %.3f (cut net), %i (SOED), %.1f (absorption) %.3f (max imbalance), %.0f (comm cost)\nMessages sent %li\n",partition_timer,total_sim_time,hyperedges_cut_ratio,edges_cut_ratio,soed,absorption,max_imbalance,total_comm_cost,total_messages_sent);
         
         // store stats in file
         filename = experiment_name;
@@ -198,8 +203,8 @@ int main(int argc, char** argv) {
             printf("Error when storing results into file\n");
         } else {
             if(!fileexists) // file does not exist, add header
-                fprintf(fp,"%s,%s,%s,%s,%s,%s,%s,%s\n","Partition time","Sim time","Hedge cut ratio","Cut net","SOED","Absorption","Max imbalance","Comm cost");
-            fprintf(fp,"%.3f,%.3f,%.3f,%.3f,%i,%.1f,%.3f,%.0f\n",partition_timer,total_sim_time,hyperedges_cut_ratio,edges_cut_ratio,soed,absorption,max_imbalance,total_comm_cost);
+                fprintf(fp,"%s,%s,%s,%s,%s,%s,%s,%s,%s\n","Partition time","Sim time","Hedge cut ratio","Cut net","SOED","Absorption","Max imbalance","Comm cost","Messages sent");
+            fprintf(fp,"%.3f,%.3f,%.3f,%.3f,%i,%.1f,%.3f,%.0f,%li\n",partition_timer,total_sim_time,hyperedges_cut_ratio,edges_cut_ratio,soed,absorption,max_imbalance,total_comm_cost,total_messages_sent);
         }
         fclose(fp);
 
