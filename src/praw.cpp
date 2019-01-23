@@ -1,5 +1,5 @@
 // Test harness for SPAAW (Streaming parallel Partitioning Architecture AWare)
-#define VERBOSE                 // extra debug info printed out during runtime
+//#define VERBOSE                 // extra debug info printed out during runtime
 
 #include <mpi.h>
 #include <cstdio>
@@ -84,8 +84,12 @@ int main(int argc, char** argv) {
 		partition = new ZoltanPartitioning(graph_file,imbalance_tolerance);
 	} else if(strcmp(part_method,"prawP") == 0) {  
 		PRINTF("%i: Partitioning: parallel hyperPRAW\n",process_id);
+        Partitioning* p1 = new ZoltanPartitioning(graph_file,imbalance_tolerance);
+        p1->perform_partitioning(num_processes,process_id);
 		partition = new HyperPRAWPartitioning(graph_file,imbalance_tolerance,iterations,bandwidth_file,true,use_bandwidth_in_partitioning);
-	} else if(strcmp(part_method,"prawS") == 0) {  
+        memcpy(partition->partitioning,p1->partitioning,partition->num_vertices * sizeof(idx_t));
+        free(p1);
+    } else if(strcmp(part_method,"prawS") == 0) {  
 		PRINTF("%i: Partitioning: sequential hyperPRAW\n",process_id);
 		partition = new HyperPRAWPartitioning(graph_file,imbalance_tolerance,iterations,bandwidth_file,false,use_bandwidth_in_partitioning);
 	} else { // default is random

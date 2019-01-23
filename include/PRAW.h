@@ -3,6 +3,8 @@
 #ifndef PRAW__H
 #define PRAW__H
 
+#define SAVE_HISTORY        // stores partitioning iteration history in file
+
 #include <vector>
 #include <time.h>
 #include <mpi.h>
@@ -560,7 +562,7 @@ namespace PRAW {
         // 1 - Distributed vertices over partitions (partition = vertex_id % num_partitions)
         // needs to load num_vertices from file
         for (int vid=0; vid < num_vertices; vid++) {
-            partitioning[vid] = vid % num_processes;
+            //partitioning[vid] = vid % num_processes;
         }
         
         // 2 - Divide the graph in a distributed CSR format (like ParMETIS)
@@ -576,7 +578,25 @@ namespace PRAW {
         //      b - update tempering parameters
         //      c - share with all new partition assignments
         
-
+#ifdef SAVE_HISTORY
+        std::string history_file = getFileName(hypergraph_filename);
+        history_file += "_partition_history_parallel_";
+        char str_int[16];
+        sprintf(str_int,"%i",num_processes);
+        history_file += "__";
+        history_file +=  str_int;
+        // remove history file if exists
+        if(process_id == 0) {
+            FILE *fp = fopen(history_file.c_str(), "w");
+            if(fp == NULL) {
+                printf("Error when storing partitioning history into file\n");
+            } else {
+                fprintf(fp,"%s\n","Imbalance");
+            }
+            fclose(fp);
+        }
+            
+#endif
         long int* part_load = (long int*)calloc(num_processes,sizeof(long int));
         idx_t* local_stream_partitioning = (idx_t*)malloc(num_vertices*sizeof(idx_t));
         double* comm_cost_per_partition = (double*)malloc(num_processes*sizeof(double));
@@ -606,7 +626,8 @@ namespace PRAW {
                     memset(part_load_update,0,num_processes * sizeof(int));
                 }
                 // always iterate through the same local list of vertices
-                if(vid % num_processes != process_id) continue; 
+                //if(vid % num_processes != process_id) continue;
+                if(hedge_ptr[vid].size() == 0) continue;
                 // reevaluate objective function per partition
                 // |P^t_i union N(v)| = number of vertices in partition i that are neighbours of vertex v 
                 // where are neighbours located
@@ -676,11 +697,22 @@ namespace PRAW {
             // check if desired imbalance has been reached
             float imbalance = calculateImbalance(partitioning,num_processes,num_vertices,vtx_wgt);
             PRINTF("%i: %f (%f | %f)\n",iter,imbalance,a,ta);
+#ifdef SAVE_HISTORY
+            if(process_id == 0) {
+                FILE *fp = fopen(history_file.c_str(), "ab+");
+                if(fp == NULL) {
+                    printf("Error when storing partitioning history into file\n");
+                } else {
+                    fprintf(fp,"%.3f\n",imbalance);
+                }
+                fclose(fp);
+            }
+            
+#endif
             if(frozen_iters <= iter && imbalance < imbalance_tolerance) break;
 
             // update parameters
             a *= ta;
-            //if(ta > 1.05f) ta *= tta;
         }
 
         // clean up
