@@ -50,9 +50,9 @@ do
 	SEED=$RANDOM
     aprun -n $PROCESSES hyperPraw -n $EXPERIMENT_NAME -h $HYPERGRAPH_FILE -i 100 -m 1100 -p zoltan -t $SIM_STEPS -s 111 -b $BM_FILE -W
 	sleep 1
-	aprun -n $PROCESSES hyperPraw -n $EXPERIMENT_NAME"_default" -h $HYPERGRAPH_FILE -i 100 -m 1100 -p prawS -t $SIM_STEPS -s 111 -b $BM_FILE
+	aprun -n $PROCESSES hyperPraw -n $EXPERIMENT_NAME"_default" -h $HYPERGRAPH_FILE -i 100 -m 1100 -p prawP -t $SIM_STEPS -s 111 -b $BM_FILE
 	sleep 1
-	aprun -n $PROCESSES hyperPraw -n $EXPERIMENT_NAME"_bandwidth" -h $HYPERGRAPH_FILE -i 100 -m 1100 -p prawS -t $SIM_STEPS -s 111 -b $BM_FILE -W
+	aprun -n $PROCESSES hyperPraw -n $EXPERIMENT_NAME"_bandwidth" -h $HYPERGRAPH_FILE -i 100 -m 1100 -p prawP -t $SIM_STEPS -s 111 -b $BM_FILE -W
 done
 
 '''
