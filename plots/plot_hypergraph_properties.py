@@ -2,11 +2,13 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 import numpy as np
 
-hgraph_file = "../resources/ISPD98_ibm18.hgr" #2D_54019_highK.mtx.hgr #sparsine.mtx.hgr sat14_11pipe_q0_k.cnf.hgr
+folder = '../resources/'
+hgraph_file = "sat14_E02F20.cnf.hgr" #2D_54019_highK.mtx.hgr #sparsine.mtx.hgr sat14_11pipe_q0_k.cnf.hgr
+image_format = 'pdf'
 
 # data structure to hold hedge sizes: 1d list corresponding to each hedge size
 # data structure to hold vertex degree: 1d list corresponding to each vertex degree
-with open(hgraph_file) as f:
+with open(folder + hgraph_file) as f:
     print(f.readline()) #skip header info
     hedges = [x.rstrip().split(" ") for x in f]
     hedge_sizes = [len(x) for x in hedges]
@@ -21,6 +23,7 @@ g.set_yscale('log')
 g.set_title("Hyperedges sizes")
 g.set_xlabel("Size of hyperedge")
 g.set_ylabel("Count")
+plt.savefig(hgraph_file + "_hedge_size." + image_format,format=image_format,dpi=1000)
 plt.show()
 
 
@@ -32,5 +35,6 @@ g.set_yscale('log')
 g.set_title("Vertex degrees")
 g.set_xlabel("Vertex degree")
 g.set_ylabel("Count")
+plt.savefig(hgraph_file + "_vtx_degree." + image_format,format=image_format,dpi=1000)
 plt.show()
 
