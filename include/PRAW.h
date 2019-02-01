@@ -296,6 +296,7 @@ namespace PRAW {
     void get_comm_cost_matrix_from_bandwidth(char* comm_bandwidth_filename, double** comm_cost_matrix, int partitions) {
         std::ifstream input_stream(comm_bandwidth_filename);
         if(input_stream) {
+            printf("Loading comm bandwidth file\n\n");
             std::string line;
             int current_process = 0;
             while(std::getline(input_stream,line)) {
