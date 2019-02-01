@@ -111,16 +111,25 @@ namespace PRAW {
                         edgecut++;
                         connectivity.insert(to_part);
                     }
-                    if(comm_cost_matrix != NULL) {
+                    // this cost measures mainly edge cut
+                    /*if(comm_cost_matrix != NULL) {
                         *total_comm_cost += comm_cost_matrix[partitioning[from]][to_part];
-                    }
+                    }*/
                 }
             }
             // metrics per hyperedge
             if(connectivity.size() > 1) {
                 *soed += connectivity.size(); // counts as 1 external degree per partition participating
                 hyperedges_cut++;
-            
+                // communication cost based on hyperedge cut
+                for (std::set<int>::iterator sender=connectivity.begin(); sender!=connectivity.end(); ++sender) {
+                    int sender_id = *sender;
+                    for (std::set<int>::iterator receiver=connectivity.begin(); receiver!=connectivity.end(); ++receiver) {
+                        int receiver_id = *receiver;    
+                        if (sender_id != receiver_id)
+                            *total_comm_cost += comm_cost_matrix[sender_id][receiver_id];
+                    }
+                }
             }
             if(hyperedges->at(ii).size() > 1) {
                 for(int pp = 0; pp < num_processes; pp++) {
@@ -296,7 +305,6 @@ namespace PRAW {
     void get_comm_cost_matrix_from_bandwidth(char* comm_bandwidth_filename, double** comm_cost_matrix, int partitions) {
         std::ifstream input_stream(comm_bandwidth_filename);
         if(input_stream) {
-            printf("Loading comm bandwidth file\n\n");
             std::string line;
             int current_process = 0;
             while(std::getline(input_stream,line)) {
@@ -341,98 +349,6 @@ namespace PRAW {
                 }
             }
         }
-    }
-
-    int ParallelStreamingPartitioning(idx_t* partitioning, double** comm_cost_matrix, int num_vertices, std::vector<std::vector<int> >* hyperedges, std::vector<std::vector<int> >* hedge_ptr, int* vtx_wgt, int max_iterations, float imbalance_tolerance) {
-        //PARAMETERS: From Battaglino 2015 //
-        float g = 1.5;
-        float a = sqrt(2) * hyperedges->size() / pow(num_vertices,g);
-        float ta = 1.7;
-        //float tta = 0.98;
-        ///////////////
-        
-        int process_id;
-        MPI_Comm_rank(MPI_COMM_WORLD,&process_id);
-        int num_processes;
-        MPI_Comm_size(MPI_COMM_WORLD,&num_processes);
-
-        //printPartitionStats(partitioning,num_processes,num_vertices,hyperedges,hedge_ptr,vtx_wgt,comm_cost_matrix);
-        
-        int* part_load = (int*)calloc(num_processes,sizeof(int));
-        idx_t* local_stream_partitioning = (idx_t*)malloc(num_vertices*sizeof(idx_t));
-        double* comm_cost_per_partition = (double*)malloc(num_processes*sizeof(double));
-        int* current_neighbours_in_partition = (int*)malloc(num_processes*sizeof(int));
-                
-        for(int iter=0; iter < max_iterations; iter++) {
-            memset(local_stream_partitioning,0,num_vertices * sizeof(idx_t));
-            memset(part_load,0,num_processes * sizeof(int));
-            for(int ii=0; ii < num_vertices; ii++) {
-                part_load[partitioning[ii]] += vtx_wgt[ii]; // workload for vertex
-            }
-            // go through own vertex list and reassign
-            for(int ii=0; ii < num_vertices; ii++) {
-                if(partitioning[ii] != process_id) continue;
-                // reevaluate objective function per partition
-                // |P^t_i union N(v)| = number of vertices in partition i that are neighbours of vertex v 
-                // where are neighbours located
-                // new communication cost incurred
-                memset(current_neighbours_in_partition,0,num_processes * sizeof(int));
-                memset(comm_cost_per_partition,0,num_processes * sizeof(double));
-                for(int he = 0; he < hedge_ptr->at(ii).size(); he++) {
-                    int he_id = hedge_ptr->at(ii)[he];
-                    for(int vt = 0; vt < hyperedges->at(he_id).size(); vt++) {
-                        int dest_vertex = hyperedges->at(he_id)[vt];
-                        if(dest_vertex == ii) continue;
-                        int dest_part = partitioning[dest_vertex];
-                        current_neighbours_in_partition[dest_part] += 1;
-                        // recalculate comm cost for all possible partition assignments of ii
-                        //  commCost(v,Pi) = forall edge in edges(Pi) cost += w(e) * c(Pi,Pj) where i != j
-                        for(int fp=0; fp < num_processes; fp++) {
-                            comm_cost_per_partition[fp] += 1 * comm_cost_matrix[fp][dest_part];
-                        }
-                    }
-                }
-                float max_value = std::numeric_limits<float>::lowest();
-                int best_partition = partitioning[ii];
-                for(int pp=0; pp < num_processes; pp++) {
-                    float current_value = current_neighbours_in_partition[pp] - comm_cost_per_partition[pp]  - a * g/2 * pow(part_load[pp],g-1);
-                    if(current_value > max_value) {
-                        max_value = current_value;
-                        best_partition = pp;
-                    }
-                }
-                    
-                local_stream_partitioning[ii] = best_partition;
-                // update intermediate workload and assignment values
-                part_load[best_partition] += vtx_wgt[ii];
-                part_load[partitioning[ii]] -= vtx_wgt[ii];
-                partitioning[ii] = best_partition;
-            }
-            
-            // share new partitioning with other streams
-            MPI_Allreduce(local_stream_partitioning,partitioning,num_vertices,MPI_LONG,MPI_MAX,MPI_COMM_WORLD);
-            
-            // check if desired imbalance has been reached
-            float imbalance = calculateImbalance(partitioning,num_processes,num_vertices,vtx_wgt);
-            PRINTF("%i: %f (%f | %f)\n",iter,imbalance,a,ta);
-            if(imbalance < imbalance_tolerance) break;
-
-            //printf("Iteration %i\n",iter);
-            //printPartitionStats(partitioning,num_processes,num_vertices,hyperedges,hedge_ptr,vtx_wgt,comm_cost_matrix);
-
-            // update parameters
-            a *= ta;
-            //if(ta > 1.05f) ta *= tta;
-        }
-        
-        // clean up
-        free(part_load);
-        free(local_stream_partitioning);
-        free(comm_cost_per_partition);
-        free(current_neighbours_in_partition);
-
-        // return successfully
-        return 0;
     }
 
     int SequentialStreamingPartitioning(idx_t* partitioning, int num_processes, double** comm_cost_matrix, int num_vertices, std::vector<std::vector<int> >* hyperedges, std::vector<std::vector<int> >* hedge_ptr, int* vtx_wgt, int max_iterations, float imbalance_tolerance) {
@@ -663,6 +579,8 @@ namespace PRAW {
                     }
                     
                     float current_value = -total_comm_cost * comm_cost_per_partition[pp]  - a * g/2 * pow(part_load[pp],g-1);
+                    
+                    
                     //float current_value = current_neighbours_in_partition[pp] - comm_cost_per_partition[pp]  - a * g/2 * pow(part_load[pp],g-1);
                     
                     // lesson learned, global hygergraph partitioners use connectivity metric as cost function
