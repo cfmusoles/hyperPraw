@@ -75,6 +75,8 @@ int main(int argc, char** argv) {
 		}
 	}
 
+    printf("MESSAGE SIZE %i\n\n",message_size);
+
     // set and propagate random seed
     MPI_Bcast(&rand_seed, 1, MPI_INT, 0, MPI_COMM_WORLD);
     srand(rand_seed);
