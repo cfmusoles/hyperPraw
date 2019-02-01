@@ -578,7 +578,7 @@ namespace PRAW {
                             total_comm_cost += current_neighbours_in_partition[jj] > 0 ? 1 : 0;
                     }
                     
-                    float current_value = -total_comm_cost * comm_cost_per_partition[pp]  - a * g/2 * pow(part_load[pp],g-1);
+                    float current_value = -total_comm_cost/(float)num_processes * comm_cost_per_partition[pp]  - a * g/2 * pow(part_load[pp],g-1);
                     
                     
                     //float current_value = current_neighbours_in_partition[pp] - comm_cost_per_partition[pp]  - a * g/2 * pow(part_load[pp],g-1);
