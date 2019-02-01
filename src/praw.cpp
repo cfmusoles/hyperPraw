@@ -34,12 +34,13 @@ int main(int argc, char** argv) {
     int rand_seed = time(NULL);
     char* part_method = NULL;
     int sim_steps  = 100;
+    int message_size = 1;
 
     // getting command line parameters
     extern char *optarg;
 	extern int optind, opterr, optopt;
 	int c;
-	while( (c = getopt(argc,argv,"n:h:i:m:b:Ws:p:t:")) != -1 ) {
+	while( (c = getopt(argc,argv,"n:h:i:m:b:Ws:p:t:k:")) != -1 ) {
 		switch(c) {
 			case 'n': // test name
 				experiment_name = optarg;
@@ -67,6 +68,9 @@ int main(int argc, char** argv) {
 				break;
             case 't': // simulated steps
 				sim_steps = atoi(optarg);
+				break;
+            case 'k': // message size during simulation
+				message_size = atoi(optarg);
 				break;
 		}
 	}
@@ -114,6 +118,8 @@ int main(int argc, char** argv) {
     //        Absorption
     double timer = MPI_Wtime();
     long int messages_sent = 0;
+    int* buffer = (int*)malloc(sizeof(int)*message_size);
+
     for(int tt = 0; tt < sim_steps; tt++) {
         // for each local hyperedge
         //      if any vertex is not local, add destination to target list
@@ -135,15 +141,18 @@ int main(int argc, char** argv) {
                             int receiver_id = *receiver;
                             if(sender_id == receiver_id) continue;
                             messages_sent++;
-                            MPI_Send(&sender_id,1,MPI_INT,receiver_id,he_id,MPI_COMM_WORLD);
+                            MPI_Send(buffer,message_size,MPI_INT,receiver_id,he_id,MPI_COMM_WORLD);
                         }
                     } else { // turn to receive messages
                         // receive one message from sender id
                         int dummy;
-                        MPI_Recv(&dummy,1,MPI_INT,sender_id,he_id,MPI_COMM_WORLD,MPI_STATUS_IGNORE);
+                        MPI_Recv(buffer,message_size,MPI_INT,sender_id,he_id,MPI_COMM_WORLD,MPI_STATUS_IGNORE);
                     }
                 }
             }
+            // why is this needed?
+            // without it, it seems like communication is slower
+            // processes race ahead and wait makes it slow?
             MPI_Barrier(MPI_COMM_WORLD);
         }
     }
@@ -222,6 +231,7 @@ int main(int argc, char** argv) {
 
     // clean up
     free(partition);
+    free(buffer);
 
     // finalise MPI and application
     MPI_Finalize();

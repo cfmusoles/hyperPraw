@@ -35,6 +35,8 @@ SIM_STEPS='''
 template_7='''
 EXPERIMENT_NAME='''
 template_8='''
+MESSAGE_SIZE='''
+template_9='''
 # This shifts to the directory that you submitted the job from
 cd $PBS_O_WORKDIR
 
@@ -48,11 +50,11 @@ aprun -n $PROCESSES mpi_perf $SIZE $ITERATIONS $WINDOW
 for i in $(seq 1 $TEST_REPETITIONS)
 do
 	SEED=$RANDOM
-    aprun -n $PROCESSES hyperPraw -n $EXPERIMENT_NAME -h $HYPERGRAPH_FILE -i 100 -m 1100 -p zoltan -t $SIM_STEPS -s 111 -b $BM_FILE -W
+    aprun -n $PROCESSES hyperPraw -n $EXPERIMENT_NAME -h $HYPERGRAPH_FILE -i 100 -m 1100 -p zoltan -t $SIM_STEPS -s 111 -b $BM_FILE -W -k $MESSAGE_SIZE
 	sleep 1
-	aprun -n $PROCESSES hyperPraw -n $EXPERIMENT_NAME"_default" -h $HYPERGRAPH_FILE -i 100 -m 1100 -p prawP -t $SIM_STEPS -s 111 -b $BM_FILE
+	aprun -n $PROCESSES hyperPraw -n $EXPERIMENT_NAME"_default" -h $HYPERGRAPH_FILE -i 100 -m 1100 -p prawP -t $SIM_STEPS -s 111 -b $BM_FILE -k $MESSAGE_SIZE
 	sleep 1
-	aprun -n $PROCESSES hyperPraw -n $EXPERIMENT_NAME"_bandwidth" -h $HYPERGRAPH_FILE -i 100 -m 1100 -p prawP -t $SIM_STEPS -s 111 -b $BM_FILE -W
+	aprun -n $PROCESSES hyperPraw -n $EXPERIMENT_NAME"_bandwidth" -h $HYPERGRAPH_FILE -i 100 -m 1100 -p prawP -t $SIM_STEPS -s 111 -b $BM_FILE -W -k $MESSAGE_SIZE
 done
 
 '''
@@ -69,6 +71,7 @@ geometric_step = int(sys.argv[4])
 big_mem = (sys.argv[5] == "true" or sys.argv[5] == "True")
 hgraph_file = sys.argv[6]
 sim_steps = int(sys.argv[7])
+message_size = int(sys.argv[8])
 
 process_counts = [min_processes * geometric_step ** (n-1) for n in range (1, num_experiments+1)]
 print("Generating experiments")
@@ -84,7 +87,8 @@ for p in process_counts:
 	writebuffer.write(template_5 + hgraph_file)
 	writebuffer.write(template_6 + str(sim_steps))
 	writebuffer.write(template_7 + test_name)
-	writebuffer.write(template_8)
+	writebuffer.write(template_8 + str(message_size))
+	writebuffer.write(template_9)
 
 
 
