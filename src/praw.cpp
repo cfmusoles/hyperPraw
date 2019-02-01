@@ -127,7 +127,29 @@ int main(int argc, char** argv) {
         //          use hedge id as flag for the messages
         //          send messages in a ring order
         for(int he_id = 0; he_id < hyperedges.size(); he_id++) {
-            std::set<int> partitions;
+            // communication is proportional to edgecut
+            for(int vid = 0; vid < hyperedges[he_id].size(); vid++) {
+                int origin_vertex = hyperedges[he_id][vid];
+                int origin_part = partition->partitioning[origin_vertex];
+                for(int did = 0; did < hyperedges[he_id].size(); did++) {
+                    int dest_vertex = hyperedges[he_id][did];
+                    int dest_part = partition->partitioning[dest_vertex];
+                    if (origin_vertex == dest_vertex || origin_part == dest_part) continue;
+                    if(origin_part == process_id ) {
+                        // send
+                        messages_sent++;
+                        MPI_Send(buffer,message_size,MPI_INT,dest_part,he_id,MPI_COMM_WORLD);
+                    } else {
+                        if(dest_part == process_id) {
+                            // receive
+                            MPI_Recv(buffer,message_size,MPI_INT,origin_part,he_id,MPI_COMM_WORLD,MPI_STATUS_IGNORE);
+                        }
+                    }
+                }
+            }
+
+            // communication is proportional to hedge cut alone
+            /*std::set<int> partitions;
             for(int vid = 0; vid < hyperedges[he_id].size(); vid++) {
                 int dest_vertex = hyperedges[he_id][vid];
                 partitions.insert(partition->partitioning[dest_vertex]);
@@ -145,11 +167,11 @@ int main(int argc, char** argv) {
                         }
                     } else { // turn to receive messages
                         // receive one message from sender id
-                        int dummy;
                         MPI_Recv(buffer,message_size,MPI_INT,sender_id,he_id,MPI_COMM_WORLD,MPI_STATUS_IGNORE);
                     }
                 }
-            }
+            }*/
+
             // why is this needed?
             // without it, it seems like communication is slower
             // processes race ahead and wait makes it slow?

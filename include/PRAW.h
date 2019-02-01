@@ -112,9 +112,9 @@ namespace PRAW {
                         connectivity.insert(to_part);
                     }
                     // this cost measures mainly edge cut
-                    /*if(comm_cost_matrix != NULL) {
+                    if(comm_cost_matrix != NULL) {
                         *total_comm_cost += comm_cost_matrix[partitioning[from]][to_part];
-                    }*/
+                    }
                 }
             }
             // metrics per hyperedge
@@ -122,14 +122,14 @@ namespace PRAW {
                 *soed += connectivity.size(); // counts as 1 external degree per partition participating
                 hyperedges_cut++;
                 // communication cost based on hyperedge cut
-                for (std::set<int>::iterator sender=connectivity.begin(); sender!=connectivity.end(); ++sender) {
+                /*for (std::set<int>::iterator sender=connectivity.begin(); sender!=connectivity.end(); ++sender) {
                     int sender_id = *sender;
                     for (std::set<int>::iterator receiver=connectivity.begin(); receiver!=connectivity.end(); ++receiver) {
                         int receiver_id = *receiver;    
                         if (sender_id != receiver_id)
                             *total_comm_cost += comm_cost_matrix[sender_id][receiver_id];
                     }
-                }
+                }*/
             }
             if(hyperedges->at(ii).size() > 1) {
                 for(int pp = 0; pp < num_processes; pp++) {
