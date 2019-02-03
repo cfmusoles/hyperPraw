@@ -128,7 +128,7 @@ int main(int argc, char** argv) {
         //          send messages in a ring order
         for(int he_id = 0; he_id < hyperedges.size(); he_id++) {
             // communication is proportional to edgecut
-            for(int vid = 0; vid < hyperedges[he_id].size(); vid++) {
+            /*for(int vid = 0; vid < hyperedges[he_id].size(); vid++) {
                 int origin_vertex = hyperedges[he_id][vid];
                 int origin_part = partition->partitioning[origin_vertex];
                 for(int did = 0; did < hyperedges[he_id].size(); did++) {
@@ -146,10 +146,10 @@ int main(int argc, char** argv) {
                         }
                     }
                 }
-            }
+            }*/
 
             // communication is proportional to hedge cut alone
-            /*std::set<int> partitions;
+            std::set<int> partitions;
             for(int vid = 0; vid < hyperedges[he_id].size(); vid++) {
                 int dest_vertex = hyperedges[he_id][vid];
                 partitions.insert(partition->partitioning[dest_vertex]);
@@ -170,7 +170,7 @@ int main(int argc, char** argv) {
                         MPI_Recv(buffer,message_size,MPI_INT,sender_id,he_id,MPI_COMM_WORLD,MPI_STATUS_IGNORE);
                     }
                 }
-            }*/
+            }
 
             // why is this needed?
             // without it, it seems like communication is slower
