@@ -17,22 +17,24 @@ geometric_step = 2
 show_error = True
 as_bar_plot = True
 
-folder = "../results/short/"
+folder = "../results/edges/"
+experiment_name = "edgesim"
+graph_name = "venkat01.mtx.hgr"
 # each element on the following arrays corresponds to an experiment run (collection of files)
-experiments = ["hgraphs_ISPD98_ibm18.hgr_zoltan","hgraphs_default_ISPD98_ibm18.hgr_prawP","hgraphs_bandwidth_ISPD98_ibm18.hgr_prawP"]
+experiments = [experiment_name + "_" + graph_name + "_zoltan",experiment_name + "_default_" + graph_name + "_prawP",experiment_name + "_bandwidth_" + graph_name + "_prawP"]
 colours = ["red","green","blue"] # as many as the number of experiments included
 legend_labels = ['Zoltan','PRAW-no bandwidth','PRAW-bandwidth']
 
 # Each element on the following arrays corresponds to a column in columns_to_plot
-columns_to_plot = [1,2,4,5,6,7]
-reference_values = [0,2,1,6,7,8] # used to take values on each column divided by these
+columns_to_plot = [1,2,4,5,6,7,3]
+reference_values = [0,2,1,6,7,8,3] # used to take values on each column divided by these
 use_ref_values = False
 scale_plots = [1,1,1,1,1,1,1]
-plot_title = ["Simulation time","Hyperedge cut","Sum of external degrees","Absorption","Imbalance","Theoretical comm cost"]
-plot_xlabel = ["Number of processes","Number of processes","Number of processes","Number of processes","Number of processes","Number of processes"]
-plot_ylabel = ["Time(s)","Cut ratio","SOED","Absorption","Imbalance ratio","Cost"]
+plot_title = ["Simulation time","Hyperedge cut","Sum of external degrees","Absorption","Imbalance","Theoretical comm cost","Edgecut"]
+plot_xlabel = ["Number of processes","Number of processes","Number of processes","Number of processes","Number of processes","Number of processes","Edgecut"]
+plot_ylabel = ["Time(s)","Cut ratio","SOED","Absorption","Imbalance ratio","Cost","Cut ratio"]
 image_format = 'pdf'
-plot_name = ['ISPD_' + str(x) for x in range(len(columns_to_plot))] #["a1","a2","a3","a4","a5","a6","a7"]
+plot_name = ["venkat01_" + str(x) for x in range(len(columns_to_plot))] #["a1","a2","a3","a4","a5","a6","a7"]
 
 bar_plot_size = 0.5 / len(experiments)
 
