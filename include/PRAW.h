@@ -525,7 +525,6 @@ namespace PRAW {
         //double ttt;
         for(int iter=0; iter < iterations; iter++) {
             //timing = 0;
-
             memset(local_stream_partitioning,0,num_vertices * sizeof(idx_t));
             memset(part_load,0,num_processes * sizeof(long int));
             memset(part_load_update,0,num_processes * sizeof(int));
@@ -569,7 +568,7 @@ namespace PRAW {
                 }
                 //timing += MPI_Wtime() - ttt;
                 float max_value = std::numeric_limits<float>::lowest();
-                //int best_partition = partitioning[vid];
+                int best_partition = partitioning[vid];
                 std::vector<int> best_parts;
                 best_parts.push_back(partitioning[vid]);
                 for(int pp=0; pp < num_processes; pp++) {
@@ -598,12 +597,12 @@ namespace PRAW {
                         //best_partition = pp;
                         best_parts.clear();
                         best_parts.push_back(pp);
-                    } else if(current_value == max_value) {
+                    } else if(fabs(current_value-max_value) <= std::numeric_limits<double>::epsilon()*2) {
                         best_parts.push_back(pp);
                     }
                 }
 
-                int best_partition = best_parts[(int)(best_parts.size() * (double)rand() / (double)RAND_MAX)];
+                best_partition = best_parts[(int)(best_parts.size() * (double)rand() / (double)RAND_MAX)];
                 
                 local_stream_partitioning[vid] = best_partition;
                 // update intermediate workload and assignment values
