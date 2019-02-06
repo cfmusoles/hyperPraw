@@ -521,10 +521,10 @@ namespace PRAW {
         int* part_load_update = (int*)calloc(num_processes,sizeof(int));
         int* part_load_update_recv = (int*)malloc(num_processes*sizeof(int));
         bool* communicating_with = (bool*)malloc(num_processes*sizeof(bool));
-        double timing = 0;
-        double ttt;
+        //double timing = 0;
+        //double ttt;
         for(int iter=0; iter < iterations; iter++) {
-            timing = 0;
+            //timing = 0;
 
             memset(local_stream_partitioning,0,num_vertices * sizeof(idx_t));
             memset(part_load,0,num_processes * sizeof(long int));
@@ -549,7 +549,7 @@ namespace PRAW {
                 // |P^t_i union N(v)| = number of vertices in partition i that are neighbours of vertex v 
                 // where are neighbours located
                 // new communication cost incurred
-                ttt = MPI_Wtime();
+                //ttt = MPI_Wtime();
                 memset(current_neighbours_in_partition,0,num_processes * sizeof(int));
                 memset(comm_cost_per_partition,0,num_processes * sizeof(double));
                 memset(communicating_with,0,num_processes * sizeof(bool));
@@ -567,9 +567,11 @@ namespace PRAW {
                         }
                     }
                 }
-                timing += MPI_Wtime() - ttt;
+                //timing += MPI_Wtime() - ttt;
                 float max_value = std::numeric_limits<float>::lowest();
-                int best_partition = partitioning[vid];
+                //int best_partition = partitioning[vid];
+                std::vector<int> best_parts;
+                best_parts.push_back(partitioning[vid]);
                 for(int pp=0; pp < num_processes; pp++) {
                     // total cost of communication (edgecuts * number of participating partitions)
                     long int total_comm_cost = 0;
@@ -593,10 +595,16 @@ namespace PRAW {
                     // we are not measuring migration costs (cataluyrek 2007 models it well)
                     if(current_value > max_value) {
                         max_value = current_value;
-                        best_partition = pp;
+                        //best_partition = pp;
+                        best_parts.clear();
+                        best_parts.push_back(pp);
+                    } else if(current_value == max_value) {
+                        best_parts.push_back(pp);
                     }
                 }
 
+                int best_partition = best_parts[(int)(best_parts.size() * (double)rand() / (double)RAND_MAX)];
+                
                 local_stream_partitioning[vid] = best_partition;
                 // update intermediate workload and assignment values
                 part_load[best_partition] += vtx_wgt[vid];
