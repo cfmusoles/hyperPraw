@@ -42,7 +42,8 @@ do
 	PROCESS_COUNT=$(($MIN_PROCESSORS * $GEOMETRIC_STEP ** ($p-1)))
 	FILENAME="archer_job_"$EXPERIMENT_NAME"_"$PROCESS_COUNT".sh"
 	echo "Launching job: "$FILENAME
-	qsub -q short $FILENAME
+	qsub $FILENAME
+	#qsub -q short $FILENAME
 	rm $FILENAME
 done
 

@@ -14,7 +14,7 @@ template_2 = '''
 template_3=''':bigmem='''
 template_4='''
 # walltime
-#PBS -l walltime=0:20:0
+#PBS -l walltime=1:00:0
 # budget code
 #PBS -A e582
 
@@ -43,18 +43,18 @@ cd $PBS_O_WORKDIR
 
 # bandwidth matrix creation
 BM_FILE="results_mpi_send_bandwidth_"$PROCESSES
-aprun -n $PROCESSES mpi_perf $SIZE $ITERATIONS $WINDOW
+#aprun -n $PROCESSES mpi_perf $SIZE $ITERATIONS $WINDOW
 
 
 # test bandwidth matrix
 for i in $(seq 1 $TEST_REPETITIONS)
 do
 	SEED=$RANDOM
-    aprun -n $PROCESSES hyperPraw -n $EXPERIMENT_NAME -h $HYPERGRAPH_FILE -i 100 -m 1100 -p zoltan -t $SIM_STEPS -s 111 -b $BM_FILE -W -k $MESSAGE_SIZE
-	sleep 1
+    #aprun -n $PROCESSES hyperPraw -n $EXPERIMENT_NAME -h $HYPERGRAPH_FILE -i 100 -m 1100 -p zoltan -t $SIM_STEPS -s 111 -b $BM_FILE -W -k $MESSAGE_SIZE
+	#sleep 1
 	aprun -n $PROCESSES hyperPraw -n $EXPERIMENT_NAME"_default" -h $HYPERGRAPH_FILE -i 100 -m 1100 -p prawP -t $SIM_STEPS -s 111 -b $BM_FILE -k $MESSAGE_SIZE
 	sleep 1
-	aprun -n $PROCESSES hyperPraw -n $EXPERIMENT_NAME"_bandwidth" -h $HYPERGRAPH_FILE -i 100 -m 1100 -p prawP -t $SIM_STEPS -s 111 -b $BM_FILE -W -k $MESSAGE_SIZE
+	#aprun -n $PROCESSES hyperPraw -n $EXPERIMENT_NAME"_bandwidth" -h $HYPERGRAPH_FILE -i 100 -m 1100 -p prawP -t $SIM_STEPS -s 111 -b $BM_FILE -W -k $MESSAGE_SIZE
 done
 
 '''
