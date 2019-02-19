@@ -465,10 +465,10 @@ namespace PRAW {
         
         //PARAMETERS: From Battaglino 2015 //
         // g and a determine load balance importance in cost function
-        float g = 1.5;
-        float a = sqrt(2) * num_hyperedges / pow(num_vertices,g);
+        double g = 1.5;
+        double a = sqrt(2) * num_hyperedges / pow(num_vertices,g);
         // ta is the update rate of parameter a
-        float ta = 1.7;
+        double ta = 1.7;
         // after how many vertices checked in the stream the partitio load is sync across processes
         int part_load_update_after_vertices = 100; // in the paper it is 4096
         // minimum number of iterations run (not checking imbalance threshold)
@@ -567,7 +567,7 @@ namespace PRAW {
                     }
                 }
                 //timing += MPI_Wtime() - ttt;
-                float max_value = std::numeric_limits<float>::lowest();
+                double max_value = std::numeric_limits<double>::lowest();
                 int best_partition = partitioning[vid];
                 std::vector<int> best_parts;
                 best_parts.push_back(partitioning[vid]);
@@ -579,7 +579,7 @@ namespace PRAW {
                             total_comm_cost += current_neighbours_in_partition[jj] > 0 ? 1 : 0;
                     }
                     
-                    float current_value = -total_comm_cost/(float)num_processes * comm_cost_per_partition[pp]  - a * g/2 * pow(part_load[pp],g-1);
+                    double current_value = -(double)total_comm_cost/(double)num_processes * comm_cost_per_partition[pp]  - a * g/2 * pow(part_load[pp],g-1);
                     
                     
                     //float current_value = current_neighbours_in_partition[pp] - comm_cost_per_partition[pp]  - a * g/2 * pow(part_load[pp],g-1);
@@ -601,7 +601,7 @@ namespace PRAW {
                         best_parts.push_back(pp);
                     }
                 }
-
+                
                 best_partition = best_parts[(int)(best_parts.size() * (double)rand() / (double)RAND_MAX)];
                 
                 local_stream_partitioning[vid] = best_partition;
@@ -623,6 +623,7 @@ namespace PRAW {
             // check if desired imbalance has been reached
             float imbalance = calculateImbalance(partitioning,num_processes,num_vertices,vtx_wgt);
             PRINTF("%i: %f (%f | %f)\n",iter,imbalance,a,ta);
+
 #ifdef SAVE_HISTORY
             if(process_id == 0) {
                 FILE *fp = fopen(history_file.c_str(), "ab+");
