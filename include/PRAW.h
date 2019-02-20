@@ -140,11 +140,16 @@ namespace PRAW {
         }
 
         float expected_work = total_workload / num_processes;
+        int part=0;
         for(int ii=0; ii < num_processes; ii++) {
             float imbalance = (workload[ii] / expected_work);
-            if(imbalance > *max_imbalance)
-                *max_imbalance = imbalance;
+            if(imbalance > *max_imbalance) {
+                *max_imbalance = imbalance; 
+                part = ii;
+            }
         }
+
+        printf("\n\n[%i]: max (%f), average (%f), total (%i)\n\n",part,(*max_imbalance)*expected_work,expected_work,total_workload);
 
         *hyperedges_cut_ratio=(float)hyperedges_cut/hyperedges->size();
         *edges_cut_ratio=(float)edgecut/total_edges;
