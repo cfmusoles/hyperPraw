@@ -140,19 +140,12 @@ namespace PRAW {
         }
 
         float expected_work = total_workload / num_processes;
-        int min_workload = total_workload;
-        int max_workload = 0;
         for(int ii=0; ii < num_processes; ii++) {
-            //float imbalance = (workload[ii] / expected_work);
-            if(workload[ii]  > max_workload) {
-                max_workload = workload[ii] ; 
-            } else if (workload[ii]  < min_workload) {
-                min_workload = workload[ii] ;
+            float imbalance = (workload[ii] / expected_work);
+            if(imbalance  > *max_imbalance) {
+                *max_imbalance = imbalance; 
             }
         }
-        *max_imbalance = max_workload/(double)min_workload;
-
-        printf("\n\n max (%i), min (%i), average (%f)\n\n",max_workload,min_workload,expected_work);
 
         *hyperedges_cut_ratio=(float)hyperedges_cut/hyperedges->size();
         *edges_cut_ratio=(float)edgecut/total_edges;
@@ -550,7 +543,7 @@ namespace PRAW {
                 if(vid % part_load_update_after_vertices == 0) {
                     MPI_Allreduce(part_load_update,part_load_update_recv,num_processes,MPI_INT,MPI_SUM,MPI_COMM_WORLD);
                     for(int pl=0; pl < num_processes; pl++) {
-                        //if(pl == process_id) continue;
+                        if(pl == process_id) continue;
                         part_load[pl] += part_load_update_recv[pl];
                     }
                     memset(part_load_update,0,num_processes * sizeof(int));
@@ -621,8 +614,8 @@ namespace PRAW {
                 local_stream_partitioning[vid] = best_partition;
                 // update intermediate workload and assignment values
                 // Battaglino does not update this array mid stream
-                //part_load[best_partition] += vtx_wgt[vid];
-                //part_load[partitioning[vid]] -= vtx_wgt[vid];
+                part_load[best_partition] += vtx_wgt[vid];
+                part_load[partitioning[vid]] -= vtx_wgt[vid];
                 // update local changes counter
                 part_load_update[partitioning[vid]] -= vtx_wgt[vid];
                 part_load_update[best_partition] += vtx_wgt[vid];
