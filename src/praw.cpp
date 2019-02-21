@@ -88,14 +88,15 @@ int main(int argc, char** argv) {
 		partition = new ZoltanPartitioning(graph_file,imbalance_tolerance);
 	} else if(strcmp(part_method,"prawP") == 0) {  
 		PRINTF("%i: Partitioning: parallel hyperPRAW\n",process_id);
-        Partitioning* p1 = new ZoltanPartitioning(graph_file,imbalance_tolerance);
+        //Partitioning* p1 = new ZoltanPartitioning(graph_file,imbalance_tolerance);
+        Partitioning* p1 = new HyperPRAWPartitioning(graph_file,imbalance_tolerance,iterations,NULL,true,false,false);
         p1->perform_partitioning(num_processes,process_id);
-		partition = new HyperPRAWPartitioning(graph_file,imbalance_tolerance,iterations,bandwidth_file,true,use_bandwidth_in_partitioning);
+		partition = new HyperPRAWPartitioning(graph_file,imbalance_tolerance,iterations,bandwidth_file,true,use_bandwidth_in_partitioning,false);
         memcpy(partition->partitioning,p1->partitioning,partition->num_vertices * sizeof(idx_t));
         free(p1);
     } else if(strcmp(part_method,"prawS") == 0) {  
 		PRINTF("%i: Partitioning: sequential hyperPRAW\n",process_id);
-		partition = new HyperPRAWPartitioning(graph_file,imbalance_tolerance,iterations,bandwidth_file,false,use_bandwidth_in_partitioning);
+		partition = new HyperPRAWPartitioning(graph_file,imbalance_tolerance,iterations,bandwidth_file,false,use_bandwidth_in_partitioning,false);
 	} else { // default is random
 		PRINTF("%i: Partitioning: random\n",process_id);
 		partition = new RandomPartitioning(graph_file,imbalance_tolerance);
@@ -209,17 +210,16 @@ int main(int argc, char** argv) {
         float absorption;
         float max_imbalance;
         double total_comm_cost;
-        // needs to load entire hypergraph
+        
         hyperedges.clear();
         hyperedges.swap(hyperedges);
         hedge_ptr.clear();
         hedge_ptr.swap(hedge_ptr);
         std::string filename = graph_file;
-        PRAW::load_hypergraph_from_file(filename, &hyperedges, &hedge_ptr);
-
-        PRAW::getPartitionStats(partition->partitioning, num_processes, partition->num_vertices, &hyperedges, &hedge_ptr, NULL,comm_cost_matrix,
+        
+        PRAW::getPartitionStatsFromFile(partition->partitioning, num_processes, partition->num_vertices, filename, NULL,comm_cost_matrix,
                                 &hyperedges_cut_ratio, &edges_cut_ratio, &soed, &absorption, &max_imbalance, &total_comm_cost);
-
+        
         printf("Partition time %.2fs, sim time %.2fs\nHedgecut, %.3f, %.3f (cut net), %i (SOED), %.1f (absorption) %.3f (max imbalance), %.0f (comm cost)\nMessages sent %li\n",partition_timer,total_sim_time,hyperedges_cut_ratio,edges_cut_ratio,soed,absorption,max_imbalance,total_comm_cost,total_messages_sent);
         
         // store stats in file

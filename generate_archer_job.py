@@ -18,7 +18,7 @@ template_4='''
 # budget code
 #PBS -A e582
 
-TEST_REPETITIONS=1
+TEST_REPETITIONS=2
 PROCESSES='''
 template_5='''
 # bandwidth probing parameters

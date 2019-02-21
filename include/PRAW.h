@@ -28,6 +28,8 @@
 #define PRINTF(...) 
 #endif
 
+const int MASTER_NODE = 0;
+
 typedef int64_t idx_t; // needs to probably match the type in METIS
 
 namespace PRAW {
@@ -157,6 +159,8 @@ namespace PRAW {
         free(workload);
         free(vertices_in_partition);
     }
+
+    
 
     void storePartitionStats(std::string experiment_name, idx_t* partitioning, int num_processes, int num_vertices, std::vector<std::vector<int> >* hyperedges, std::vector<std::vector<int> >* hedge_ptr, int* vtx_wgt,double** comm_cost_matrix) {
         float hyperedges_cut_ratio;
@@ -301,6 +305,127 @@ namespace PRAW {
         istream.close();
         return 0;
         
+    }
+
+    void getPartitionStatsFromFile(idx_t* partitioning, int num_processes, int num_vertices, std::string hgraph_filename, int* vtx_wgt,double** comm_cost_matrix, // input
+                            float* hyperedges_cut_ratio, float* edges_cut_ratio, int* soed, float* absorption, float* max_imbalance, double* total_comm_cost) { // output
+
+        // take partitioning statistics directly from reading a graph file
+        // loading the entire graph on a process should be avoided for scalability
+        *hyperedges_cut_ratio=0;
+        *edges_cut_ratio=0;
+        *soed=0;
+        *absorption=0;
+        *max_imbalance=0;
+        *total_comm_cost=0;
+
+        int* workload = (int*)calloc(num_processes,sizeof(int));
+        int total_workload = 0;
+        long int edgecut = 0;
+        int hyperedges_cut = 0;
+        long int total_edges = 0;
+        int* vertices_in_partition = (int*)calloc(num_processes,sizeof(int)); // used for absorption
+        
+        // get header info
+        int total_vertices;;
+        int total_hyperedges;
+        get_hypergraph_file_header(hgraph_filename,&total_vertices,&total_hyperedges);
+
+        std::vector<std::vector<int> > hyperedges(total_hyperedges);
+        std::vector<std::vector<int> > hedge_ptr(total_vertices);
+        
+        std::ifstream istream(hgraph_filename.c_str());
+        
+        if(!istream) {
+            printf("Error while opening hMETIS file %s\n",hgraph_filename.c_str());
+            return;
+        }
+        std::string line;
+
+        // compute workload for all vertices and partitions
+        for(int vid=0; vid < total_vertices; vid++) {
+            if(vtx_wgt != NULL) {
+                workload[partitioning[vid]] += vtx_wgt[vid];
+                total_workload += vtx_wgt[vid];
+            } else {
+                workload[partitioning[vid]] += 1;
+                total_workload += 1;
+            }
+        }
+
+        // skip header
+        std::getline(istream,line);
+        // read reminder of file (one line per hyperedge)
+        while(std::getline(istream,line)) {
+            // each line corresponds to a hyperedge
+            std::istringstream buf(line);
+            std::istream_iterator<int> beg(buf), end;
+            std::vector<int> tokens(beg, end);
+
+            std::set<int> connectivity;
+            memset(vertices_in_partition,0,sizeof(int) * num_processes);
+            for(int ff=0; ff < tokens.size(); ff++) {
+                // each vertex in the hyperedge
+                int from = tokens[ff]-1;
+                connectivity.insert(partitioning[from]);
+                vertices_in_partition[partitioning[from]]++;
+                for(int tt=0; tt < tokens.size(); tt++) {
+                    if(tt==ff) continue;
+                    int to = tokens[tt]-1;
+                    total_edges++;
+                    int to_part = partitioning[to];
+                    //vertices_in_partition[to_part]++;
+                    if(to_part != partitioning[from]) {
+                        edgecut++;
+                        connectivity.insert(to_part);
+                    }
+                    // this cost measures mainly edge cut
+                    if(comm_cost_matrix != NULL) {
+                        *total_comm_cost += comm_cost_matrix[partitioning[from]][to_part];
+                    }
+                }
+            }
+            // metrics per hyperedge
+            if(connectivity.size() > 1) {
+                *soed += connectivity.size(); // counts as 1 external degree per partition participating
+                hyperedges_cut++;
+                // communication cost based on hyperedge cut
+                /*for (std::set<int>::iterator sender=connectivity.begin(); sender!=connectivity.end(); ++sender) {
+                    int sender_id = *sender;
+                    for (std::set<int>::iterator receiver=connectivity.begin(); receiver!=connectivity.end(); ++receiver) {
+                        int receiver_id = *receiver;    
+                        if (sender_id != receiver_id)
+                            *total_comm_cost += comm_cost_matrix[sender_id][receiver_id];
+                    }
+                }*/
+            }
+            if(tokens.size() > 1) {
+                for(int pp = 0; pp < num_processes; pp++) {
+                    if(vertices_in_partition[pp] == 0) continue;
+                    *absorption += (float)(vertices_in_partition[pp]-1) / (float)(tokens.size()-1);
+                } 
+            }
+            
+        }
+        istream.close();
+
+        float expected_work = total_workload / num_processes;
+        for(int ii=0; ii < num_processes; ii++) {
+            float imbalance = (workload[ii] / expected_work);
+            if(imbalance  > *max_imbalance) {
+                *max_imbalance = imbalance; 
+            }
+        }
+
+        *hyperedges_cut_ratio=(float)hyperedges_cut/total_hyperedges;
+        *edges_cut_ratio=(float)edgecut/total_edges;
+        
+
+        PRINTF("Quality: %i (hedgecut, %.3f total) %.3f (cut net), %i (SOED), %.1f (absorption) %.3f (max imbalance), %f (comm cost)\n",hyperedges_cut,*hyperedges_cut_ratio,*edges_cut_ratio,*soed,*absorption,*max_imbalance,*total_comm_cost);
+        
+        // clean up
+        free(workload);
+        free(vertices_in_partition);
     }
 
     void get_comm_cost_matrix_from_bandwidth(char* comm_bandwidth_filename, double** comm_cost_matrix, int partitions) {
@@ -453,7 +578,7 @@ namespace PRAW {
         return 0;
     }
 
-    int ParallelIndependentRestreamingPartitioning(idx_t* partitioning, double** comm_cost_matrix, std::string hypergraph_filename, int* vtx_wgt, int iterations, float imbalance_tolerance) {
+    int ParallelIndependentRestreamingPartitioning(idx_t* partitioning, double** comm_cost_matrix, std::string hypergraph_filename, int* vtx_wgt, int iterations, float imbalance_tolerance, bool reset_partitioning) {
         
         int process_id;
         MPI_Comm_rank(MPI_COMM_WORLD,&process_id);
@@ -478,14 +603,17 @@ namespace PRAW {
         // minimum number of iterations run (not checking imbalance threshold)
         // removed whilst we are using hyperPraw as refinement algorithm
         //      hence, if balanced is kept after first iteration, that's good enough
-        int frozen_iters = 0;//ceil(0.1f * iterations);
+        int frozen_iters = 0;
         ///////////////
         
         // algorithm from GraSP (Battaglino 2016)
         // 1 - Distributed vertices over partitions (partition = vertex_id % num_partitions)
         // needs to load num_vertices from file
-        for (int vid=0; vid < num_vertices; vid++) {
-            //partitioning[vid] = vid % num_processes;
+        if (reset_partitioning) {
+            for (int vid=0; vid < num_vertices; vid++) {
+                partitioning[vid] = vid % num_processes;
+            }
+            frozen_iters = ceil(0.1f * iterations);
         }
         
         // 2 - Divide the graph in a distributed CSR format (like ParMETIS)
@@ -527,6 +655,11 @@ namespace PRAW {
         int* part_load_update = (int*)calloc(num_processes,sizeof(int));
         int* part_load_update_recv = (int*)malloc(num_processes*sizeof(int));
         bool* communicating_with = (bool*)malloc(num_processes*sizeof(bool));
+        // overfit variables
+        bool check_overfit = false;
+        idx_t* last_partitioning = NULL;
+        float last_cut_metric;
+        bool rollback = false;
         //double timing = 0;
         //double ttt;
         for(int iter=0; iter < iterations; iter++) {
@@ -544,7 +677,7 @@ namespace PRAW {
                     MPI_Allreduce(part_load_update,part_load_update_recv,num_processes,MPI_INT,MPI_SUM,MPI_COMM_WORLD);
                     for(int pl=0; pl < num_processes; pl++) {
                         part_load[pl] += part_load_update_recv[pl];
-                        // we need to discount the local part update from the total
+                        // we need to discount the local part update from the total since the total includes it
                         part_load[pl] -= part_load_update[pl];
                     }
                     memset(part_load_update,0,num_processes * sizeof(int));
@@ -635,7 +768,7 @@ namespace PRAW {
             PRINTF("%i: %f (%f | %f)\n",iter,imbalance,a,ta);
 
 #ifdef SAVE_HISTORY
-            if(process_id == 0) {
+            if(process_id == MASTER_NODE) {
                 FILE *fp = fopen(history_file.c_str(), "ab+");
                 if(fp == NULL) {
                     printf("Error when storing partitioning history into file\n");
@@ -646,10 +779,89 @@ namespace PRAW {
             }
             
 #endif
-            if(frozen_iters <= iter && imbalance < imbalance_tolerance) break;
+            // stop the process in the following conditions
+            //  1. imbalance tolerance has been reached
+            //      record current cut metric and partitioning and do one more iteration
+            //      if imbalance is still ok 
+            //          metric has not been improved, take recorded partitioning and stop
+            //          metric has been improved, store partitioning and do one more iteration
+            // ALL PROCESS MUST STOP to check if 0 has broken out of the loop
+            if(frozen_iters <= iter) {
+                if (imbalance < imbalance_tolerance) {
+                    if(process_id == MASTER_NODE) {
+                        // get cut metric
+                        float hyperedges_cut_ratio;
+                        float edges_cut_ratio;
+                        int soed;
+                        float absorption;
+                        float max_imbalance;
+                        double total_comm_cost;
+                        PRAW::getPartitionStatsFromFile(partitioning, num_processes, num_vertices, hypergraph_filename, NULL,comm_cost_matrix,
+                                    &hyperedges_cut_ratio, &edges_cut_ratio, &soed, &absorption, &max_imbalance, &total_comm_cost);
+                        float cut_metric = edges_cut_ratio;
+
+                        if(!check_overfit) {
+                            // record partitioning and cut metric
+                            last_cut_metric = cut_metric;
+                            if(last_partitioning == NULL) {
+                                last_partitioning = (idx_t*)malloc(num_vertices*sizeof(idx_t));
+                            }
+                            memcpy(last_partitioning,partitioning,num_vertices * sizeof(idx_t));
+                            check_overfit = true;
+                        } else {
+                            // check if cut metric has improved
+                            if(cut_metric > last_cut_metric) {
+                                // send signal to stop
+                                int message = 0;
+                                for(int dest=0; dest < num_processes; dest++) {
+                                    if(dest == MASTER_NODE) continue;
+                                    MPI_Send(&message,1,MPI_INT,dest,0,MPI_COMM_WORLD);
+                                }
+                                rollback = true;
+                                break;
+                            } else {
+                                last_cut_metric = cut_metric;
+                                memcpy(last_partitioning,partitioning,num_vertices * sizeof(idx_t));
+                            }
+                        }
+                        // send signal to continue
+                        int message = 1;
+                        for(int dest=0; dest < num_processes; dest++) {
+                            if(dest == MASTER_NODE) continue;
+                            MPI_Send(&message,1,MPI_INT,dest,0,MPI_COMM_WORLD);
+                        }
+                    } else {
+                        // all other processes must wait for the signal
+                        int message;
+                        MPI_Recv(&message,1,MPI_INT,MASTER_NODE,0,MPI_COMM_WORLD,MPI_STATUS_IGNORE);
+                        if(message == 0) {
+                            rollback = true;
+                            break;
+                        }
+                    }
+                } else {
+                    check_overfit = false;
+                }  
+            }
+            //if(frozen_iters <= iter && imbalance < imbalance_tolerance) break;
 
             // update parameters
             a *= ta;
+        }
+
+        if(rollback) {
+            if(process_id == MASTER_NODE) {
+                // share last partitioning with all
+                memcpy(partitioning,last_partitioning,num_vertices * sizeof(idx_t));
+                free(last_partitioning);
+                for(int dest=0; dest < num_processes; dest++) {
+                    if(dest == MASTER_NODE) continue;
+                    MPI_Send(partitioning,num_vertices,MPI_LONG,dest,0,MPI_COMM_WORLD);
+                }
+            } else {
+                // update partitioning from 0
+                MPI_Recv(partitioning,num_vertices,MPI_LONG,MASTER_NODE,0,MPI_COMM_WORLD,MPI_STATUS_IGNORE);
+            }
         }
 
         // clean up
@@ -658,7 +870,7 @@ namespace PRAW {
         free(comm_cost_per_partition);
         free(current_neighbours_in_partition);
         free(part_load_update_recv);
-        
+
         return 0;
     }
     

@@ -14,11 +14,12 @@
 class HyperPRAWPartitioning : public Partitioning {
 public:
 	
-	HyperPRAWPartitioning(char* graph_file, float imbalance_tolerance, int iterations, char* comm_bandwidth_file, bool parallel, bool useBandwidth) : Partitioning(graph_file,imbalance_tolerance) {
+	HyperPRAWPartitioning(char* graph_file, float imbalance_tolerance, int iterations, char* comm_bandwidth_file, bool parallel, bool useBandwidth, bool resetPartitioning) : Partitioning(graph_file,imbalance_tolerance) {
 		comm_bandwidth_filename = comm_bandwidth_file;
         isParallel = parallel;
         use_bandwidth_file = useBandwidth;
         max_iterations = iterations;
+        reset_partitioning = resetPartitioning;
 	}
 	virtual ~HyperPRAWPartitioning() {}
 	
@@ -46,7 +47,7 @@ public:
         }
 
         if(isParallel) {
-            PRAW::ParallelIndependentRestreamingPartitioning(partitioning, comm_cost_matrix, hgraph_name, vtx_wgt, max_iterations, imbalance_tolerance);
+            PRAW::ParallelIndependentRestreamingPartitioning(partitioning, comm_cost_matrix, hgraph_name, vtx_wgt, max_iterations, imbalance_tolerance, reset_partitioning);
         } else {
             if(process_id == 0) {
                 // load complete model
@@ -74,6 +75,7 @@ private:
     bool isParallel = false;
     bool use_bandwidth_file = false;
     int max_iterations;
+    bool reset_partitioning = false;
 };
 
 
