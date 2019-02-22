@@ -798,7 +798,7 @@ namespace PRAW {
                         double total_comm_cost;
                         PRAW::getPartitionStatsFromFile(partitioning, num_processes, num_vertices, hypergraph_filename, NULL,comm_cost_matrix,
                                     &hyperedges_cut_ratio, &edges_cut_ratio, &soed, &absorption, &max_imbalance, &total_comm_cost);
-                        float cut_metric = edges_cut_ratio;
+                        float cut_metric = hyperedges_cut_ratio;
 
                         if(!check_overfit) {
                             // record partitioning and cut metric
