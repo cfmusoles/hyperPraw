@@ -685,6 +685,7 @@ namespace PRAW {
                 // always iterate through the same local list of vertices
                 //if(vid % num_processes != process_id) continue;
                 if(hedge_ptr[vid].size() == 0) continue;
+
                 // reevaluate objective function per partition
                 // |P^t_i union N(v)| = number of vertices in partition i that are neighbours of vertex v 
                 // where are neighbours located
@@ -707,6 +708,7 @@ namespace PRAW {
                         }
                     }
                 }
+
                 //timing += MPI_Wtime() - ttt;
                 double max_value = std::numeric_limits<double>::lowest();
                 int best_partition = partitioning[vid];
@@ -744,6 +746,8 @@ namespace PRAW {
                 }
                 
                 best_partition = best_parts[(int)(best_parts.size() * (double)rand() / (double)RAND_MAX)];
+           
+                
                 
                 local_stream_partitioning[vid] = best_partition;
                 // update intermediate workload and assignment values
