@@ -599,7 +599,7 @@ namespace PRAW {
         // ta is the update rate of parameter a
         double ta = 1.7;
         // after how many vertices checked in the stream the partitio load is sync across processes
-        int part_load_update_after_vertices = 100; // in the paper it is 4096
+        int part_load_update_after_vertices = 3000; // in the paper it is 4096
         // minimum number of iterations run (not checking imbalance threshold)
         // removed whilst we are using hyperPraw as refinement algorithm
         //      hence, if balanced is kept after first iteration, that's good enough
@@ -613,7 +613,7 @@ namespace PRAW {
             for (int vid=0; vid < num_vertices; vid++) {
                 partitioning[vid] = vid % num_processes;
             }
-            frozen_iters = ceil(0.1f * iterations);
+            //frozen_iters = ceil(0.1f * iterations);
         }
         
         // 2 - Divide the graph in a distributed CSR format (like ParMETIS)
@@ -672,13 +672,14 @@ namespace PRAW {
             }
             // go through own vertex list and reassign
             for(int vid=0; vid < num_vertices; vid++) {
+                
                 // share updated partition loads after constant number of iterations
                 if(vid % part_load_update_after_vertices == 0) {
                     MPI_Allreduce(part_load_update,part_load_update_recv,num_processes,MPI_INT,MPI_SUM,MPI_COMM_WORLD);
                     for(int pl=0; pl < num_processes; pl++) {
                         part_load[pl] += part_load_update_recv[pl];
                         // we need to discount the local part update from the total since the total includes it
-                        part_load[pl] -= part_load_update[pl];
+                        //part_load[pl] -= part_load_update[pl];
                     }
                     memset(part_load_update,0,num_processes * sizeof(int));
                 }
@@ -752,8 +753,8 @@ namespace PRAW {
                 local_stream_partitioning[vid] = best_partition;
                 // update intermediate workload and assignment values
                 // Battaglino does not update this array mid stream
-                part_load[best_partition] += vtx_wgt[vid];
-                part_load[partitioning[vid]] -= vtx_wgt[vid];
+                //part_load[best_partition] += vtx_wgt[vid];
+                //part_load[partitioning[vid]] -= vtx_wgt[vid];
                 // update local changes counter
                 part_load_update[partitioning[vid]] -= vtx_wgt[vid];
                 part_load_update[best_partition] += vtx_wgt[vid];
@@ -791,6 +792,8 @@ namespace PRAW {
             //          metric has been improved, store partitioning and do one more iteration
             // ALL PROCESS MUST STOP to check if 0 has broken out of the loop
             if(frozen_iters <= iter) {
+                // problem! once check_overfit is set, must check if partitioning result was better before
+                // reproduce issue with venkat01 at 24 processes with update part load at 2500
                 if (imbalance < imbalance_tolerance) {
                     if(process_id == MASTER_NODE) {
                         // get cut metric
@@ -842,8 +845,13 @@ namespace PRAW {
                             rollback = true;
                             break;
                         }
+                        check_overfit = true;
                     }
                 } else {
+                    /*if(check_overfit) {
+                        rollback = true;
+                        break;
+                    }*/
                     check_overfit = false;
                 }  
             }
