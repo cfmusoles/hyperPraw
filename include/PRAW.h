@@ -6,7 +6,6 @@
 #define SAVE_HISTORY        // stores partitioning iteration history in file
 
 #include <vector>
-#include <algorithm>
 #include <time.h>
 #include <mpi.h>
 #include <cmath>
@@ -598,12 +597,11 @@ namespace PRAW {
         // g and a determine load balance importance in cost function; was 1.5
         double g = 1.5; // same as FENNEL Tsourakakis 2012
         // battaglino's initial alpha, was sqrt(2) * num_hyperedges / pow(num_vertices,g);
-        double a = sqrt(num_processes) * num_hyperedges / pow(num_vertices,g); // same as FENNEL Tsourakakis 2012
+        double a = sqrt(2) * num_hyperedges / pow(num_vertices,g); // same as FENNEL Tsourakakis 2012
         // ta is the update rate of parameter a; was 1.7
         double ta = 1.7;
         // after how many vertices checked in the stream the partitio load is sync across processes
-        int part_load_update_after_vertices = std::min((int)(sqrt(num_processes) * 300),(int)(num_vertices * 0.05f)); // in the paper it is 4096
-        
+        int part_load_update_after_vertices = sqrt(num_processes) * 300; // in the paper it is 4096
         // minimum number of iterations run (not checking imbalance threshold)
         // removed whilst we are using hyperPraw as refinement algorithm
         //      hence, if balanced is kept after first iteration, that's good enough
