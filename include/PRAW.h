@@ -850,10 +850,10 @@ namespace PRAW {
                         check_overfit = true;
                     }
                 } else {
-                    /*if(check_overfit) {
+                    if(check_overfit) {
                         rollback = true;
                         break;
-                    }*/
+                    }
                     check_overfit = false;
                 }  
             }
