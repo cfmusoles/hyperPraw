@@ -3,7 +3,7 @@ import seaborn as sns
 import numpy as np
 
 folder = '../resources/'
-hgraph_file = "sat14_E02F20.cnf.hgr" #2D_54019_highK.mtx.hgr #sparsine.mtx.hgr sat14_11pipe_q0_k.cnf.hgr
+hgraph_file = "sparsine.mtx.hgr" #sat14_E02F20.cnf.hgr #2D_54019_highK.mtx.hgr #sparsine.mtx.hgr sat14_11pipe_q0_k.cnf.hgr
 image_format = 'pdf'
 
 # data structure to hold hedge sizes: 1d list corresponding to each hedge size

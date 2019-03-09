@@ -56,6 +56,7 @@ namespace PRAW {
         float max_imbalance = 0;
         float expected_work = total_workload / num_processes;
         for(int ii=0; ii < num_processes; ii++) {
+            PRINTF("%i: %li\n",ii,workload[ii]);
             float imbalance = (workload[ii] / expected_work);
             if(imbalance > max_imbalance)
                 max_imbalance = imbalance;
@@ -277,6 +278,7 @@ namespace PRAW {
         std::getline(istream,line);
         // read reminder of file (one line per hyperedge)
         int counter = 0;
+        int nonlocal = 0;
         while(std::getline(istream,line)) {
             std::istringstream buf(line);
             std::istream_iterator<int> beg(buf), end;
@@ -299,10 +301,11 @@ namespace PRAW {
                     }
                     hyperedges->at(counter).push_back(vertex_id);
                 }
-            }
+            } else nonlocal++;
             counter++;            
         }
         istream.close();
+        PRINTF("%i: non local hyperedges: %i\n",process_id,nonlocal);
         return 0;
         
     }
@@ -590,16 +593,15 @@ namespace PRAW {
         get_hypergraph_file_header(hypergraph_filename, &num_vertices, &num_hyperedges);
         
         //PARAMETERS: From Battaglino 2015 //
-        // g and a determine load balance importance in cost function
-        double g = 1.5;
-        // battaglino's a
-        //double a = sqrt(2) * num_hyperedges / pow(num_vertices,g);
-        // our proposed a
-        double a = sqrt(num_processes) * num_hyperedges / pow(num_vertices,g);
-        // ta is the update rate of parameter a
+        // https://github.com/cjbattagl/GraSP
+        // g and a determine load balance importance in cost function; was 1.5
+        double g = 1.5; // same as FENNEL Tsourakakis 2012
+        // battaglino's initial alpha, was sqrt(2) * num_hyperedges / pow(num_vertices,g);
+        double a = sqrt(num_processes) * num_hyperedges / pow(num_vertices,g); // same as FENNEL Tsourakakis 2012
+        // ta is the update rate of parameter a; was 1.7
         double ta = 1.7;
         // after how many vertices checked in the stream the partitio load is sync across processes
-        int part_load_update_after_vertices = 3000; // in the paper it is 4096
+        int part_load_update_after_vertices = sqrt(num_processes) * 300; // in the paper it is 4096
         // minimum number of iterations run (not checking imbalance threshold)
         // removed whilst we are using hyperPraw as refinement algorithm
         //      hence, if balanced is kept after first iteration, that's good enough
@@ -623,6 +625,7 @@ namespace PRAW {
         std::vector<std::vector<int> > hedge_ptr;
         load_hypergraph_from_file_dist_CSR(hypergraph_filename, &hyperedges, &hedge_ptr, process_id, partitioning);
         
+
         // each process must read from file only the info relevant to its data
         // 3 - Initiate N number of iterations on each process:
         //      a - one vertex at a time, assign to best partition (based on eval function)
@@ -652,9 +655,8 @@ namespace PRAW {
         idx_t* local_stream_partitioning = (idx_t*)malloc(num_vertices*sizeof(idx_t));
         double* comm_cost_per_partition = (double*)malloc(num_processes*sizeof(double));
         int* current_neighbours_in_partition = (int*)malloc(num_processes*sizeof(int));
-        int* part_load_update = (int*)calloc(num_processes,sizeof(int));
-        int* part_load_update_recv = (int*)malloc(num_processes*sizeof(int));
-        bool* communicating_with = (bool*)malloc(num_processes*sizeof(bool));
+        long int* part_load_update = (long int*)calloc(num_processes,sizeof(long int));
+        long int* part_load_update_recv = (long int*)malloc(num_processes*sizeof(long int));
         // overfit variables
         bool check_overfit = false;
         idx_t* last_partitioning = NULL;
@@ -666,22 +668,22 @@ namespace PRAW {
             //timing = 0;
             memset(local_stream_partitioning,0,num_vertices * sizeof(idx_t));
             memset(part_load,0,num_processes * sizeof(long int));
-            memset(part_load_update,0,num_processes * sizeof(int));
+            memset(part_load_update,0,num_processes * sizeof(long int));
             for(int ii=0; ii < num_vertices; ii++) {
                 part_load[partitioning[ii]] += vtx_wgt[ii]; // workload for vertex
             }
+            
             // go through own vertex list and reassign
             for(int vid=0; vid < num_vertices; vid++) {
-                
                 // share updated partition loads after constant number of iterations
                 if(vid % part_load_update_after_vertices == 0) {
-                    MPI_Allreduce(part_load_update,part_load_update_recv,num_processes,MPI_INT,MPI_SUM,MPI_COMM_WORLD);
+                    MPI_Allreduce(part_load_update,part_load_update_recv,num_processes,MPI_LONG,MPI_SUM,MPI_COMM_WORLD);
                     for(int pl=0; pl < num_processes; pl++) {
                         part_load[pl] += part_load_update_recv[pl];
                         // we need to discount the local part update from the total since the total includes it
-                        //part_load[pl] -= part_load_update[pl];
+                        part_load[pl] -= part_load_update[pl];
                     }
-                    memset(part_load_update,0,num_processes * sizeof(int));
+                    memset(part_load_update,0,num_processes * sizeof(long int));
                 }
                 // always iterate through the same local list of vertices
                 //if(vid % num_processes != process_id) continue;
@@ -694,27 +696,31 @@ namespace PRAW {
                 //ttt = MPI_Wtime();
                 memset(current_neighbours_in_partition,0,num_processes * sizeof(int));
                 memset(comm_cost_per_partition,0,num_processes * sizeof(double));
-                memset(communicating_with,0,num_processes * sizeof(bool));
+                // does not double count vertices that are present in multiple hyperedges
+                // communication cost should be based on hedge cut?
+                //bool* visited = (bool*)calloc(num_vertices,sizeof(bool));
                 for(int he = 0; he < hedge_ptr[vid].size(); he++) {
                     int he_id = hedge_ptr[vid][he];
                     for(int vt = 0; vt < hyperedges[he_id].size(); vt++) {
                         int dest_vertex = hyperedges[he_id][vt];
                         if(dest_vertex == vid) continue;
                         int dest_part = partitioning[dest_vertex];
-                        current_neighbours_in_partition[dest_part] += 1;
+                        //if(!visited[dest_vertex]) 
+                            current_neighbours_in_partition[dest_part] += 1;
                         // recalculate comm cost for all possible partition assignments of vid
                         //  commCost(v,Pi) = forall edge in edges(Pi) cost += w(e) * c(Pi,Pj) where i != j
                         for(int fp=0; fp < num_processes; fp++) {
                             comm_cost_per_partition[fp] += 1 * comm_cost_matrix[fp][dest_part];
                         }
+                        //visited[dest_vertex] = true;
                     }
                 }
+                //free(visited);
 
                 //timing += MPI_Wtime() - ttt;
                 double max_value = std::numeric_limits<double>::lowest();
                 int best_partition = partitioning[vid];
-                std::vector<int> best_parts;
-                best_parts.push_back(partitioning[vid]);
+                //std::vector<int> best_parts;
                 for(int pp=0; pp < num_processes; pp++) {
                     // total cost of communication (edgecuts * number of participating partitions)
                     long int total_comm_cost = 0;
@@ -723,8 +729,7 @@ namespace PRAW {
                             total_comm_cost += current_neighbours_in_partition[jj] > 0 ? 1 : 0;
                     }
                     
-                    double current_value = -(double)total_comm_cost/(double)num_processes * comm_cost_per_partition[pp]  - a * g/2 * pow(part_load[pp],g-1);
-                    
+                    double current_value = current_neighbours_in_partition[pp] -(double)total_comm_cost/(double)num_processes * comm_cost_per_partition[pp]  - a * g/2 * pow(part_load[pp],g-1);
                     
                     //float current_value = current_neighbours_in_partition[pp] - comm_cost_per_partition[pp]  - a * g/2 * pow(part_load[pp],g-1);
                     
@@ -738,30 +743,27 @@ namespace PRAW {
                     // we are not measuring migration costs (cataluyrek 2007 models it well)
                     if(current_value > max_value) {
                         max_value = current_value;
-                        //best_partition = pp;
-                        best_parts.clear();
+                        best_partition = pp;
+                        //best_parts.clear();
+                        //best_parts.push_back(pp);
+                    } /*else if(fabs(current_value-max_value) <= std::numeric_limits<double>::epsilon()*2) {
                         best_parts.push_back(pp);
-                    } else if(fabs(current_value-max_value) <= std::numeric_limits<double>::epsilon()*2) {
-                        best_parts.push_back(pp);
-                    }
+                    }*/
                 }
                 
-                best_partition = best_parts[(int)(best_parts.size() * (double)rand() / (double)RAND_MAX)];
-           
+                //best_partition = best_parts[(int)(best_parts.size() * (double)rand() / (double)RAND_MAX)];
                 
                 
-                local_stream_partitioning[vid] = best_partition;
+                
                 // update intermediate workload and assignment values
-                // Battaglino does not update this array mid stream
-                //part_load[best_partition] += vtx_wgt[vid];
-                //part_load[partitioning[vid]] -= vtx_wgt[vid];
+                part_load[best_partition] += vtx_wgt[vid];
+                part_load[partitioning[vid]] -= vtx_wgt[vid];
                 // update local changes counter
                 part_load_update[partitioning[vid]] -= vtx_wgt[vid];
                 part_load_update[best_partition] += vtx_wgt[vid];
                 // update partitioning assignment
-                // Battaglino does not update this array mid stream
                 partitioning[vid] = best_partition;
-                
+                local_stream_partitioning[vid] = best_partition;
             }
             //printf("%f\n",timing);
             
@@ -805,7 +807,7 @@ namespace PRAW {
                         double total_comm_cost;
                         PRAW::getPartitionStatsFromFile(partitioning, num_processes, num_vertices, hypergraph_filename, NULL,comm_cost_matrix,
                                     &hyperedges_cut_ratio, &edges_cut_ratio, &soed, &absorption, &max_imbalance, &total_comm_cost);
-                        float cut_metric = hyperedges_cut_ratio;
+                        float cut_metric = hyperedges_cut_ratio;//hyperedges_cut_ratio;
 
                         if(!check_overfit) {
                             // record partitioning and cut metric
