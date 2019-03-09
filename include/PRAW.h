@@ -6,6 +6,7 @@
 #define SAVE_HISTORY        // stores partitioning iteration history in file
 
 #include <vector>
+#include <algorithm>
 #include <time.h>
 #include <mpi.h>
 #include <cmath>
@@ -601,7 +602,8 @@ namespace PRAW {
         // ta is the update rate of parameter a; was 1.7
         double ta = 1.7;
         // after how many vertices checked in the stream the partitio load is sync across processes
-        int part_load_update_after_vertices = sqrt(num_processes) * 300; // in the paper it is 4096
+        int part_load_update_after_vertices = std::min((int)(sqrt(num_processes) * 300),(int)(num_vertices * 0.05f)); // in the paper it is 4096
+        
         // minimum number of iterations run (not checking imbalance threshold)
         // removed whilst we are using hyperPraw as refinement algorithm
         //      hence, if balanced is kept after first iteration, that's good enough
@@ -670,12 +672,12 @@ namespace PRAW {
             memset(local_stream_partitioning,0,num_vertices * sizeof(idx_t));
             memset(part_load,0,num_processes * sizeof(long int));
             memset(part_load_update,0,num_processes * sizeof(long int));
-            double total_workload = 0;
+            //double total_workload = 0;
             for(int ii=0; ii < num_vertices; ii++) {
                 part_load[partitioning[ii]] += vtx_wgt[ii]; // workload for vertex
-                total_workload += vtx_wgt[ii];
+                //total_workload += vtx_wgt[ii];
             }
-            double expected_workload = total_workload / num_processes;
+            //double expected_workload = total_workload / num_processes;
             
             // go through own vertex list and reassign
             for(int vid=0; vid < num_vertices; vid++) {
