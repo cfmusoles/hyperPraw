@@ -662,6 +662,7 @@ namespace PRAW {
         idx_t* last_partitioning = NULL;
         float last_cut_metric;
         bool rollback = false;
+        float last_imbalance = num_processes;
         //double timing = 0;
         //double ttt;
         for(int iter=0; iter < iterations; iter++) {
@@ -669,9 +670,12 @@ namespace PRAW {
             memset(local_stream_partitioning,0,num_vertices * sizeof(idx_t));
             memset(part_load,0,num_processes * sizeof(long int));
             memset(part_load_update,0,num_processes * sizeof(long int));
+            double total_workload = 0;
             for(int ii=0; ii < num_vertices; ii++) {
                 part_load[partitioning[ii]] += vtx_wgt[ii]; // workload for vertex
+                total_workload += vtx_wgt[ii];
             }
+            double expected_workload = total_workload / num_processes;
             
             // go through own vertex list and reassign
             for(int vid=0; vid < num_vertices; vid++) {
@@ -729,9 +733,8 @@ namespace PRAW {
                             total_comm_cost += current_neighbours_in_partition[jj] > 0 ? 1 : 0;
                     }
                     
-                    double current_value = current_neighbours_in_partition[pp] -(double)total_comm_cost/(double)num_processes * comm_cost_per_partition[pp]  - a * g/2 * pow(part_load[pp],g-1);
+                    double current_value = current_neighbours_in_partition[pp] -(double)total_comm_cost/(double)num_processes * comm_cost_per_partition[pp] - a * g/2 * pow(part_load[pp],g-1);
                     
-                    //float current_value = current_neighbours_in_partition[pp] - comm_cost_per_partition[pp]  - a * g/2 * pow(part_load[pp],g-1);
                     
                     // lesson learned, global hygergraph partitioners use connectivity metric as cost function
                     // try lotfifar 2015
@@ -860,7 +863,8 @@ namespace PRAW {
             //if(frozen_iters <= iter && imbalance < imbalance_tolerance) break;
 
             // update parameters
-            a *= ta;
+            if(imbalance_tolerance < imbalance || last_imbalance < imbalance) a *= ta;
+            last_imbalance = imbalance;
         }
 
         if(rollback) {
