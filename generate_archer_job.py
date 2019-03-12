@@ -22,7 +22,7 @@ TEST_REPETITIONS=2
 PROCESSES='''
 template_5='''
 # bandwidth probing parameters
-SIZE=512
+SIZE=1024
 ITERATIONS=20
 WINDOW=10
 # comm benchmark parameters
@@ -50,11 +50,11 @@ BM_FILE="results_mpi_send_bandwidth_"$PROCESSES
 for i in $(seq 1 $TEST_REPETITIONS)
 do
 	SEED=$RANDOM
-    #aprun -n $PROCESSES hyperPraw -n $EXPERIMENT_NAME -h $HYPERGRAPH_FILE -i 100 -m 1100 -p zoltan -t $SIM_STEPS -s $SEED -b $BM_FILE -W -k $MESSAGE_SIZE
+    #aprun -n $PROCESSES hyperPraw -n $EXPERIMENT_NAME -h $HYPERGRAPH_FILE -i 100 -m 1100 -p zoltan -t $SIM_STEPS -s $SEED -b $BM_FILE -k $MESSAGE_SIZE
 	#sleep 1
 	aprun -n $PROCESSES hyperPraw -n $EXPERIMENT_NAME"_default" -h $HYPERGRAPH_FILE -i 100 -m 1100 -p prawP -t $SIM_STEPS -s $SEED -b $BM_FILE -k $MESSAGE_SIZE
 	sleep 1
-	#aprun -n $PROCESSES hyperPraw -n $EXPERIMENT_NAME"_bandwidth" -h $HYPERGRAPH_FILE -i 100 -m 1100 -p prawP -t $SIM_STEPS -s $SEED -b $BM_FILE -W -k $MESSAGE_SIZE
+	aprun -n $PROCESSES hyperPraw -n $EXPERIMENT_NAME"_bandwidth" -h $HYPERGRAPH_FILE -i 100 -m 1100 -p prawP -t $SIM_STEPS -s $SEED -b $BM_FILE -W -k $MESSAGE_SIZE
 done
 
 '''
