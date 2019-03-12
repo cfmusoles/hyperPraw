@@ -600,7 +600,7 @@ namespace PRAW {
         double a = sqrt(num_processes) * num_hyperedges / pow(num_vertices,g); // same as FENNEL Tsourakakis 2012
         // ta is the update rate of parameter a; was 1.7
         double ta_start = 1.7; // used when imbalance is far from imbalance_tolerance
-        double ta_refine = 1.3; // used when imbalance is close to imbalance_tolerance
+        double ta_refine = 1.7; // used when imbalance is close to imbalance_tolerance
         // after how many vertices checked in the stream the partitio load is sync across processes
         int part_load_update_after_vertices = num_vertices;//sqrt(num_processes) * 300; // in the paper it is 4096
         // minimum number of iterations run (not checking imbalance threshold)
@@ -844,7 +844,7 @@ namespace PRAW {
                             check_overfit = true;
                         } else {
                             // check if cut metric has improved
-                            if(cut_metric > last_cut_metric) {
+                            if(cut_metric >= last_cut_metric) {
                                 // send signal to stop
                                 int message = 0;
                                 for(int dest=0; dest < num_processes; dest++) {
