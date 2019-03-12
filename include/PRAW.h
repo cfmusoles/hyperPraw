@@ -750,7 +750,7 @@ namespace PRAW {
                         }
                     }
                     
-                    double current_value =  - comm_cost_per_partition[pp] - a * g/2 * pow(part_load[pp],g-1);
+                    double current_value =  - (double)total_comm_cost * comm_cost_per_partition[pp] - a * g/2 * pow(part_load[pp],g-1);
                     //double current_value = current_neighbours_in_partition[pp] -(double)total_comm_cost/(double)num_processes * comm_cost_per_partition[pp] - a * g/2 * pow(part_load[pp],g-1);
                     
                     // lesson learned, global hygergraph partitioners use connectivity metric as cost function
