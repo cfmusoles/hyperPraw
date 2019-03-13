@@ -22,7 +22,7 @@ TEST_REPETITIONS=2
 PROCESSES='''
 template_5='''
 # bandwidth probing parameters
-SIZE=1024
+SIZE=512
 ITERATIONS=20
 WINDOW=10
 # comm benchmark parameters
@@ -43,7 +43,7 @@ cd $PBS_O_WORKDIR
 
 # bandwidth matrix creation
 BM_FILE="results_mpi_send_bandwidth_"$PROCESSES
-#aprun -n $PROCESSES mpi_perf $SIZE $ITERATIONS $WINDOW
+aprun -n $PROCESSES mpi_perf $SIZE $ITERATIONS $WINDOW
 
 
 # test bandwidth matrix

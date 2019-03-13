@@ -702,6 +702,8 @@ namespace PRAW {
 
                 bool isLocal = hedge_ptr[vid].size() > 0;
 
+                int total_neighbours = 1;
+
                 // if local vertex, calculate full heuristic (cost of communication...)
                 // if non local vertex, speculatively place it based on current partitioning load balance
                 // this alleviates the problems of parallel streams maintaining workload balance when 
@@ -721,6 +723,7 @@ namespace PRAW {
                         for(int vt = 0; vt < hyperedges[he_id].size(); vt++) {
                             int dest_vertex = hyperedges[he_id][vt];
                             if(dest_vertex == vid) continue;
+                            total_neighbours++;
                             int dest_part = partitioning[dest_vertex];
                             //if(!visited[dest_vertex]) 
                                 current_neighbours_in_partition[dest_part] += 1;
@@ -750,7 +753,7 @@ namespace PRAW {
                         }
                     }
                     
-                    double current_value =  current_neighbours_in_partition[pp] - (double)total_comm_cost/(double)num_processes * comm_cost_per_partition[pp] - a * g/2 * pow(part_load[pp],g-1);
+                    double current_value =  (float)current_neighbours_in_partition[pp]/(float)total_neighbours - (double)total_comm_cost/(double)num_processes * comm_cost_per_partition[pp] - a * (part_load[pp]/expected_workload);
                     //double current_value = current_neighbours_in_partition[pp] -(double)total_comm_cost/(double)num_processes * comm_cost_per_partition[pp] - a * g/2 * pow(part_load[pp],g-1);
                     
                     // lesson learned, global hygergraph partitioners use connectivity metric as cost function
