@@ -602,7 +602,7 @@ namespace PRAW {
         double ta_start = 1.7; // used when imbalance is far from imbalance_tolerance
         double ta_refine = 1.7; // used when imbalance is close to imbalance_tolerance
         // after how many vertices checked in the stream the partitio load is sync across processes
-        int part_load_update_after_vertices = num_vertices;//sqrt(num_processes) * 300; // in the paper it is 4096
+        int part_load_update_after_vertices = 4000;//sqrt(num_processes) * 300; // in the paper it is 4096
         // minimum number of iterations run (not checking imbalance threshold)
         // removed whilst we are using hyperPraw as refinement algorithm
         //      hence, if balanced is kept after first iteration, that's good enough
@@ -750,7 +750,7 @@ namespace PRAW {
                         }
                     }
                     
-                    double current_value =  - (double)total_comm_cost/(double)num_processes * comm_cost_per_partition[pp] - a * g/2 * pow(part_load[pp],g-1);
+                    double current_value =  current_neighbours_in_partition[pp] - (double)total_comm_cost/(double)num_processes * comm_cost_per_partition[pp] - a * g/2 * pow(part_load[pp],g-1);
                     //double current_value = current_neighbours_in_partition[pp] -(double)total_comm_cost/(double)num_processes * comm_cost_per_partition[pp] - a * g/2 * pow(part_load[pp],g-1);
                     
                     // lesson learned, global hygergraph partitioners use connectivity metric as cost function
