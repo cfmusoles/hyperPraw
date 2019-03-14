@@ -1,5 +1,5 @@
 // Test harness for SPAAW (Streaming parallel Partitioning Architecture AWare)
-//#define VERBOSE                 // extra debug info printed out during runtime
+#define VERBOSE                 // extra debug info printed out during runtime
 
 #include <mpi.h>
 #include <cstdio>
@@ -218,7 +218,7 @@ int main(int argc, char** argv) {
         std::string filename = graph_file;
         
         PRAW::getPartitionStatsFromFile(partition->partitioning, num_processes, partition->num_vertices, filename, NULL,comm_cost_matrix,
-                                &hyperedges_cut_ratio, &edges_cut_ratio, &soed, &absorption, &max_imbalance, &total_comm_cost);
+                                &hyperedges_cut_ratio, &edges_cut_ratio, &soed, &absorption, &max_imbalance, &total_comm_cost,true);
         
         printf("Partition time %.2fs, sim time %.2fs\nHedgecut, %.3f, %.3f (cut net), %i (SOED), %.1f (absorption) %.3f (max imbalance), %.0f (comm cost)\nMessages sent %li\n",partition_timer,total_sim_time,hyperedges_cut_ratio,edges_cut_ratio,soed,absorption,max_imbalance,total_comm_cost,total_messages_sent);
         
