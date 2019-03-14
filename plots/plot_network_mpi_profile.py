@@ -14,9 +14,9 @@ plot_sent_data = True			# plot application sent data
 plot_comm_cost = False			# plot combined comm cost
 storeResults = False
 
-folder = "../"
+folder = ""
 bandwidth_send_experiment_name = 'results_mpi_send_bandwidth_' + str(num_processes)
-sim_sent_experiment = 'sat14_aaai10-planning-ipc5-pathways-17-step21.cnf.primal.hgr_theoretical_comm__' + str(num_processes)
+sim_sent_experiment = 'sat14_aaai10-planning-ipc5-pathways-17-step21.cnf.primal.hgr_theoretical_comm_nobandwidth__' + str(num_processes)
 
 xlabel = "Process"
 ylabel = "Process"
