@@ -446,15 +446,7 @@ namespace PRAW {
                 current_process++;
             }
             // standardise bandwidth matrix and transform to cost matrix
-            /*double* totals = (double*)calloc(partitions,sizeof(double));
-            for(int ii = 0; ii < partitions;ii++) {
-                totals[ii] = std::accumulate(comm_cost_matrix[ii],comm_cost_matrix[ii]+partitions,0.0);
-            }
-            double total_bandwidth = std::accumulate(totals,totals+partitions,0.0);
-            for(int ii = 0; ii < partitions;ii++) {
-                std::transform(comm_cost_matrix[ii],comm_cost_matrix[ii]+partitions,comm_cost_matrix[ii],[total_bandwidth] (double value) { return value == 0 ? 0 : 1-(value / total_bandwidth); });
-            }
-            free(totals);*/
+            
             // transform bandwidth to cost (relative to min bandwidth)
             float min_bandwidth = std::numeric_limits<float>::max();
             float max_bandwidth = 0;
@@ -468,7 +460,12 @@ namespace PRAW {
                 }
             }
             for(int ii = 0; ii < partitions;ii++) {
-                std::transform(comm_cost_matrix[ii],comm_cost_matrix[ii]+partitions,comm_cost_matrix[ii],[min_bandwidth,max_bandwidth] (double value) { return value == 0 ? 0 : 1 - ( (value-min_bandwidth)/(max_bandwidth-min_bandwidth) ); });
+                std::transform(comm_cost_matrix[ii],comm_cost_matrix[ii]+partitions,comm_cost_matrix[ii],
+                            [min_bandwidth,max_bandwidth] (double value) {  
+                                //return value <= std::numeric_limits<float>::epsilon() ? 0 : 1 - ( (value-min_bandwidth)/(max_bandwidth-min_bandwidth) );
+                                return value <= std::numeric_limits<float>::epsilon() ? 0 : max_bandwidth - value + min_bandwidth;
+                            }   
+                );
             }
         } else {
             // file not found, default values
