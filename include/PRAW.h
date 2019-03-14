@@ -468,7 +468,7 @@ namespace PRAW {
                 }
             }
             for(int ii = 0; ii < partitions;ii++) {
-                std::transform(comm_cost_matrix[ii],comm_cost_matrix[ii]+partitions,comm_cost_matrix[ii],[min_bandwidth,max_bandwidth] (double value) { return value == 0 ? 0 : 2 - ( (value-min_bandwidth)/(max_bandwidth-min_bandwidth) ); });
+                std::transform(comm_cost_matrix[ii],comm_cost_matrix[ii]+partitions,comm_cost_matrix[ii],[min_bandwidth,max_bandwidth] (double value) { return value == 0 ? 0 : 1 - ( (value-min_bandwidth)/(max_bandwidth-min_bandwidth) ); });
             }
         } else {
             // file not found, default values
@@ -717,7 +717,7 @@ namespace PRAW {
                     
                     // does not double count vertices that are present in multiple hyperedges
                     // communication cost should be based on hedge cut?
-                    bool* visited = (bool*)calloc(num_vertices,sizeof(bool));
+                    //bool* visited = (bool*)calloc(num_vertices,sizeof(bool));
                     for(int he = 0; he < hedge_ptr[vid].size(); he++) {
                         int he_id = hedge_ptr[vid][he];
                         for(int vt = 0; vt < hyperedges[he_id].size(); vt++) {
@@ -725,17 +725,17 @@ namespace PRAW {
                             if(dest_vertex == vid) continue;
                             total_neighbours++;
                             int dest_part = partitioning[dest_vertex];
-                            if(!visited[dest_vertex]) 
+                            //if(!visited[dest_vertex]) 
                                 current_neighbours_in_partition[dest_part] += 1;
                             // recalculate comm cost for all possible partition assignments of vid
                             //  commCost(v,Pi) = forall edge in edges(Pi) cost += w(e) * c(Pi,Pj) where i != j
                             for(int fp=0; fp < num_processes; fp++) {
                                 comm_cost_per_partition[fp] += 1 * comm_cost_matrix[fp][dest_part];
                             }
-                            visited[dest_vertex] = true;
+                            //visited[dest_vertex] = true;
                         }
                     }
-                    free(visited);
+                    //free(visited);
                     //timing += MPI_Wtime() - ttt;
                 }
 
