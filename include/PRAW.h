@@ -597,7 +597,7 @@ namespace PRAW {
         // g and a determine load balance importance in cost function; was 1.5
         double g = 1.5; // same as FENNEL Tsourakakis 2012
         // battaglino's initial alpha, was sqrt(2) * num_hyperedges / pow(num_vertices,g);
-        double a = sqrt(num_processes) * num_hyperedges / pow(num_vertices,g); // same as FENNEL Tsourakakis 2012
+        double a = sqrt(2) * num_hyperedges / pow(num_vertices,g); // same as FENNEL Tsourakakis 2012
         // ta is the update rate of parameter a; was 1.7
         double ta_start = 1.7; // used when imbalance is far from imbalance_tolerance
         double ta_refine = 1.3; // used when imbalance is close to imbalance_tolerance
@@ -894,8 +894,6 @@ namespace PRAW {
                     a *= ta_start;
                 else 
                     a *= ta_refine;
-            } else {
-                if(last_imbalance > imbalance_tolerance) a *= ta_refine;
             }
             last_imbalance = imbalance;
         }
