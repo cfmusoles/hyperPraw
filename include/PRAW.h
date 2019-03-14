@@ -462,8 +462,8 @@ namespace PRAW {
             for(int ii = 0; ii < partitions;ii++) {
                 std::transform(comm_cost_matrix[ii],comm_cost_matrix[ii]+partitions,comm_cost_matrix[ii],
                             [min_bandwidth,max_bandwidth] (double value) {  
-                                return value <= std::numeric_limits<float>::epsilon() ? 0 : min_bandwidth/value;
-                                //return value <= std::numeric_limits<float>::epsilon() ? 0 : 2 - ( (value-min_bandwidth)/(max_bandwidth-min_bandwidth) );
+                                //return value <= std::numeric_limits<float>::epsilon() ? 0 : min_bandwidth/value + min_bandwidth;
+                                return value <= std::numeric_limits<float>::epsilon() ? 0 : 2 - ( (value-min_bandwidth)/(max_bandwidth-min_bandwidth) );
                             }   
                 );
             }
@@ -750,7 +750,7 @@ namespace PRAW {
                         }
                     }
                     
-                    double current_value =  (float)current_neighbours_in_partition[pp]/(float)total_neighbours - (double)total_comm_cost/(double)num_processes * comm_cost_per_partition[pp] - a * (part_load[pp]/expected_workload);
+                    double current_value =  (float)current_neighbours_in_partition[pp]/(float)total_neighbours - (double)total_comm_cost * comm_cost_per_partition[pp] - a * (part_load[pp]/expected_workload);
                     //double current_value = current_neighbours_in_partition[pp] -(double)total_comm_cost/(double)num_processes * comm_cost_per_partition[pp] - a * g/2 * pow(part_load[pp],g-1);
                     
                     // lesson learned, global hygergraph partitioners use connectivity metric as cost function
