@@ -452,7 +452,7 @@ namespace PRAW {
             float max_bandwidth = 0;
             for(int ii = 0; ii < partitions; ii++) {
                 for(int jj = 0; jj < partitions; jj++) {
-                    if(ii == jj) continue;
+                    //if(ii == jj) continue;
                     if(comm_cost_matrix[ii][jj] < min_bandwidth)
                         min_bandwidth = comm_cost_matrix[ii][jj];
                     if(comm_cost_matrix[ii][jj] > max_bandwidth)
@@ -462,8 +462,8 @@ namespace PRAW {
             for(int ii = 0; ii < partitions;ii++) {
                 std::transform(comm_cost_matrix[ii],comm_cost_matrix[ii]+partitions,comm_cost_matrix[ii],
                             [min_bandwidth,max_bandwidth] (double value) {  
-                                //return value <= std::numeric_limits<float>::epsilon() ? 0 : 1 - ( (value-min_bandwidth)/(max_bandwidth-min_bandwidth) );
-                                return value <= std::numeric_limits<float>::epsilon() ? 0 : max_bandwidth - value + min_bandwidth;
+                                return value <= std::numeric_limits<float>::epsilon() ? 0 : 2-(value-min_bandwidth)/(max_bandwidth-min_bandwidth);
+                                //return value <= std::numeric_limits<float>::epsilon() ? 0 : 2 - ( (value-min_bandwidth)/(max_bandwidth-min_bandwidth) );
                             }   
                 );
             }
@@ -833,7 +833,7 @@ namespace PRAW {
                         double total_comm_cost;
                         PRAW::getPartitionStatsFromFile(partitioning, num_processes, num_vertices, hypergraph_filename, NULL,comm_cost_matrix,
                                     &hyperedges_cut_ratio, &edges_cut_ratio, &soed, &absorption, &max_imbalance, &total_comm_cost);
-                        float cut_metric = hyperedges_cut_ratio + edges_cut_ratio;//hyperedges_cut_ratio;
+                        double cut_metric = total_comm_cost;//hyperedges_cut_ratio + edges_cut_ratio;//hyperedges_cut_ratio;
 
                         if(!check_overfit) {
                             // record partitioning and cut metric
