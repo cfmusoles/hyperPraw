@@ -452,7 +452,7 @@ namespace PRAW {
             float max_bandwidth = 0;
             for(int ii = 0; ii < partitions; ii++) {
                 for(int jj = 0; jj < partitions; jj++) {
-                    //if(ii == jj) continue;
+                    if(ii == jj) continue;
                     if(comm_cost_matrix[ii][jj] < min_bandwidth)
                         min_bandwidth = comm_cost_matrix[ii][jj];
                     if(comm_cost_matrix[ii][jj] > max_bandwidth)
@@ -462,7 +462,7 @@ namespace PRAW {
             for(int ii = 0; ii < partitions;ii++) {
                 std::transform(comm_cost_matrix[ii],comm_cost_matrix[ii]+partitions,comm_cost_matrix[ii],
                             [min_bandwidth,max_bandwidth] (double value) {  
-                                return value <= std::numeric_limits<float>::epsilon() ? 0 : 1.0/value;
+                                return value <= std::numeric_limits<float>::epsilon() ? 0 : min_bandwidth/value;
                                 //return value <= std::numeric_limits<float>::epsilon() ? 0 : 2 - ( (value-min_bandwidth)/(max_bandwidth-min_bandwidth) );
                             }   
                 );
