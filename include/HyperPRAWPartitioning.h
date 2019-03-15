@@ -49,9 +49,9 @@ public:
         if(isParallel) {
             int max_outer_iters = 1;
             for(int outer_iter=0; outer_iter < max_outer_iters; outer_iter++) {
-                PRAW::ParallelIndependentRestreamingPartitioning(partitioning, comm_cost_matrix, hgraph_name, vtx_wgt, max_iterations, imbalance_tolerance, outer_iter == 0);
+                //PRAW::ParallelIndependentRestreamingPartitioning(partitioning, comm_cost_matrix, hgraph_name, vtx_wgt, max_iterations, imbalance_tolerance, outer_iter == 0);
             }
-            //PRAW::ParallelIndependentRestreamingPartitioning(partitioning, comm_cost_matrix, hgraph_name, vtx_wgt, max_iterations, imbalance_tolerance, reset_partitioning);
+            PRAW::ParallelIndependentRestreamingPartitioning(partitioning, comm_cost_matrix, hgraph_name, vtx_wgt, max_iterations, imbalance_tolerance, reset_partitioning);
         } else {
             if(process_id == 0) {
                 // load complete model
