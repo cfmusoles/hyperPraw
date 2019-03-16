@@ -740,7 +740,7 @@ namespace PRAW {
                 bool isLocal = hedge_ptr[vid].size() > 0;
 
                 int total_neighbours = 1;
-
+                double max_comm_cost = 0;
                 // if local vertex, calculate full heuristic (cost of communication...)
                 // if non local vertex, speculatively place it based on current partitioning load balance
                 // this alleviates the problems of parallel streams maintaining workload balance when 
@@ -768,6 +768,8 @@ namespace PRAW {
                             //  commCost(v,Pi) = forall edge in edges(Pi) cost += w(e) * c(Pi,Pj) where i != j
                             for(int fp=0; fp < num_processes; fp++) {
                                 comm_cost_per_partition[fp] += 1 * comm_cost_matrix[fp][dest_part];
+                                if(comm_cost_per_partition[fp] > max_comm_cost)
+                                    max_comm_cost = comm_cost_per_partition[fp];
                             }
                             //visited[dest_vertex] = true;
                         }
@@ -781,17 +783,22 @@ namespace PRAW {
                 int best_partition = partitioning[vid];
                 //std::vector<int> best_parts;
                 for(int pp=0; pp < num_processes; pp++) {
-                    // total cost of communication (edgecuts * number of participating partitions)
-                    long int total_comm_cost = 0;
+                    double current_value = 0;
+
                     if(isLocal) {
+                        // total cost of communication (edgecuts * number of participating partitions)
+                        long int total_comm_cost = 0;
                         for(int jj=0; jj < num_processes; jj++) {
                             if(pp != jj)
                                 total_comm_cost += current_neighbours_in_partition[jj] > 0 ? 1 : 0;
                         }
+                        current_value = current_neighbours_in_partition[pp]/(double)total_neighbours -(double)total_comm_cost / (double)num_processes * comm_cost_per_partition[pp] /max_comm_cost - a * g/2 * pow(part_load[pp],g-1);
+                    } else {
+                        current_value =  - a * g/2 * pow(part_load[pp],g-1);
                     }
                     
                     //double current_value =  (float)current_neighbours_in_partition[pp]/(float)total_neighbours - (double)total_comm_cost/(double)num_processes * comm_cost_per_partition[pp] - a * (part_load[pp]/expected_workload);
-                    double current_value = current_neighbours_in_partition[pp] -(double)total_comm_cost * comm_cost_per_partition[pp] - a * g/2 * pow(part_load[pp],g-1);
+                    // double current_value  = current_neighbours_in_partition[pp] -(double)total_comm_cost * comm_cost_per_partition[pp] - a * g/2 * pow(part_load[pp],g-1);
                     
                     // lesson learned, global hygergraph partitioners use connectivity metric as cost function
                     // try lotfifar 2015
