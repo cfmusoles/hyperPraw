@@ -640,6 +640,8 @@ namespace PRAW {
         double ta_refine = 1.3; // used when imbalance is close to imbalance_tolerance
         // after how many vertices checked in the stream the partitio load is sync across processes
         int part_load_update_after_vertices = 4000;//sqrt(num_processes) * 300; // in the paper it is 4096
+        // prob threshold to assign non local vertices to partition based on workload alone
+        double estimation_threshold = 0.01; 
         // minimum number of iterations run (not checking imbalance threshold)
         // removed whilst we are using hyperPraw as refinement algorithm
         //      hence, if balanced is kept after first iteration, that's good enough
@@ -831,7 +833,7 @@ namespace PRAW {
                     partitioning[vid] = best_partition;
                     local_stream_partitioning[vid] = best_partition;
                 } else {
-                    if((float)rand() / (float)RAND_MAX > iter * 0.05f) {
+                    if(last_imbalance > imbalance_tolerance * 1.3 || (float)rand() / (float)RAND_MAX > estimation_threshold) {
                         // update intermediate workload and assignment values
                         part_load[best_partition] += vtx_wgt[vid];
                         part_load[partitioning[vid]] -= vtx_wgt[vid];
@@ -851,7 +853,7 @@ namespace PRAW {
 
             // check if desired imbalance has been reached
             float imbalance = calculateImbalance(partitioning,num_processes,num_vertices,vtx_wgt);
-            PRINTF("%i: %f (%f | %f)\n",iter,imbalance,a,ta_start);
+            PRINTF("%i: %f (%f | %f)\n",iter,imbalance,a,estimation_threshold);
 
 #ifdef SAVE_HISTORY
             if(process_id == MASTER_NODE) {
@@ -939,11 +941,14 @@ namespace PRAW {
             //if(frozen_iters <= iter && imbalance < imbalance_tolerance) break;
 
             // update parameters
-            if(imbalance_tolerance < imbalance) {
-                if(imbalance > 1.2f * imbalance_tolerance) 
+            if(imbalance > imbalance_tolerance) {
+                if(imbalance > 1.2f * imbalance_tolerance) {
                     a *= ta_start;
-                else 
+                } else {
                     a *= ta_refine;
+                    estimation_threshold *= ta_start;
+                }
+                
             }
             last_imbalance = imbalance;
         }
