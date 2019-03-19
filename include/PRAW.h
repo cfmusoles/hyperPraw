@@ -634,7 +634,7 @@ namespace PRAW {
         // g and a determine load balance importance in cost function; was 1.5
         double g = 1.5; // same as FENNEL Tsourakakis 2012
         // battaglino's initial alpha, was sqrt(2) * num_hyperedges / pow(num_vertices,g);
-        double a = sqrt(2) * num_hyperedges / pow(num_vertices,g); // same as FENNEL Tsourakakis 2012
+        double a = sqrt(num_processes) * num_hyperedges / pow(num_vertices,g); // same as FENNEL Tsourakakis 2012
         // ta is the update rate of parameter a; was 1.7
         double ta_start = 1.7; // used when imbalance is far from imbalance_tolerance
         double ta_refine = 1.3; // used when imbalance is close to imbalance_tolerance
@@ -831,14 +831,15 @@ namespace PRAW {
                     partitioning[vid] = best_partition;
                     local_stream_partitioning[vid] = best_partition;
                 } else {
+                    if((float)rand() / (float)RAND_MAX < 0.2f) {
+                        best_partition = num_processes * (double)rand() / (double)RAND_MAX;
+                    }
                     // update intermediate workload and assignment values
                     part_load[best_partition] += vtx_wgt[vid];
                     part_load[partitioning[vid]] -= vtx_wgt[vid];
                     // keep a record of speculative load update (does not need to be propagated later)
                     part_load_speculative_update[partitioning[vid]] -= vtx_wgt[vid];
-                    part_load_speculative_update[best_partition] += vtx_wgt[vid];   
-          
-                
+                    part_load_speculative_update[best_partition] += vtx_wgt[vid];                
                 }
                 
             }
