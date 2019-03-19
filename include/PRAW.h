@@ -794,7 +794,7 @@ namespace PRAW {
                         }
                     } 
 
-                    double current_value = current_neighbours_in_partition[pp]/(double)total_neighbours -(double)total_comm_cost / (double)num_processes * comm_cost_per_partition[pp] /max_comm_cost - a * g/2 * pow(part_load[pp],g-1);
+                    double current_value = current_neighbours_in_partition[pp]/(double)total_neighbours -(double)total_comm_cost / (double)num_processes * comm_cost_per_partition[pp] / max_comm_cost - a * (part_load[pp]/expected_workload);
                     //double current_value =  (float)current_neighbours_in_partition[pp]/(float)total_neighbours - (double)total_comm_cost/(double)num_processes * comm_cost_per_partition[pp] - a * (part_load[pp]/expected_workload);
                     // double current_value  = current_neighbours_in_partition[pp] -(double)total_comm_cost * comm_cost_per_partition[pp] - a * g/2 * pow(part_load[pp],g-1);
                     
@@ -818,11 +818,12 @@ namespace PRAW {
                 
                 //best_partition = best_parts[(int)(best_parts.size() * (double)rand() / (double)RAND_MAX)];
                 
-                // update intermediate workload and assignment values
-                part_load[best_partition] += vtx_wgt[vid];
-                part_load[partitioning[vid]] -= vtx_wgt[vid];
+                
                     
                 if(isLocal) {
+                    // update intermediate workload and assignment values
+                    part_load[best_partition] += vtx_wgt[vid];
+                    part_load[partitioning[vid]] -= vtx_wgt[vid];
                     // update local changes counter
                     part_load_update[partitioning[vid]] -= vtx_wgt[vid];
                     part_load_update[best_partition] += vtx_wgt[vid];
@@ -830,9 +831,15 @@ namespace PRAW {
                     partitioning[vid] = best_partition;
                     local_stream_partitioning[vid] = best_partition;
                 } else {
-                    // keep a record of speculative load update (does not need to be propagated later)
-                    part_load_speculative_update[partitioning[vid]] -= vtx_wgt[vid];
-                    part_load_speculative_update[best_partition] += vtx_wgt[vid];
+                    if((float)rand() / (float)RAND_MAX > iter * 0.05f) {
+                        // update intermediate workload and assignment values
+                        part_load[best_partition] += vtx_wgt[vid];
+                        part_load[partitioning[vid]] -= vtx_wgt[vid];
+                        // keep a record of speculative load update (does not need to be propagated later)
+                        part_load_speculative_update[partitioning[vid]] -= vtx_wgt[vid];
+                        part_load_speculative_update[best_partition] += vtx_wgt[vid];
+                    }
+                    
                 
                 }
                 
