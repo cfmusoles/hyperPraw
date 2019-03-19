@@ -634,14 +634,12 @@ namespace PRAW {
         // g and a determine load balance importance in cost function; was 1.5
         double g = 1.5; // same as FENNEL Tsourakakis 2012
         // battaglino's initial alpha, was sqrt(2) * num_hyperedges / pow(num_vertices,g);
-        double a = sqrt(num_processes) * num_hyperedges / pow(num_vertices,g); // same as FENNEL Tsourakakis 2012
+        double a = sqrt(2) * num_hyperedges / pow(num_vertices,g); // same as FENNEL Tsourakakis 2012
         // ta is the update rate of parameter a; was 1.7
         double ta_start = 1.7; // used when imbalance is far from imbalance_tolerance
         double ta_refine = 1.3; // used when imbalance is close to imbalance_tolerance
         // after how many vertices checked in the stream the partitio load is sync across processes
         int part_load_update_after_vertices = 4000;//sqrt(num_processes) * 300; // in the paper it is 4096
-        // prob threshold to assign non local vertices to partition based on workload alone
-        double estimation_threshold = 0.01; 
         // minimum number of iterations run (not checking imbalance threshold)
         // removed whilst we are using hyperPraw as refinement algorithm
         //      hence, if balanced is kept after first iteration, that's good enough
@@ -833,15 +831,13 @@ namespace PRAW {
                     partitioning[vid] = best_partition;
                     local_stream_partitioning[vid] = best_partition;
                 } else {
-                    if(last_imbalance > imbalance_tolerance * 1.3 || (float)rand() / (float)RAND_MAX > estimation_threshold) {
-                        // update intermediate workload and assignment values
-                        part_load[best_partition] += vtx_wgt[vid];
-                        part_load[partitioning[vid]] -= vtx_wgt[vid];
-                        // keep a record of speculative load update (does not need to be propagated later)
-                        part_load_speculative_update[partitioning[vid]] -= vtx_wgt[vid];
-                        part_load_speculative_update[best_partition] += vtx_wgt[vid];
-                    }
-                    
+                    // update intermediate workload and assignment values
+                    part_load[best_partition] += vtx_wgt[vid];
+                    part_load[partitioning[vid]] -= vtx_wgt[vid];
+                    // keep a record of speculative load update (does not need to be propagated later)
+                    part_load_speculative_update[partitioning[vid]] -= vtx_wgt[vid];
+                    part_load_speculative_update[best_partition] += vtx_wgt[vid];   
+          
                 
                 }
                 
@@ -853,7 +849,7 @@ namespace PRAW {
 
             // check if desired imbalance has been reached
             float imbalance = calculateImbalance(partitioning,num_processes,num_vertices,vtx_wgt);
-            PRINTF("%i: %f (%f | %f)\n",iter,imbalance,a,estimation_threshold);
+            PRINTF("%i: %f (%f | %f)\n",iter,imbalance,a,ta_start);
 
 #ifdef SAVE_HISTORY
             if(process_id == MASTER_NODE) {
@@ -946,7 +942,6 @@ namespace PRAW {
                     a *= ta_start;
                 } else {
                     a *= ta_refine;
-                    estimation_threshold *= ta_start;
                 }
                 
             }
