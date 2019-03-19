@@ -824,11 +824,11 @@ namespace PRAW {
                 //best_partition = best_parts[(int)(best_parts.size() * (double)rand() / (double)RAND_MAX)];
                 
                 
-                    
+                // update intermediate workload and assignment values
+                part_load[best_partition] += vtx_wgt[vid];
+                part_load[partitioning[vid]] -= vtx_wgt[vid];
+                 
                 if(isLocal) {
-                    // update intermediate workload and assignment values
-                    part_load[best_partition] += vtx_wgt[vid];
-                    part_load[partitioning[vid]] -= vtx_wgt[vid];
                     // update local changes counter
                     part_load_update[partitioning[vid]] -= vtx_wgt[vid];
                     part_load_update[best_partition] += vtx_wgt[vid];
@@ -836,12 +836,6 @@ namespace PRAW {
                     partitioning[vid] = best_partition;
                     local_stream_partitioning[vid] = best_partition;
                 } else {
-                    /*if((float)rand() / (float)RAND_MAX < 0.05f) {
-                        best_partition = num_processes * (double)rand() / (double)RAND_MAX;
-                    }*/
-                    // update intermediate workload and assignment values
-                    part_load[best_partition] += vtx_wgt[vid];
-                    part_load[partitioning[vid]] -= vtx_wgt[vid];
                     // keep a record of speculative load update (does not need to be propagated later)
                     part_load_speculative_update[partitioning[vid]] -= vtx_wgt[vid];
                     part_load_speculative_update[best_partition] += vtx_wgt[vid];                
