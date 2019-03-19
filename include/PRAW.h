@@ -794,7 +794,12 @@ namespace PRAW {
                         }
                     } 
 
-                    double current_value = current_neighbours_in_partition[pp]/(double)total_neighbours -(double)total_comm_cost / (double)num_processes * comm_cost_per_partition[pp] / max_comm_cost - a * (part_load[pp]/expected_workload);
+                    double random_factor = 0;
+                    if (!isLocal) {
+                        random_factor = (float)rand() / (float)RAND_MAX;
+                    }
+
+                    double current_value = random_factor + current_neighbours_in_partition[pp]/(double)total_neighbours -(double)total_comm_cost / (double)num_processes * comm_cost_per_partition[pp] / max_comm_cost - a * (part_load[pp]/expected_workload);
                     //double current_value =  (float)current_neighbours_in_partition[pp]/(float)total_neighbours - (double)total_comm_cost/(double)num_processes * comm_cost_per_partition[pp] - a * (part_load[pp]/expected_workload);
                     // double current_value  = current_neighbours_in_partition[pp] -(double)total_comm_cost * comm_cost_per_partition[pp] - a * g/2 * pow(part_load[pp],g-1);
                     
@@ -831,9 +836,9 @@ namespace PRAW {
                     partitioning[vid] = best_partition;
                     local_stream_partitioning[vid] = best_partition;
                 } else {
-                    if((float)rand() / (float)RAND_MAX < 0.2f) {
+                    /*if((float)rand() / (float)RAND_MAX < 0.05f) {
                         best_partition = num_processes * (double)rand() / (double)RAND_MAX;
-                    }
+                    }*/
                     // update intermediate workload and assignment values
                     part_load[best_partition] += vtx_wgt[vid];
                     part_load[partitioning[vid]] -= vtx_wgt[vid];
