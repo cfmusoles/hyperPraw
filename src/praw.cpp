@@ -91,7 +91,7 @@ int main(int argc, char** argv) {
         //Partitioning* p1 = new ZoltanPartitioning(graph_file,imbalance_tolerance);
         //Partitioning* p1 = new HyperPRAWPartitioning(graph_file,imbalance_tolerance,iterations,NULL,true,false,false);
         //p1->perform_partitioning(num_processes,process_id);
-		partition = new HyperPRAWPartitioning(graph_file,imbalance_tolerance,iterations,bandwidth_file,true,use_bandwidth_in_partitioning,true);
+		partition = new HyperPRAWPartitioning(graph_file,imbalance_tolerance,iterations,bandwidth_file,true,use_bandwidth_in_partitioning,false);
         //memcpy(partition->partitioning,p1->partitioning,partition->num_vertices * sizeof(idx_t));
         //free(p1);
     } else if(strcmp(part_method,"prawS") == 0) {  
