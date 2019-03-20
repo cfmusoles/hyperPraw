@@ -796,7 +796,7 @@ namespace PRAW {
 
                     float random_factor = 0;
                     if (!isLocal) {
-                        //random_factor =  a * 0.2f * ((float)rand() / (float)RAND_MAX - 0.5f);
+                        random_factor =  a * 0.2f * ((float)rand() / (float)RAND_MAX - 0.5f);
                     }
 
                     double current_value = random_factor + current_neighbours_in_partition[pp]/(double)total_neighbours -(double)total_comm_cost / (double)num_processes * comm_cost_per_partition[pp] / max_comm_cost - a * (part_load[pp]/expected_workload);
