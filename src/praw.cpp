@@ -96,7 +96,7 @@ int main(int argc, char** argv) {
         //free(p1);
     } else if(strcmp(part_method,"prawS") == 0) {  
 		PRINTF("%i: Partitioning: sequential hyperPRAW\n",process_id);
-		partition = new HyperPRAWPartitioning(graph_file,imbalance_tolerance,iterations,bandwidth_file,false,use_bandwidth_in_partitioning,false);
+		partition = new HyperPRAWPartitioning(graph_file,imbalance_tolerance,iterations,bandwidth_file,false,use_bandwidth_in_partitioning,true);
 	} else { // default is random
 		PRINTF("%i: Partitioning: random\n",process_id);
 		partition = new RandomPartitioning(graph_file,imbalance_tolerance);

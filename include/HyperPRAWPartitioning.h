@@ -54,12 +54,9 @@ public:
             PRAW::ParallelIndependentRestreamingPartitioning(partitioning, comm_cost_matrix, hgraph_name, vtx_wgt, max_iterations, imbalance_tolerance, reset_partitioning);
         } else {
             if(process_id == 0) {
-                // load complete model
-                std::vector<std::vector<int> > hyperedges;
-                std::vector<std::vector<int> > hedge_ptr;
-                PRAW::load_hypergraph_from_file(hgraph_name, &hyperedges, &hedge_ptr);
-                PRAW::SequentialStreamingPartitioning(partitioning,num_processes,comm_cost_matrix, num_vertices,&hyperedges,&hedge_ptr,vtx_wgt,max_iterations, imbalance_tolerance);
-            }
+                PRAW::SequentialStreamingPartitioning(partitioning, num_processes, comm_cost_matrix, hgraph_name, vtx_wgt, max_iterations, imbalance_tolerance,reset_partitioning);
+            } 
+            MPI_Barrier(MPI_COMM_WORLD);
             // share new partitioning with other processes
             MPI_Bcast(partitioning,num_vertices,MPI_LONG,0,MPI_COMM_WORLD);
         }

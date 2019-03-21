@@ -517,104 +517,270 @@ namespace PRAW {
         }
     }
 
-    int SequentialStreamingPartitioning(idx_t* partitioning, int num_processes, double** comm_cost_matrix, int num_vertices, std::vector<std::vector<int> >* hyperedges, std::vector<std::vector<int> >* hedge_ptr, int* vtx_wgt, int max_iterations, float imbalance_tolerance) {
+    int SequentialStreamingPartitioning(idx_t* partitioning, int num_processes, double** comm_cost_matrix, std::string hypergraph_filename, int* vtx_wgt, int iterations, float imbalance_tolerance, bool reset_partitioning) {
+        
+        // get meta info (num vertices and hyperedges)
+        int num_vertices, num_hyperedges;
+        get_hypergraph_file_header(hypergraph_filename, &num_vertices, &num_hyperedges);
         
         //PARAMETERS: From Battaglino 2015 //
-        float g = 1.5;
-        float a = sqrt(2) * hyperedges->size() / pow(num_vertices,g);
-        float ta = 1.7;
+        // https://github.com/cjbattagl/GraSP
+        // g and a determine load balance importance in cost function; was 1.5
+        double g = 1.5; // same as FENNEL Tsourakakis 2012
+        // battaglino's initial alpha, was sqrt(2) * num_hyperedges / pow(num_vertices,g);
+        double a = sqrt(num_processes) * num_hyperedges / pow(num_vertices,g); // same as FENNEL Tsourakakis 2012
+        // ta is the update rate of parameter a; was 1.7
+        double ta_start = 1.7; // used when imbalance is far from imbalance_tolerance
+        double ta_refine = 1.3; // used when imbalance is close to imbalance_tolerance
+        // minimum number of iterations run (not checking imbalance threshold)
+        // removed whilst we are using hyperPraw as refinement algorithm
+        //      hence, if balanced is kept after first iteration, that's good enough
+        int frozen_iters = 0;
         ///////////////
         
-        // Do partitioning only on master node
-        double expected_workload = 0;
-        int* part_load = (int*)calloc(num_processes,sizeof(int));
-        for(int ii=0; ii < num_vertices; ii++) {
-            expected_workload += vtx_wgt[ii];
-            part_load[partitioning[ii]] += vtx_wgt[ii]; // workload for vertex
+        // algorithm from GraSP (Battaglino 2016)
+        // 1 - Distributed vertices over partitions (partition = vertex_id % num_partitions)
+        // needs to load num_vertices from file
+        if(reset_partitioning) {
+            for (int vid=0; vid < num_vertices; vid++) {
+                partitioning[vid] = MASTER_NODE;
+            }
         }
-        expected_workload /= num_processes;
+        
+        // 2 - Divide the graph in a distributed CSR format (like ParMETIS)
+        //  compressed vertex or compressed hedge format? --> see zoltan
+        //  for each local vertex, store the list of vertices adjacent to it (belonging to same hedges)
+        std::vector<std::vector<int> > hyperedges;
+        std::vector<std::vector<int> > hedge_ptr;
+        load_hypergraph_from_file_dist_CSR(hypergraph_filename, &hyperedges, &hedge_ptr, MASTER_NODE, partitioning);
+        
+
+        // each process must read from file only the info relevant to its data
+        // 3 - Initiate N number of iterations on each process:
+        //      a - one vertex at a time, assign to best partition (based on eval function)
+        //      b - update tempering parameters
+        //      c - share with all new partition assignments
+        
+#ifdef SAVE_HISTORY
+        std::string history_file = getFileName(hypergraph_filename);
+        history_file += "_partition_history_parallel_";
+        char str_int[16];
+        sprintf(str_int,"%i",num_processes);
+        history_file += "__";
+        history_file +=  str_int;
+        // remove history file if exists
+        FILE *fp = fopen(history_file.c_str(), "w");
+        if(fp == NULL) {
+            printf("Error when storing partitioning history into file\n");
+        } else {
+            fprintf(fp,"%s\n","Imbalance");
+        }
+        fclose(fp);
+        
+            
+#endif
+        long int* part_load = (long int*)calloc(num_processes,sizeof(long int));
+        idx_t* local_stream_partitioning = (idx_t*)malloc(num_vertices*sizeof(idx_t));
         double* comm_cost_per_partition = (double*)malloc(num_processes*sizeof(double));
         int* current_neighbours_in_partition = (int*)malloc(num_processes*sizeof(int));
-        int* current_neighbours_elsewhere = (int*)malloc(num_processes*sizeof(int));
-        for(int iter=0; iter < max_iterations; iter++) {
+        // overfit variables
+        bool check_overfit = false;
+        idx_t* last_partitioning = NULL;
+        float last_cut_metric;
+        bool rollback = false;
+        float last_imbalance = num_processes;
+        //double timing = 0;
+        //double ttt;
+        for(int iter=0; iter < iterations; iter++) {
+            //timing = 0;
+            memset(local_stream_partitioning,0,num_vertices * sizeof(idx_t));
+            memset(part_load,0,num_processes * sizeof(long int));
+            double total_workload = 0;
+            for(int ii=0; ii < num_vertices; ii++) {
+                part_load[partitioning[ii]] += vtx_wgt[ii]; // workload for vertex
+                total_workload += vtx_wgt[ii];
+            }
+            double expected_workload = total_workload / num_processes;
+            
             // go through own vertex list and reassign
             for(int vid=0; vid < num_vertices; vid++) {
+                memset(current_neighbours_in_partition,0,num_processes * sizeof(int));
+                memset(comm_cost_per_partition,0,num_processes * sizeof(double));
+
+                int total_neighbours = 1;
+                double max_comm_cost = 0;
                 // reevaluate objective function per partition
                 // |P^t_i union N(v)| = number of vertices in partition i that are neighbours of vertex v 
                 // where are neighbours located
                 // new communication cost incurred
-                memset(current_neighbours_in_partition,0,num_processes * sizeof(int));
-                memset(current_neighbours_elsewhere,0,num_processes * sizeof(int));
-                memset(comm_cost_per_partition,0,num_processes * sizeof(double));
-                for(int he = 0; he < hedge_ptr->at(vid).size(); he++) {
-                    int he_id = hedge_ptr->at(vid)[he];
-                    for(int vt = 0; vt < hyperedges->at(he_id).size(); vt++) {
-                        int dest_vertex = hyperedges->at(he_id)[vt];
+                
+                // does not double count vertices that are present in multiple hyperedges
+                // communication cost should be based on hedge cut?
+                //bool* visited = (bool*)calloc(num_vertices,sizeof(bool));
+                for(int he = 0; he < hedge_ptr[vid].size(); he++) {
+                    int he_id = hedge_ptr[vid][he];
+                    for(int vt = 0; vt < hyperedges[he_id].size(); vt++) {
+                        int dest_vertex = hyperedges[he_id][vt];
                         if(dest_vertex == vid) continue;
+                        total_neighbours++;
                         int dest_part = partitioning[dest_vertex];
-                        current_neighbours_in_partition[dest_part] += 1; //  we may be counting twice a dest_node that appears in more than one hedge
-                        // recalculate comm cost for all possible partition assignments of ii
+                        //if(!visited[dest_vertex]) 
+                            current_neighbours_in_partition[dest_part] += 1;
+                        // recalculate comm cost for all possible partition assignments of vid
                         //  commCost(v,Pi) = forall edge in edges(Pi) cost += w(e) * c(Pi,Pj) where i != j
                         for(int fp=0; fp < num_processes; fp++) {
                             comm_cost_per_partition[fp] += 1 * comm_cost_matrix[fp][dest_part];
-                            if(fp != dest_part) {
-                                current_neighbours_elsewhere[fp] += 1;
-                            }
+                            if(comm_cost_per_partition[fp] > max_comm_cost)
+                                max_comm_cost = comm_cost_per_partition[fp];
                         }
+                        //visited[dest_vertex] = true;
                     }
                 }
-                float max_value = std::numeric_limits<float>::lowest();
-                int best_partition = partitioning[vid];
-                for(int pp=0; pp < num_processes; pp++) {
+                //free(visited);
+                
 
+                if(max_comm_cost < std::numeric_limits<double>::epsilon()) max_comm_cost = 1;
+                
+                // allocate vertex (for local heuristically, for non local speculatively)
+                double max_value = std::numeric_limits<double>::lowest();
+                int best_partition = partitioning[vid];
+                //std::vector<int> best_parts;
+                for(int pp=0; pp < num_processes; pp++) {
                     // total cost of communication (edgecuts * number of participating partitions)
-                    int total_comm_cost = 0;
+                    long int total_comm_cost = 0;
                     for(int jj=0; jj < num_processes; jj++) {
                         if(pp != jj)
                             total_comm_cost += current_neighbours_in_partition[jj] > 0 ? 1 : 0;
                     }
-                        
-                    // testing objective function
-                    //float current_value = current_neighbours_in_partition[pp] - current_neighbours_elsewhere[pp] - comm_cost_per_partition[pp]  - a * g/2 * pow(part_load[pp],g-1);
-                    float current_value = -total_comm_cost * comm_cost_per_partition[pp]  - a * g/2 * pow(part_load[pp],g-1);
-                        
-                    // objective function is a mix of Battaglino 2015 (second part) and Zheng 2016 (communication cost part)
-                    // (|P^t_i union N(v)| - commCost(v,Pi) - a * g/2 * |B|^(g-1))
-                    //float current_value = current_neighbours_in_partition[pp] - comm_cost_per_partition[pp]  - a * g/2 * pow(part_load[pp],g-1);
-                                        
-                    // alternative from Battaglino 2015
-                    //float current_value = current_neighbours_in_partition[pp] - a * g/2 * pow(part_load[pp],g-1);
-                    // alternative from ARGO
-                    //float current_value = (1.0f/(comm_cost_per_partition[pp]+1)) * (1-part_load[pp]/expected_workload);
-                    // alternative from Alistarh 2015
-                    //if(part_load[pp] >= expected_workload) continue;
-                    //float current_value = current_neighbours_in_partition[pp];
-                        
+
+                    double current_value = current_neighbours_in_partition[pp]/(double)total_neighbours -(double)total_comm_cost / (double)num_processes * comm_cost_per_partition[pp] / max_comm_cost - a * (part_load[pp]/expected_workload);
+                    //double current_value =  (float)current_neighbours_in_partition[pp]/(float)total_neighbours - (double)total_comm_cost/(double)num_processes * comm_cost_per_partition[pp] - a * (part_load[pp]/expected_workload);
+                    // double current_value  = current_neighbours_in_partition[pp] -(double)total_comm_cost * comm_cost_per_partition[pp] - a * g/2 * pow(part_load[pp],g-1);
+                    
+                    // lesson learned, global hygergraph partitioners use connectivity metric as cost function
+                    // try lotfifar 2015
+                    //  cost function is connectivity degree * weight for each he
+                    //  balance is bounded on both sides, +and- imbalance tolerance
+                    // can we try coarsening the hypergraph to speed up partitioning?
+                    //  can use zoltan's / patoh inner product matching / heavy connectivity matching
+                    //  other similarity metrics such as Jaccard Index or Cosine measure (lotfifar 2015)
+                    // we are not measuring migration costs (cataluyrek 2007 models it well)
                     if(current_value > max_value) {
                         max_value = current_value;
                         best_partition = pp;
-                    }
+                        //best_parts.clear();
+                        //best_parts.push_back(pp);
+                    } /*else if(fabs(current_value-max_value) <= std::numeric_limits<double>::epsilon()*2) {
+                        best_parts.push_back(pp);
+                    }*/
                 }
-                    
-                // update intermediate workload and assignment values
-                part_load[partitioning[vid]] -= vtx_wgt[vid];
-                partitioning[vid] = best_partition;
-                part_load[best_partition] += vtx_wgt[vid];
-            }
                 
+                //best_partition = best_parts[(int)(best_parts.size() * (double)rand() / (double)RAND_MAX)];
+                
+                
+                // update intermediate workload and assignment values
+                part_load[best_partition] += vtx_wgt[vid];
+                part_load[partitioning[vid]] -= vtx_wgt[vid];
+                 
+                // update partitioning assignment
+                partitioning[vid] = best_partition;
+                local_stream_partitioning[vid] = best_partition;
+                
+                
+            }
+            
             // check if desired imbalance has been reached
             float imbalance = calculateImbalance(partitioning,num_processes,num_vertices,vtx_wgt);
-            PRINTF("%i: %f (%f | %f)\n",iter,imbalance,a,ta);
-            if(imbalance < imbalance_tolerance) break;
+            PRINTF("%i: %f (%f | %f)\n",iter,imbalance,a,ta_start);
+
+#ifdef SAVE_HISTORY
+            FILE *fp = fopen(history_file.c_str(), "ab+");
+            if(fp == NULL) {
+                printf("Error when storing partitioning history into file\n");
+            } else {
+                fprintf(fp,"%.3f\n",imbalance);
+            }
+            fclose(fp);
+            
+            
+#endif
+            // stop the process in the following conditions
+            //  1. imbalance tolerance has been reached
+            //      record current cut metric and partitioning and do one more iteration
+            //      if imbalance is still ok 
+            //          metric has not been improved, take recorded partitioning and stop
+            //          metric has been improved, store partitioning and do one more iteration
+            // ALL PROCESS MUST STOP to check if 0 has broken out of the loop
+            if(frozen_iters <= iter) {
+                // problem! once check_overfit is set, must check if partitioning result was better before
+                // reproduce issue with venkat01 at 24 processes with update part load at 2500
+                if (imbalance < imbalance_tolerance) {
+                    // get cut metric
+                    float hyperedges_cut_ratio;
+                    float edges_cut_ratio;
+                    int soed;
+                    float absorption;
+                    float max_imbalance;
+                    double total_comm_cost;
+                    PRAW::getPartitionStatsFromFile(partitioning, num_processes, num_vertices, hypergraph_filename, NULL,comm_cost_matrix,
+                                &hyperedges_cut_ratio, &edges_cut_ratio, &soed, &absorption, &max_imbalance, &total_comm_cost,false);
+                    double cut_metric = hyperedges_cut_ratio + edges_cut_ratio;//hyperedges_cut_ratio;
+
+                    if(!check_overfit) {
+                        // record partitioning and cut metric
+                        last_cut_metric = cut_metric;
+                        if(last_partitioning == NULL) {
+                            last_partitioning = (idx_t*)malloc(num_vertices*sizeof(idx_t));
+                        }
+                        memcpy(last_partitioning,partitioning,num_vertices * sizeof(idx_t));
+                        check_overfit = true;
+                    } else {
+                        // check if cut metric has improved
+                        if(cut_metric >= last_cut_metric) {
+                            // send signal to stop
+                            rollback = true;
+                            break;
+                        } else {
+                            last_cut_metric = cut_metric;
+                            memcpy(last_partitioning,partitioning,num_vertices * sizeof(idx_t));
+                        }
+                    }
+                    
+                } else {
+                    /*if(check_overfit) {
+                        rollback = true;
+                        break;
+                    }*/
+                    check_overfit = false;
+                }  
+            }
+            //if(frozen_iters <= iter && imbalance < imbalance_tolerance) break;
 
             // update parameters
-            a *= ta;
+            if(imbalance > imbalance_tolerance) {
+                if(imbalance > 1.2f * imbalance_tolerance) {
+                    a *= ta_start;
+                } else {
+                    a *= ta_refine;
+                }
+                
+            }
+            last_imbalance = imbalance;
         }
+
+        if(rollback) {
+            // share last partitioning with all
+            memcpy(partitioning,last_partitioning,num_vertices * sizeof(idx_t));
+            free(last_partitioning);
+            
+        }
+
         // clean up
+        free(local_stream_partitioning);
         free(part_load);
+        free(comm_cost_per_partition);
         free(current_neighbours_in_partition);
-    
-        // return successfully
+
         return 0;
     }
 
