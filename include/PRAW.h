@@ -502,7 +502,7 @@ namespace PRAW {
             for(int ii = 0; ii < partitions;ii++) {
                 std::transform(comm_cost_matrix[ii],comm_cost_matrix[ii]+partitions,comm_cost_matrix[ii],
                             [min_bandwidth,max_bandwidth] (double value) {  
-                                //return value <= std::numeric_limits<float>::epsilon() ? 0 : min_bandwidth/value + min_bandwidth;
+                                //return value <= std::numeric_limits<float>::epsilon() ? 0 : 1/value;
                                 return value <= std::numeric_limits<float>::epsilon() ? 0 : 2 - ( (value-min_bandwidth)/(max_bandwidth-min_bandwidth) );
                             }   
                 );
@@ -580,7 +580,6 @@ namespace PRAW {
             
 #endif
         long int* part_load = (long int*)calloc(num_processes,sizeof(long int));
-        idx_t* local_stream_partitioning = (idx_t*)malloc(num_vertices*sizeof(idx_t));
         double* comm_cost_per_partition = (double*)malloc(num_processes*sizeof(double));
         int* current_neighbours_in_partition = (int*)malloc(num_processes*sizeof(int));
         // overfit variables
@@ -593,7 +592,6 @@ namespace PRAW {
         //double ttt;
         for(int iter=0; iter < iterations; iter++) {
             //timing = 0;
-            memset(local_stream_partitioning,0,num_vertices * sizeof(idx_t));
             memset(part_load,0,num_processes * sizeof(long int));
             double total_workload = 0;
             for(int ii=0; ii < num_vertices; ii++) {
@@ -616,8 +614,8 @@ namespace PRAW {
                 
                 // does not double count vertices that are present in multiple hyperedges
                 // communication cost should be based on hedge cut?
-                //bool* visited = (bool*)calloc(num_vertices,sizeof(bool));
                 for(int he = 0; he < hedge_ptr[vid].size(); he++) {
+                    //bool* visited = (bool*)calloc(num_vertices,sizeof(bool));
                     int he_id = hedge_ptr[vid][he];
                     for(int vt = 0; vt < hyperedges[he_id].size(); vt++) {
                         int dest_vertex = hyperedges[he_id][vt];
@@ -635,8 +633,8 @@ namespace PRAW {
                         }
                         //visited[dest_vertex] = true;
                     }
+                    //free(visited);
                 }
-                //free(visited);
                 
 
                 if(max_comm_cost < std::numeric_limits<double>::epsilon()) max_comm_cost = 1;
@@ -653,8 +651,8 @@ namespace PRAW {
                             total_comm_cost += current_neighbours_in_partition[jj] > 0 ? 1 : 0;
                     }
 
-                    double current_value = current_neighbours_in_partition[pp] -(double)total_comm_cost / (double)num_processes * comm_cost_per_partition[pp] - a * (part_load[pp]/expected_workload);
-                    //double current_value =  (float)current_neighbours_in_partition[pp]/(float)total_neighbours - (double)total_comm_cost/(double)num_processes * comm_cost_per_partition[pp] - a * (part_load[pp]/expected_workload);
+                    double current_value = current_neighbours_in_partition[pp]/(double)total_neighbours -(double)total_comm_cost / (double)num_processes * comm_cost_per_partition[pp] - a * (part_load[pp]/expected_workload);
+                    //double current_value = current_neighbours_in_partition[pp]/(double)total_neighbours -(double)total_comm_cost / (double)num_processes * comm_cost_per_partition[pp] / max_comm_cost - a * (part_load[pp]/expected_workload);
                     // double current_value  = current_neighbours_in_partition[pp] -(double)total_comm_cost * comm_cost_per_partition[pp] - a * g/2 * pow(part_load[pp],g-1);
                     
                     // lesson learned, global hygergraph partitioners use connectivity metric as cost function
@@ -684,7 +682,6 @@ namespace PRAW {
                  
                 // update partitioning assignment
                 partitioning[vid] = best_partition;
-                local_stream_partitioning[vid] = best_partition;
                 
                 
             }
@@ -776,7 +773,6 @@ namespace PRAW {
         }
 
         // clean up
-        free(local_stream_partitioning);
         free(part_load);
         free(comm_cost_per_partition);
         free(current_neighbours_in_partition);
