@@ -11,12 +11,12 @@ from pylab import *
 num_processes = 192
 plot_bandwidth = True			# plot network bandwidth data
 plot_sent_data = True			# plot application sent data
-plot_comm_cost = False			# plot combined comm cost
+plot_comm_cost = True			# plot combined comm cost
 storeResults = False
 
 folder = ""
 bandwidth_send_experiment_name = 'results_mpi_send_bandwidth_' + str(num_processes)
-sim_sent_experiment = 'sat14_aaai10-planning-ipc5-pathways-17-step21.cnf.primal.hgr_theoretical_comm_nobandwidth__' + str(num_processes)
+sim_sent_experiment = 'ISPD98_ibm18.hgr_theoretical_comm__' + str(num_processes)
 
 xlabel = "Process"
 ylabel = "Process"
