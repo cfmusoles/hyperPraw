@@ -40,6 +40,12 @@ cp archer_retrieve_results.sh $WORK_DIR/$EXPERIMENT_NAME/
 #submit job files
 cd $WORK_DIR/$EXPERIMENT_NAME
 
+# untar hgraph files
+for f in *.tar.gz
+do
+  tar zxvf "$f" -C ./
+done
+
 #geometric progression
 for p in $(seq 1 $NUM_EXPERIMENTS)
 do

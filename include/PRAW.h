@@ -474,7 +474,7 @@ namespace PRAW {
         free(vertices_in_partition);
     }
 
-    void get_comm_cost_matrix_from_bandwidth(char* comm_bandwidth_filename, double** comm_cost_matrix, int partitions) {
+    void get_comm_cost_matrix_from_bandwidth(char* comm_bandwidth_filename, double** comm_cost_matrix, int partitions, bool proportional_comm_cost) {
         std::ifstream input_stream(comm_bandwidth_filename);
         if(input_stream) {
             std::string line;
@@ -504,10 +504,13 @@ namespace PRAW {
             }
             for(int ii = 0; ii < partitions;ii++) {
                 std::transform(comm_cost_matrix[ii],comm_cost_matrix[ii]+partitions,comm_cost_matrix[ii],
-                            [min_bandwidth,max_bandwidth] (double value) {  
-                                float ratio = max_bandwidth / min_bandwidth;
-                                return value <= std::numeric_limits<float>::epsilon() ? 0 : (1-(value-min_bandwidth)/(max_bandwidth-min_bandwidth)) * ratio + 1;
-                                //return value <= std::numeric_limits<float>::epsilon() ? 0 : 2 - ( (value-min_bandwidth)/(max_bandwidth-min_bandwidth) );
+                            [proportional_comm_cost,min_bandwidth,max_bandwidth] (double value) {  
+                                if(proportional_comm_cost) {
+                                    float ratio = max_bandwidth / min_bandwidth;
+                                    return value <= std::numeric_limits<float>::epsilon() ? 0 : (1-(value-min_bandwidth)/(max_bandwidth-min_bandwidth)) * ratio + 1;
+                                } else {
+                                    return value <= std::numeric_limits<float>::epsilon() ? 0 : 2 - ( (value-min_bandwidth)/(max_bandwidth-min_bandwidth) );
+                                }
                             }   
                 );
             }

@@ -1,5 +1,11 @@
 # Create ARCHER job files based on parameters passed
 
+# This experiment demonstrates the effectiveness of architecture aware partitioning, evaluating different bandwidth to comm cost mappings
+# Strategies compared:
+	# prawS default: not using bandwidth info (baseline)
+	# prawS 0_1: uses bandwidth info as a 0 - 1 mapping to comm cost
+	# prawS proportional: uses bandwidth info with a proportional mapping to comm cost (from 0 to ratio max / min bandwidth)
+
 import sys
 import math
 
@@ -22,7 +28,7 @@ SIZE=512
 ITERATIONS=20
 WINDOW=10
 
-TEST_REPETITIONS=1
+TEST_REPETITIONS=2
 PROCESSES='''
 template_5='''
 # simulation parameters
@@ -46,24 +52,10 @@ run_experiment() {
 	aprun -n $PROCESSES hyperPraw -n $EXPERIMENT_NAME"_default_hedgeEdge" -h $HYPERGRAPH_FILE -i 100 -m 1100 -p prawS -t $SIM_STEPS -s $SEED -k $MESSAGE_SIZE -o 1 -b $BM_FILE
 	sleep 1
 	# bandwidth mapped to 0 - 1 default stopping condition
-	aprun -n $PROCESSES hyperPraw -n $EXPERIMENT_NAME"_bandwidth_0_1_hedgeEdge" -h $HYPERGRAPH_FILE -i 100 -m 1100 -p prawS -t $SIM_STEPS -s $SEED -k $MESSAGE_SIZE -o 1 -b $BM_FILE -W
-	sleep 1
-	# bandwidth mapped to 0 - 1 hedge cost stopping condition
-	aprun -n $PROCESSES hyperPraw -n $EXPERIMENT_NAME"_bandwidth_0_1_hedgeCost" -h $HYPERGRAPH_FILE -i 100 -m 1100 -p prawS -t $SIM_STEPS -s $SEED -k $MESSAGE_SIZE -o 3 -b $BM_FILE -W
-	sleep 1
-	# bandwidth mapped to 0 - 1 edge cost stopping condition
-	aprun -n $PROCESSES hyperPraw -n $EXPERIMENT_NAME"_bandwidth_0_1_edgeCost" -h $HYPERGRAPH_FILE -i 100 -m 1100 -p prawS -t $SIM_STEPS -s $SEED -k $MESSAGE_SIZE -o 2 -b $BM_FILE -W
+	aprun -n $PROCESSES hyperPraw -n $EXPERIMENT_NAME"_bandwidth_0_1_hedgeEdge" -h $HYPERGRAPH_FILE -i 100 -m 1100 -p prawS -t $SIM_STEPS -s $SEED -k $MESSAGE_SIZE -o 1 -b $BM_FILE -W -c 0
 	sleep 1
 	# bandwidth mapped to proportional default stopping condition
-	aprun -n $PROCESSES hyperPraw -n $EXPERIMENT_NAME"_bandwidth_proportional_hedgeEdge" -h $HYPERGRAPH_FILE -i 100 -m 1100 -p prawS -t $SIM_STEPS -s $SEED -k $MESSAGE_SIZE -o 1 -b $BM_FILE -W
-	sleep 1
-	# bandwidth mapped to proportional cost hedge cost stopping condition
-	aprun -n $PROCESSES hyperPraw -n $EXPERIMENT_NAME"_bandwidth_proportional_hedgeCost" -h $HYPERGRAPH_FILE -i 100 -m 1100 -p prawS -t $SIM_STEPS -s $SEED -k $MESSAGE_SIZE -o 3 -b $BM_FILE -W
-	sleep 1
-	# bandwidth mapped to proportional cost edge cost stopping condition
-	aprun -n $PROCESSES hyperPraw -n $EXPERIMENT_NAME"_bandwidth_proportional_edgeCost" -h $HYPERGRAPH_FILE -i 100 -m 1100 -p prawS -t $SIM_STEPS -s $SEED -k $MESSAGE_SIZE -o 2 -b $BM_FILE -W
-	sleep 1
-	aprun -n $PROCESSES hyperPraw -n $EXPERIMENT_NAME"_zoltan" -h $HYPERGRAPH_FILE -i 100 -m 1100 -p zoltan -t $SIM_STEPS -s $SEED -k $MESSAGE_SIZE -b $BM_FILE
+	aprun -n $PROCESSES hyperPraw -n $EXPERIMENT_NAME"_bandwidth_proportional_hedgeEdge" -h $HYPERGRAPH_FILE -i 100 -m 1100 -p prawS -t $SIM_STEPS -s $SEED -k $MESSAGE_SIZE -o 1 -b $BM_FILE -W -c 1
 	sleep 1
 }
 
@@ -72,8 +64,8 @@ do
 	SEED=$RANDOM
 	run_experiment "sat14_E02F20.cnf.hgr" $SEED
 	run_experiment "ISPD98_ibm18.hgr" $SEED
-	run_experiment "sat14_aaai10-planning-ipc5-pathways-17-step21.cnf.primal.hgr" $SEED
-	run_experiment "sparsine.mtx.hgr" $SEED
+	run_experiment "sat14_aaai10-planning-ipc5-pathways-17-step21.cnf.dual.hgr" $SEED
+	run_experiment "dac2012_superblue19.hgr" $SEED
 done
 
 '''

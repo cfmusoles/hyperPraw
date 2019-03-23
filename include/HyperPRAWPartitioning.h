@@ -14,13 +14,14 @@
 class HyperPRAWPartitioning : public Partitioning {
 public:
 	
-	HyperPRAWPartitioning(char* graph_file, float imbalance_tolerance, int iterations, char* comm_bandwidth_file, bool parallel, bool useBandwidth, bool resetPartitioning, int stoppingCondition) : Partitioning(graph_file,imbalance_tolerance) {
+	HyperPRAWPartitioning(char* graph_file, float imbalance_tolerance, int iterations, char* comm_bandwidth_file, bool parallel, bool useBandwidth, bool resetPartitioning, int stoppingCondition, bool proportionalCommCost) : Partitioning(graph_file,imbalance_tolerance) {
 		comm_bandwidth_filename = comm_bandwidth_file;
         isParallel = parallel;
         use_bandwidth_file = useBandwidth;
         max_iterations = iterations;
         reset_partitioning = resetPartitioning;
         stopping_condition = stoppingCondition;
+        proportional_comm_cost = proportionalCommCost;
 	}
 	virtual ~HyperPRAWPartitioning() {}
 	
@@ -37,9 +38,9 @@ public:
         }
         
         if(use_bandwidth_file)
-            PRAW::get_comm_cost_matrix_from_bandwidth(comm_bandwidth_filename,comm_cost_matrix,num_processes);
+            PRAW::get_comm_cost_matrix_from_bandwidth(comm_bandwidth_filename,comm_cost_matrix,num_processes,proportional_comm_cost);
         else 
-            PRAW::get_comm_cost_matrix_from_bandwidth(NULL,comm_cost_matrix,num_processes);
+            PRAW::get_comm_cost_matrix_from_bandwidth(NULL,comm_cost_matrix,num_processes,proportional_comm_cost);
         
         // initialise vertex weight values
         int* vtx_wgt = (int*)calloc(num_vertices,sizeof(int));
@@ -79,6 +80,7 @@ private:
     int max_iterations;
     int stopping_condition;
     bool reset_partitioning = false;
+    bool proportional_comm_cost = false;
 };
 
 

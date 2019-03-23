@@ -1,5 +1,9 @@
 # Create ARCHER job files based on parameters passed
 
+# This experiment demonstrates the effectiveness of a stopping condition when using streaming partitioning
+# Strategies compared:
+	# prawS hard stop: stops when imbalance tolerance has been reached
+	# prawS hedgeEdge: stops when imbalance tolerance is reached AND the sum of hedge and edge cuts is no longer improving
 import sys
 import math
 
@@ -38,8 +42,6 @@ run_experiment() {
 	sleep 1
 	aprun -n $PROCESSES hyperPraw -n $EXPERIMENT_NAME"_hedgeEdge" -h $HYPERGRAPH_FILE -i 100 -m 1100 -p prawS -t $SIM_STEPS -s $SEED -k $MESSAGE_SIZE -o 1
 	sleep 1
-	aprun -n $PROCESSES hyperPraw -n $EXPERIMENT_NAME"_zoltan" -h $HYPERGRAPH_FILE -i 100 -m 1100 -p zoltan -t $SIM_STEPS -s $SEED -k $MESSAGE_SIZE
-	sleep 1
 }
 
 for i in $(seq 1 $TEST_REPETITIONS)
@@ -47,8 +49,8 @@ do
 	SEED=$RANDOM
 	run_experiment "sat14_E02F20.cnf.hgr" $SEED
 	run_experiment "ISPD98_ibm18.hgr" $SEED
-	run_experiment "sat14_aaai10-planning-ipc5-pathways-17-step21.cnf.primal.hgr" $SEED
-	run_experiment "sparsine.mtx.hgr" $SEED
+	run_experiment "sat14_aaai10-planning-ipc5-pathways-17-step21.cnf.dual.hgr" $SEED
+	run_experiment "dac2012_superblue19.hgr" $SEED
 done
 
 '''
