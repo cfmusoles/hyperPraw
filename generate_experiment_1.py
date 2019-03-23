@@ -4,6 +4,10 @@
 # Strategies compared:
 	# prawS hard stop: stops when imbalance tolerance has been reached
 	# prawS hedgeEdge: stops when imbalance tolerance is reached AND the sum of hedge and edge cuts is no longer improving
+# stable parameters
+	# imbalance tolerance 1.1
+	# 100 max iterations
+
 import sys
 import math
 

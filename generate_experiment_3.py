@@ -7,6 +7,10 @@
 	# prawS _bandwidth_edgeCost: monitors theoretical cost on edge simulations as stopping condition
 	# prawS default: benchmark streaming without bandwidth
 	# zoltan: benchmark static partitioning
+# stable parameters
+	# proportional comm cost mapping
+	# imbalance tolerance 1.1
+	# 100 max iterations
 
 import sys
 import math

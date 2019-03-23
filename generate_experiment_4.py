@@ -5,6 +5,11 @@
 	# prawS default: praw without bandwidth info
 	# prawS bandwidth: architecture aware bandwidth
 	# zoltan: multilevel partitioning benchmark
+# stable parameters
+	# hedgeEdge as stopping condition
+	# imbalance tolerance 1.1
+	# 100 max iterations
+	# proportional comm cost mapping
 
 import sys
 import math
