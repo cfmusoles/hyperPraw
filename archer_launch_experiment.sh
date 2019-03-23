@@ -32,7 +32,7 @@ done
 #copy necessary files
 cp $APP_NAME $WORK_DIR/$EXPERIMENT_NAME/
 cp ../mpi_perf/mpi_perf $WORK_DIR/$EXPERIMENT_NAME/
-cp resources/$EXPERIMENT_NAME/* $WORK_DIR/$EXPERIMENT_NAME/
+cp resources/$HGRAPHS_DIR/* $WORK_DIR/$EXPERIMENT_NAME/
 chmod +x archer_retrieve_results.sh
 cp archer_retrieve_results.sh $WORK_DIR/$EXPERIMENT_NAME/
 
