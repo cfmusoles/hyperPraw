@@ -69,7 +69,7 @@ namespace PRAW {
     }
 
     void getPartitionStats(idx_t* partitioning, int num_processes, int num_vertices, std::vector<std::vector<int> >* hyperedges, std::vector<std::vector<int> >* hedge_ptr, int* vtx_wgt,double** comm_cost_matrix, // input
-                            float* hyperedges_cut_ratio, float* edges_cut_ratio, int* soed, float* absorption, float* max_imbalance, double* total_comm_cost) { // output
+                            float* hyperedges_cut_ratio, float* edges_cut_ratio, int* soed, float* absorption, float* max_imbalance, double* total_edge_comm_cost, double* total_hedge_comm_cost) { // output
         
         // For hypergraph partitioning, two common metrics for objective functions Heuer 2017 (connectivity vs hyperedge cut):
         // communication cost estimate (given network bandwidth estimates)
@@ -79,7 +79,8 @@ namespace PRAW {
         *soed=0;
         *absorption=0;
         *max_imbalance=0;
-        *total_comm_cost=0;
+        *total_edge_comm_cost=0;
+        *total_hedge_comm_cost=0;
 
         int* workload = (int*)calloc(num_processes,sizeof(int));
         int total_workload = 0;
@@ -117,7 +118,7 @@ namespace PRAW {
                     }
                     // this cost measures mainly edge cut
                     if(comm_cost_matrix != NULL) {
-                        *total_comm_cost += comm_cost_matrix[partitioning[from]][to_part];
+                        *total_edge_comm_cost += comm_cost_matrix[partitioning[from]][to_part];
                     }
                 }
             }
@@ -126,14 +127,14 @@ namespace PRAW {
                 *soed += connectivity.size(); // counts as 1 external degree per partition participating
                 hyperedges_cut++;
                 // communication cost based on hyperedge cut
-                /*for (std::set<int>::iterator sender=connectivity.begin(); sender!=connectivity.end(); ++sender) {
+                for (std::set<int>::iterator sender=connectivity.begin(); sender!=connectivity.end(); ++sender) {
                     int sender_id = *sender;
                     for (std::set<int>::iterator receiver=connectivity.begin(); receiver!=connectivity.end(); ++receiver) {
                         int receiver_id = *receiver;    
                         if (sender_id != receiver_id)
-                            *total_comm_cost += comm_cost_matrix[sender_id][receiver_id];
+                            *total_hedge_comm_cost += comm_cost_matrix[sender_id][receiver_id];
                     }
-                }*/
+                }
             }
             if(hyperedges->at(ii).size() > 1) {
                 for(int pp = 0; pp < num_processes; pp++) {
@@ -155,7 +156,7 @@ namespace PRAW {
         *edges_cut_ratio=(float)edgecut/total_edges;
         
 
-        PRINTF("Quality: %i (hedgecut, %.3f total) %.3f (cut net), %i (SOED), %.1f (absorption) %.3f (max imbalance), %f (comm cost)\n",hyperedges_cut,*hyperedges_cut_ratio,*edges_cut_ratio,*soed,*absorption,*max_imbalance,*total_comm_cost);
+        PRINTF("Quality: %i (hedgecut, %.3f total) %.3f (cut net), %i (SOED), %.1f (absorption) %.3f (max imbalance), %f (edge cost), %f (hedge cost)\n",hyperedges_cut,*hyperedges_cut_ratio,*edges_cut_ratio,*soed,*absorption,*max_imbalance,*total_edge_comm_cost,*total_hedge_comm_cost);
         
         // clean up
         free(workload);
@@ -169,11 +170,12 @@ namespace PRAW {
         int soed;
         float absorption;
         float max_imbalance;
-        double total_comm_cost;
+        double total_edge_comm_cost;
+        double total_hedge_comm_cost;
         getPartitionStats(partitioning, num_processes, num_vertices, hyperedges, hedge_ptr, vtx_wgt,comm_cost_matrix,
-                            &hyperedges_cut_ratio, &edges_cut_ratio, &soed, &absorption, &max_imbalance, &total_comm_cost);
+                            &hyperedges_cut_ratio, &edges_cut_ratio, &soed, &absorption, &max_imbalance, &total_edge_comm_cost,&total_hedge_comm_cost);
         
-        printf("Hedgecut, %.3f, %.3f (cut net), %i (SOED), %.1f (absorption) %.3f (max imbalance), %f (comm cost)\n",hyperedges_cut_ratio,edges_cut_ratio,soed,absorption,max_imbalance,total_comm_cost);
+        printf("Hedgecut, %.3f, %.3f (cut net), %i (SOED), %.1f (absorption) %.3f (max imbalance), %f (edge comm cost), %f (hedge cost)\n",hyperedges_cut_ratio,edges_cut_ratio,soed,absorption,max_imbalance,total_edge_comm_cost,total_hedge_comm_cost);
         // store stats in a file
         experiment_name = getFileName(experiment_name);
         experiment_name += "_part_stats_";
@@ -187,8 +189,8 @@ namespace PRAW {
 		    printf("Error when storing results into file\n");
 		} else {
 			if(!fileexists) // file does not exist, add header
-			    fprintf(fp,"%s,%s,%s,%s,%s,%s\n","Hedge cut ratio","Cut net","SOED","Absorption","Max imbalance","Comm cost");
-			fprintf(fp,"%f,%f,%i,%f,%f,%f\n",hyperedges_cut_ratio,edges_cut_ratio,soed,absorption,max_imbalance,total_comm_cost);
+			    fprintf(fp,"%s,%s,%s,%s,%s,%s,%s\n","Hedge cut ratio","Cut net","SOED","Absorption","Max imbalance","Edge comm cost","Hedge comm cost");
+			fprintf(fp,"%f,%f,%i,%f,%f,%f,%f\n",hyperedges_cut_ratio,edges_cut_ratio,soed,absorption,max_imbalance,total_edge_comm_cost,total_hedge_comm_cost);
         }
         fclose(fp);
     }
@@ -311,7 +313,7 @@ namespace PRAW {
     }
 
     void getPartitionStatsFromFile(idx_t* partitioning, int num_processes, int num_vertices, std::string hgraph_filename, int* vtx_wgt,double** comm_cost_matrix, // input
-                            float* hyperedges_cut_ratio, float* edges_cut_ratio, int* soed, float* absorption, float* max_imbalance, double* total_comm_cost, bool save_theoretical_comm) { // output
+                            float* hyperedges_cut_ratio, float* edges_cut_ratio, int* soed, float* absorption, float* max_imbalance, double* total_edge_comm_cost, double* total_hedge_comm_cost, bool save_theoretical_comm) { // output
 
         // take partitioning statistics directly from reading a graph file
         // loading the entire graph on a process should be avoided for scalability
@@ -320,8 +322,9 @@ namespace PRAW {
         *soed=0;
         *absorption=0;
         *max_imbalance=0;
-        *total_comm_cost=0;
-
+        *total_edge_comm_cost=0;
+        *total_hedge_comm_cost=0;
+        
         int* workload = (int*)calloc(num_processes,sizeof(int));
         int total_workload = 0;
         long int edgecut = 0;
@@ -391,7 +394,7 @@ namespace PRAW {
                     }
                     // this cost measures mainly edge cut
                     if(comm_cost_matrix != NULL) {
-                        *total_comm_cost += comm_cost_matrix[partitioning[from]][to_part];
+                        *total_edge_comm_cost += comm_cost_matrix[partitioning[from]][to_part];
 #ifdef SAVE_COMM_COST
                         if(save_theoretical_comm) theoretical_comm[partitioning[from]][to_part] += 1;
 #endif
@@ -403,14 +406,14 @@ namespace PRAW {
                 *soed += connectivity.size(); // counts as 1 external degree per partition participating
                 hyperedges_cut++;
                 // communication cost based on hyperedge cut
-                /*for (std::set<int>::iterator sender=connectivity.begin(); sender!=connectivity.end(); ++sender) {
+                for (std::set<int>::iterator sender=connectivity.begin(); sender!=connectivity.end(); ++sender) {
                     int sender_id = *sender;
                     for (std::set<int>::iterator receiver=connectivity.begin(); receiver!=connectivity.end(); ++receiver) {
                         int receiver_id = *receiver;    
                         if (sender_id != receiver_id)
-                            *total_comm_cost += comm_cost_matrix[sender_id][receiver_id];
+                            *total_hedge_comm_cost += comm_cost_matrix[sender_id][receiver_id];
                     }
-                }*/
+                }
             }
             if(tokens.size() > 1) {
                 for(int pp = 0; pp < num_processes; pp++) {
@@ -464,7 +467,7 @@ namespace PRAW {
 #endif
         
 
-        PRINTF("Quality: %i (hedgecut, %.3f total) %.3f (cut net), %i (SOED), %.1f (absorption) %.3f (max imbalance), %f (comm cost)\n",hyperedges_cut,*hyperedges_cut_ratio,*edges_cut_ratio,*soed,*absorption,*max_imbalance,*total_comm_cost);
+        PRINTF("Quality: %i (hedgecut, %.3f total) %.3f (cut net), %i (SOED), %.1f (absorption) %.3f (max imbalance), %f (edge comm cost),, %f (edge comm cost)\n",hyperedges_cut,*hyperedges_cut_ratio,*edges_cut_ratio,*soed,*absorption,*max_imbalance,*total_edge_comm_cost,*total_hedge_comm_cost);
         
         // clean up
         free(workload);
@@ -518,7 +521,7 @@ namespace PRAW {
         }
     }
 
-    int SequentialStreamingPartitioning(idx_t* partitioning, int num_processes, double** comm_cost_matrix, std::string hypergraph_filename, int* vtx_wgt, int iterations, float imbalance_tolerance, bool reset_partitioning) {
+    int SequentialStreamingPartitioning(idx_t* partitioning, int num_processes, double** comm_cost_matrix, std::string hypergraph_filename, int* vtx_wgt, int iterations, float imbalance_tolerance, bool reset_partitioning, int stopping_condition) {
         
         // get meta info (num vertices and hyperedges)
         int num_vertices, num_hyperedges;
@@ -654,7 +657,7 @@ namespace PRAW {
                     
                     // TODO: How do we get to the good results in archer? Removing normalisation?
                     // better results without use total_neighbours
-                    double current_value = current_neighbours_in_partition[pp] -(double)total_comm_cost / (double)num_processes * comm_cost_per_partition[pp] - a * (part_load[pp]/expected_workload);
+                    double current_value = current_neighbours_in_partition[pp]/(double)total_neighbours -(double)total_comm_cost / (double)num_processes * comm_cost_per_partition[pp] - a * (part_load[pp]/expected_workload);
                     //double current_value = current_neighbours_in_partition[pp]/(double)total_neighbours -(double)total_comm_cost / (double)num_processes * comm_cost_per_partition[pp] / max_comm_cost - a * (part_load[pp]/expected_workload);
                     // double current_value  = current_neighbours_in_partition[pp] -(double)total_comm_cost * comm_cost_per_partition[pp] - a * g/2 * pow(part_load[pp],g-1);
                     
@@ -704,55 +707,66 @@ namespace PRAW {
             
             
 #endif
-            // stop the process in the following conditions
-            //  1. imbalance tolerance has been reached
-            //      record current cut metric and partitioning and do one more iteration
-            //      if imbalance is still ok 
-            //          metric has not been improved, take recorded partitioning and stop
-            //          metric has been improved, store partitioning and do one more iteration
-            // ALL PROCESS MUST STOP to check if 0 has broken out of the loop
+            
+            // stop the process in the following conditions based on stopping_condition parameter
+            // 0 = stop as soon as imbalance tolerance has been reached
+            // > 0 -> 1 = hedge + edge cut metric, 2 = edge comm cost metric, 3 = hedge comm cost metric
+                //  1. imbalance tolerance has been reached
+                //      record current cut metric and partitioning and do one more iteration
+                //      if imbalance is still ok 
+                //          metric has not been improved, take recorded partitioning and stop
+                //          metric has been improved, store partitioning and do one more iteration
             if(frozen_iters <= iter) {
-                // problem! once check_overfit is set, must check if partitioning result was better before
-                // reproduce issue with venkat01 at 24 processes with update part load at 2500
-                if (imbalance < imbalance_tolerance) {
-                    // get cut metric
-                    float hyperedges_cut_ratio;
-                    float edges_cut_ratio;
-                    int soed;
-                    float absorption;
-                    float max_imbalance;
-                    double total_comm_cost;
-                    PRAW::getPartitionStatsFromFile(partitioning, num_processes, num_vertices, hypergraph_filename, NULL,comm_cost_matrix,
-                                &hyperedges_cut_ratio, &edges_cut_ratio, &soed, &absorption, &max_imbalance, &total_comm_cost,false);
-                    double cut_metric = hyperedges_cut_ratio + edges_cut_ratio;//hyperedges_cut_ratio;
+                if(stopping_condition == 0) {
+                    if (imbalance < imbalance_tolerance) {
+                        break;
+                    }
+                } else {
+                    if (imbalance < imbalance_tolerance) {
+                        // get cut metric
+                        float hyperedges_cut_ratio;
+                        float edges_cut_ratio;
+                        int soed;
+                        float absorption;
+                        float max_imbalance;
+                        double total_edge_comm_cost;
+                        double total_hedge_comm_cost;
+                        PRAW::getPartitionStatsFromFile(partitioning, num_processes, num_vertices, hypergraph_filename, NULL,comm_cost_matrix,
+                                    &hyperedges_cut_ratio, &edges_cut_ratio, &soed, &absorption, &max_imbalance, &total_edge_comm_cost,&total_hedge_comm_cost,false);
+                        double cut_metric;
+                        if(stopping_condition == 1) cut_metric = hyperedges_cut_ratio + edges_cut_ratio;//hyperedges_cut_ratio;
+                        if(stopping_condition == 2) cut_metric = total_edge_comm_cost;//hyperedges_cut_ratio;
+                        if(stopping_condition == 3) cut_metric = total_hedge_comm_cost;//hyperedges_cut_ratio;
 
-                    if(!check_overfit) {
-                        // record partitioning and cut metric
-                        last_cut_metric = cut_metric;
-                        if(last_partitioning == NULL) {
-                            last_partitioning = (idx_t*)malloc(num_vertices*sizeof(idx_t));
+                        if(!check_overfit) {
+                            // record partitioning and cut metric
+                            last_cut_metric = cut_metric;
+                            if(last_partitioning == NULL) {
+                                last_partitioning = (idx_t*)malloc(num_vertices*sizeof(idx_t));
+                            }
+                            memcpy(last_partitioning,partitioning,num_vertices * sizeof(idx_t));
+                            check_overfit = true;
+                        } else {
+                            // check if cut metric has improved
+                            if(cut_metric >= last_cut_metric) {
+                                // send signal to stop
+                                rollback = true;
+                                break;
+                            } else {
+                                last_cut_metric = cut_metric;
+                                memcpy(last_partitioning,partitioning,num_vertices * sizeof(idx_t));
+                            }
                         }
-                        memcpy(last_partitioning,partitioning,num_vertices * sizeof(idx_t));
-                        check_overfit = true;
+                        
                     } else {
-                        // check if cut metric has improved
-                        if(cut_metric >= last_cut_metric) {
-                            // send signal to stop
+                        /*if(check_overfit) {
                             rollback = true;
                             break;
-                        } else {
-                            last_cut_metric = cut_metric;
-                            memcpy(last_partitioning,partitioning,num_vertices * sizeof(idx_t));
-                        }
-                    }
-                    
-                } else {
-                    /*if(check_overfit) {
-                        rollback = true;
-                        break;
-                    }*/
-                    check_overfit = false;
-                }  
+                        }*/
+                        check_overfit = false;
+                    }  
+                }
+                
             }
             //if(frozen_iters <= iter && imbalance < imbalance_tolerance) break;
 
@@ -1046,9 +1060,10 @@ namespace PRAW {
                         int soed;
                         float absorption;
                         float max_imbalance;
-                        double total_comm_cost;
+                        double total_edge_comm_cost;
+                        double total_hedge_comm_cost;
                         PRAW::getPartitionStatsFromFile(partitioning, num_processes, num_vertices, hypergraph_filename, NULL,comm_cost_matrix,
-                                    &hyperedges_cut_ratio, &edges_cut_ratio, &soed, &absorption, &max_imbalance, &total_comm_cost,false);
+                                    &hyperedges_cut_ratio, &edges_cut_ratio, &soed, &absorption, &max_imbalance, &total_edge_comm_cost,&total_hedge_comm_cost,false);
                         double cut_metric = hyperedges_cut_ratio + edges_cut_ratio;//hyperedges_cut_ratio;
 
                         if(!check_overfit) {

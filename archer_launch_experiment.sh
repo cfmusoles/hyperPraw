@@ -6,15 +6,17 @@ MIN_PROCESSORS="$2"
 NUM_EXPERIMENTS="$3"
 GEOMETRIC_STEP="$4"
 BIG_MEM_NODE="$5"
-HGRAPH_FILE="$6"
-SIM_STEPS="$7"
-MESSAGE_SIZE="$8"
+SIM_STEPS="$6"
+MESSAGE_SIZE="$7"
+EXPERIMENT_TYPE="$8"
+#iterations of each experiment (number of jobs)
+REPETITIONS="$9"
 
 #create working directory
 mkdir $WORK_DIR/$EXPERIMENT_NAME
 
 #generate job files
-python generate_archer_job.py $EXPERIMENT_NAME $MIN_PROCESSORS $NUM_EXPERIMENTS $GEOMETRIC_STEP $BIG_MEM_NODE $HGRAPH_FILE $SIM_STEPS $MESSAGE_SIZE
+python $EXPERIMENT_TYPE $EXPERIMENT_NAME $MIN_PROCESSORS $NUM_EXPERIMENTS $GEOMETRIC_STEP $BIG_MEM_NODE $SIM_STEPS $MESSAGE_SIZE
 sleep 1
 
 #geometric progression
@@ -42,8 +44,11 @@ do
 	PROCESS_COUNT=$(($MIN_PROCESSORS * $GEOMETRIC_STEP ** ($p-1)))
 	FILENAME="archer_job_"$EXPERIMENT_NAME"_"$PROCESS_COUNT".sh"
 	echo "Launching job: "$FILENAME
-	qsub $FILENAME
-	#qsub -q short $FILENAME
-	rm $FILENAME
+	for a in $(seq 1 $REPETITIONS)
+	do
+		#qsub $FILENAME
+		qsub -q short $FILENAME
+		#rm $FILENAME
+	done
 done
 

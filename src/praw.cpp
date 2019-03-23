@@ -35,12 +35,13 @@ int main(int argc, char** argv) {
     char* part_method = NULL;
     int sim_steps  = 100;
     int message_size = 1;
+    int stopping_condition = 0;
 
     // getting command line parameters
     extern char *optarg;
 	extern int optind, opterr, optopt;
 	int c;
-	while( (c = getopt(argc,argv,"n:h:i:m:b:Ws:p:t:k:")) != -1 ) {
+	while( (c = getopt(argc,argv,"n:h:i:m:b:Ws:p:t:k:o:")) != -1 ) {
 		switch(c) {
 			case 'n': // test name
 				experiment_name = optarg;
@@ -72,6 +73,9 @@ int main(int argc, char** argv) {
             case 'k': // message size during simulation
 				message_size = atoi(optarg);
 				break;
+            case 'o': // type of stopping condition
+				stopping_condition = atoi(optarg);
+				break;
 		}
 	}
 
@@ -91,12 +95,12 @@ int main(int argc, char** argv) {
         //Partitioning* p1 = new ZoltanPartitioning(graph_file,imbalance_tolerance);
         //Partitioning* p1 = new HyperPRAWPartitioning(graph_file,imbalance_tolerance,iterations,NULL,true,false,false);
         //p1->perform_partitioning(num_processes,process_id);
-		partition = new HyperPRAWPartitioning(graph_file,imbalance_tolerance,iterations,bandwidth_file,true,use_bandwidth_in_partitioning,false);
+		partition = new HyperPRAWPartitioning(graph_file,imbalance_tolerance,iterations,bandwidth_file,true,use_bandwidth_in_partitioning,false,stopping_condition);
         //memcpy(partition->partitioning,p1->partitioning,partition->num_vertices * sizeof(idx_t));
         //free(p1);
     } else if(strcmp(part_method,"prawS") == 0) {  
 		PRINTF("%i: Partitioning: sequential hyperPRAW\n",process_id);
-		partition = new HyperPRAWPartitioning(graph_file,imbalance_tolerance,iterations,bandwidth_file,false,use_bandwidth_in_partitioning,true);
+		partition = new HyperPRAWPartitioning(graph_file,imbalance_tolerance,iterations,bandwidth_file,false,use_bandwidth_in_partitioning,true,stopping_condition);
 	} else { // default is random
 		PRINTF("%i: Partitioning: random\n",process_id);
 		partition = new RandomPartitioning(graph_file,imbalance_tolerance);
@@ -209,7 +213,8 @@ int main(int argc, char** argv) {
         int soed;
         float absorption;
         float max_imbalance;
-        double total_comm_cost;
+        double total_edge_comm_cost;
+        double total_hedge_comm_cost;
         
         hyperedges.clear();
         hyperedges.swap(hyperedges);
@@ -218,9 +223,9 @@ int main(int argc, char** argv) {
         std::string filename = graph_file;
         
         PRAW::getPartitionStatsFromFile(partition->partitioning, num_processes, partition->num_vertices, filename, NULL,comm_cost_matrix,
-                                &hyperedges_cut_ratio, &edges_cut_ratio, &soed, &absorption, &max_imbalance, &total_comm_cost,true);
+                                &hyperedges_cut_ratio, &edges_cut_ratio, &soed, &absorption, &max_imbalance, &total_edge_comm_cost,&total_hedge_comm_cost,true);
         
-        printf("Partition time %.2fs, sim time %.2fs\nHedgecut, %.3f, %.3f (cut net), %i (SOED), %.1f (absorption) %.3f (max imbalance), %.0f (comm cost)\nMessages sent %li\n",partition_timer,total_sim_time,hyperedges_cut_ratio,edges_cut_ratio,soed,absorption,max_imbalance,total_comm_cost,total_messages_sent);
+        printf("Partition time %.2fs, sim time %.2fs\nHedgecut, %.3f, %.3f (cut net), %i (SOED), %.1f (absorption) %.3f (max imbalance), %.0f (edge comm cost), %.0f (hedge comm cost)\nMessages sent %li\n",partition_timer,total_sim_time,hyperedges_cut_ratio,edges_cut_ratio,soed,absorption,max_imbalance,total_edge_comm_cost,total_hedge_comm_cost,total_messages_sent);
         
         // store stats in file
         filename = experiment_name;
@@ -239,8 +244,8 @@ int main(int argc, char** argv) {
             printf("Error when storing results into file\n");
         } else {
             if(!fileexists) // file does not exist, add header
-                fprintf(fp,"%s,%s,%s,%s,%s,%s,%s,%s,%s\n","Partition time","Sim time","Hedge cut ratio","Cut net","SOED","Absorption","Max imbalance","Comm cost","Messages sent");
-            fprintf(fp,"%.3f,%.3f,%.3f,%.3f,%i,%.1f,%.3f,%.0f,%li\n",partition_timer,total_sim_time,hyperedges_cut_ratio,edges_cut_ratio,soed,absorption,max_imbalance,total_comm_cost,total_messages_sent);
+                fprintf(fp,"%s,%s,%s,%s,%s,%s,%s,%s,%s,%s\n","Partition time","Sim time","Hedge cut ratio","Cut net","SOED","Absorption","Max imbalance","Edge Comm cost","Hedge comm cost","Messages sent");
+            fprintf(fp,"%.3f,%.3f,%.3f,%.3f,%i,%.1f,%.3f,%.0f,%.0f,%li\n",partition_timer,total_sim_time,hyperedges_cut_ratio,edges_cut_ratio,soed,absorption,max_imbalance,total_edge_comm_cost,total_hedge_comm_cost,total_messages_sent);
         }
         fclose(fp);
 
