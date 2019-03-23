@@ -11,6 +11,7 @@ MESSAGE_SIZE="$7"
 EXPERIMENT_TYPE="$8"
 #iterations of each experiment (number of jobs)
 REPETITIONS="$9"
+HGRAPHS_DIR="$10"
 
 #create working directory
 mkdir $WORK_DIR/$EXPERIMENT_NAME
@@ -31,7 +32,7 @@ done
 #copy necessary files
 cp $APP_NAME $WORK_DIR/$EXPERIMENT_NAME/
 cp ../mpi_perf/mpi_perf $WORK_DIR/$EXPERIMENT_NAME/
-cp resources/$HGRAPH_FILE $WORK_DIR/$EXPERIMENT_NAME/
+cp resources/$EXPERIMENT_NAME/* $WORK_DIR/$EXPERIMENT_NAME/
 chmod +x archer_retrieve_results.sh
 cp archer_retrieve_results.sh $WORK_DIR/$EXPERIMENT_NAME/
 
