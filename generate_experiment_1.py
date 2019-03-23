@@ -38,9 +38,7 @@ run_experiment() {
 	sleep 1
 	aprun -n $PROCESSES hyperPraw -n $EXPERIMENT_NAME"_hedgeEdge" -h $HYPERGRAPH_FILE -i 100 -m 1100 -p prawS -t $SIM_STEPS -s $SEED -k $MESSAGE_SIZE -o 1
 	sleep 1
-	aprun -n $PROCESSES hyperPraw -n $EXPERIMENT_NAME"_edgeCost" -h $HYPERGRAPH_FILE -i 100 -m 1100 -p prawS -t $SIM_STEPS -s $SEED -k $MESSAGE_SIZE -o 2
-	sleep 1
-	aprun -n $PROCESSES hyperPraw -n $EXPERIMENT_NAME"_hedgeCost" -h $HYPERGRAPH_FILE -i 100 -m 1100 -p prawS -t $SIM_STEPS -s $SEED -k $MESSAGE_SIZE -o 3
+	aprun -n $PROCESSES hyperPraw -n $EXPERIMENT_NAME"_zoltan" -h $HYPERGRAPH_FILE -i 100 -m 1100 -p zoltan -t $SIM_STEPS -s $SEED -k $MESSAGE_SIZE
 	sleep 1
 }
 

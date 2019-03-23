@@ -116,15 +116,21 @@ int main(int argc, char** argv) {
     std::vector<std::vector<int> > hedge_ptr;
     PRAW::load_hypergraph_from_file_dist_CSR(graph_file, &hyperedges, &hedge_ptr, process_id, partition->partitioning);
 
+
+
+    //////////////////////////////////////////////////////////////////////////////////
+    // Edge sim
+    //////////////////////////////////////////////////////////////////////////////////
+
     // Parallel communication should increase with
     //        Hedge cut
     //        SOED
     //    Parallel communication should decrease with
     //        Absorption
+    int* buffer = (int*)malloc(sizeof(int)*message_size);
     double timer = MPI_Wtime();
     long int messages_sent = 0;
-    int* buffer = (int*)malloc(sizeof(int)*message_size);
-
+    
     for(int tt = 0; tt < sim_steps; tt++) {
         // for each local hyperedge
         //      if any vertex is not local, add destination to target list
@@ -153,8 +159,37 @@ int main(int argc, char** argv) {
                 }
             }
 
+            // why is this needed?
+            // without it, it seems like communication is slower
+            // processes race ahead and wait makes it slow?
+            MPI_Barrier(MPI_COMM_WORLD);
+        }
+    }
+    // wait for all processes to finish
+    MPI_Barrier(MPI_COMM_WORLD);
+
+    double total_edge_sim_time = MPI_Wtime() - timer;
+    //total number of messages exchanged
+    long int total_edge_messages_sent;
+	MPI_Allreduce(&messages_sent, &total_edge_messages_sent, 1, MPI_LONG, MPI_SUM, MPI_COMM_WORLD);
+
+
+    //////////////////////////////////////////////////////////////////////////////////
+    // Hedge sim
+    //////////////////////////////////////////////////////////////////////////////////
+
+    timer = MPI_Wtime();
+    messages_sent = 0;
+    
+    for(int tt = 0; tt < sim_steps; tt++) {
+        // for each local hyperedge
+        //      if any vertex is not local, add destination to target list
+        //      send messages all to all for processes in target list plus local
+        //          use hedge id as flag for the messages
+        //          send messages in a ring order
+        for(int he_id = 0; he_id < hyperedges.size(); he_id++) {
             // communication is proportional to hedge cut alone
-            /*std::set<int> partitions;
+            std::set<int> partitions;
             for(int vid = 0; vid < hyperedges[he_id].size(); vid++) {
                 int dest_vertex = hyperedges[he_id][vid];
                 partitions.insert(partition->partitioning[dest_vertex]);
@@ -175,7 +210,7 @@ int main(int argc, char** argv) {
                         MPI_Recv(buffer,message_size,MPI_INT,sender_id,he_id,MPI_COMM_WORLD,MPI_STATUS_IGNORE);
                     }
                 }
-            }*/
+            }
 
             // why is this needed?
             // without it, it seems like communication is slower
@@ -186,10 +221,14 @@ int main(int argc, char** argv) {
     // wait for all processes to finish
     MPI_Barrier(MPI_COMM_WORLD);
 
-    double total_sim_time = MPI_Wtime() - timer;
+    double total_hedge_sim_time = MPI_Wtime() - timer;
     //total number of messages exchanged
-    long int total_messages_sent;
-	MPI_Allreduce(&messages_sent, &total_messages_sent, 1, MPI_LONG, MPI_SUM, MPI_COMM_WORLD);
+    long int total_hedge_messages_sent;
+	MPI_Allreduce(&messages_sent, &total_hedge_messages_sent, 1, MPI_LONG, MPI_SUM, MPI_COMM_WORLD);
+
+
+    //////////////////////////////////////////////////////////////////////////////////
+    //////////////////////////////////////////////////////////////////////////////////
 
     //Store metrics
     //    simulation time
@@ -197,7 +236,7 @@ int main(int argc, char** argv) {
     //    partitioning stats (hedge cut, SOED, absorption)
     
     if(process_id == 0) {
-        PRINTF("%i: simulation time (%i steps): %f secs\nMessages sent %li\n",process_id,sim_steps,total_sim_time,total_messages_sent);
+        printf("%i: Edge simulation time (%i steps): %f secs, Hedge simulation time: %f secs\n",process_id,sim_steps,total_edge_sim_time,total_hedge_sim_time);
         // used to calculate the theoretical cost of communication
         // if bandwidth file is not provided, then assumes all costs are equal
         // initialise comm cost matrix (for theoretical cost analysis)
@@ -225,7 +264,7 @@ int main(int argc, char** argv) {
         PRAW::getPartitionStatsFromFile(partition->partitioning, num_processes, partition->num_vertices, filename, NULL,comm_cost_matrix,
                                 &hyperedges_cut_ratio, &edges_cut_ratio, &soed, &absorption, &max_imbalance, &total_edge_comm_cost,&total_hedge_comm_cost,true);
         
-        printf("Partition time %.2fs, sim time %.2fs\nHedgecut, %.3f, %.3f (cut net), %i (SOED), %.1f (absorption) %.3f (max imbalance), %.0f (edge comm cost), %.0f (hedge comm cost)\nMessages sent %li\n",partition_timer,total_sim_time,hyperedges_cut_ratio,edges_cut_ratio,soed,absorption,max_imbalance,total_edge_comm_cost,total_hedge_comm_cost,total_messages_sent);
+        printf("Partition time %.2fs\nHedgecut, %.3f, %.3f (cut net), %i (SOED), %.1f (absorption) %.3f (max imbalance), %.0f (edge comm cost), %.0f (hedge comm cost)\nEdgesim messages sent %li,Hedgesim messages sent %li\n",partition_timer,hyperedges_cut_ratio,edges_cut_ratio,soed,absorption,max_imbalance,total_edge_comm_cost,total_hedge_comm_cost,total_edge_messages_sent,total_hedge_messages_sent);
         
         // store stats in file
         filename = experiment_name;
@@ -244,8 +283,8 @@ int main(int argc, char** argv) {
             printf("Error when storing results into file\n");
         } else {
             if(!fileexists) // file does not exist, add header
-                fprintf(fp,"%s,%s,%s,%s,%s,%s,%s,%s,%s,%s\n","Partition time","Sim time","Hedge cut ratio","Cut net","SOED","Absorption","Max imbalance","Edge Comm cost","Hedge comm cost","Messages sent");
-            fprintf(fp,"%.3f,%.3f,%.3f,%.3f,%i,%.1f,%.3f,%.0f,%.0f,%li\n",partition_timer,total_sim_time,hyperedges_cut_ratio,edges_cut_ratio,soed,absorption,max_imbalance,total_edge_comm_cost,total_hedge_comm_cost,total_messages_sent);
+                fprintf(fp,"%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s\n","Partition time","Edge Sim time","Hedge sim time","Hedge cut ratio","Cut net","SOED","Absorption","Max imbalance","Edge Comm cost","Hedge comm cost","Edgesim Messages sent","Hedgesim Messages sent");
+            fprintf(fp,"%.3f,%.3f,%.3f,%.3f,%.3f,%i,%.1f,%.3f,%.0f,%.0f,%li,%li\n",partition_timer,total_edge_sim_time,total_hedge_sim_time,hyperedges_cut_ratio,edges_cut_ratio,soed,absorption,max_imbalance,total_edge_comm_cost,total_hedge_comm_cost,total_edge_messages_sent,total_hedge_messages_sent);
         }
         fclose(fp);
 

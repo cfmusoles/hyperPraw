@@ -50,7 +50,7 @@ do
 	do
 		#qsub $FILENAME
 		qsub -q short $FILENAME
-		#rm $FILENAME
+		rm $FILENAME
 	done
 done
 
