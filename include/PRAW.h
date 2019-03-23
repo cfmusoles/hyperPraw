@@ -652,8 +652,9 @@ namespace PRAW {
                             total_comm_cost += current_neighbours_in_partition[jj] > 0 ? 1 : 0;
                     }
                     
-                    // TODO: Is total_comm_cost making things worse when using bandwidth info??
-                    double current_value = current_neighbours_in_partition[pp]/(double)total_neighbours -comm_cost_per_partition[pp] - a * (part_load[pp]/expected_workload);
+                    // TODO: How do we get to the good results in archer? Removing normalisation?
+                    // better results without use total_neighbours
+                    double current_value = current_neighbours_in_partition[pp] -(double)total_comm_cost / (double)num_processes * comm_cost_per_partition[pp] - a * (part_load[pp]/expected_workload);
                     //double current_value = current_neighbours_in_partition[pp]/(double)total_neighbours -(double)total_comm_cost / (double)num_processes * comm_cost_per_partition[pp] / max_comm_cost - a * (part_load[pp]/expected_workload);
                     // double current_value  = current_neighbours_in_partition[pp] -(double)total_comm_cost * comm_cost_per_partition[pp] - a * g/2 * pow(part_load[pp],g-1);
                     
