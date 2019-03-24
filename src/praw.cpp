@@ -164,9 +164,7 @@ int main(int argc, char** argv) {
             }
 
             // why is this needed?
-            // without it, it seems like communication is slower
-            // processes race ahead and wait makes it slow?
-            MPI_Barrier(MPI_COMM_WORLD);
+            //MPI_Barrier(MPI_COMM_WORLD);
         }
     }
     // wait for all processes to finish
@@ -217,9 +215,7 @@ int main(int argc, char** argv) {
             }
 
             // why is this needed?
-            // without it, it seems like communication is slower
-            // processes race ahead and wait makes it slow?
-            MPI_Barrier(MPI_COMM_WORLD);
+            //MPI_Barrier(MPI_COMM_WORLD);
         }
     }
     // wait for all processes to finish
