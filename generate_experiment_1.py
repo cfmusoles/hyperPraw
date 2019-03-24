@@ -1,6 +1,6 @@
 # Create ARCHER job files based on parameters passed
 
-# This experiment demonstrates the effectiveness of a stopping condition when using streaming partitioning
+# STOP_CONDITION_EXPERIMENT: This experiment demonstrates the effectiveness of a stopping condition when using streaming partitioning
 # Strategies compared:
 	# prawS hard stop: stops when imbalance tolerance has been reached
 	# prawS hedgeEdge: stops when imbalance tolerance is reached AND the sum of hedge and edge cuts is no longer improving

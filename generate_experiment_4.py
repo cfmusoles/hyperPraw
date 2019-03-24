@@ -1,6 +1,6 @@
 # Create ARCHER job files based on parameters passed
 
-# This experiment compares praw restreaming partitioning agains a state-of-the-art benchmark (zoltan)
+# FINAL_BENCHMARK: This experiment compares praw restreaming partitioning agains a state-of-the-art benchmark (zoltan)
 # Strategies compared:
 	# prawS default: praw without bandwidth info
 	# prawS bandwidth: architecture aware bandwidth

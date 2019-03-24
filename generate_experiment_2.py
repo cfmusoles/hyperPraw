@@ -1,11 +1,15 @@
 # Create ARCHER job files based on parameters passed
 
-# This experiment demonstrates the effectiveness of architecture aware partitioning, evaluating different bandwidth to comm cost mappings
+# COMM_COST_EXPERIMENT: This experiment demonstrates the effectiveness of architecture aware partitioning, evaluating different bandwidth to comm cost mappings
 # Strategies compared:
 	# prawS default: not using bandwidth info (baseline)
 	# prawS 0_1: uses bandwidth info as a 0 - 1 mapping to comm cost
 	# prawS proportional: uses bandwidth info with a proportional mapping to comm cost (from 0 to ratio max / min bandwidth)
-
+# stable parameters
+	# hedgeEdge as stopping condition
+	# imbalance tolerance 1.1
+	# 100 max iterations
+	
 import sys
 import math
 

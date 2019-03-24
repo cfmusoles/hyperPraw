@@ -1,6 +1,6 @@
 # Create ARCHER job files based on parameters passed
 
-# This experiment demonstrates the effectiveness of using theoretical comm cost as a stopping condition when using architecture aware streaming partitioning
+# EXPECTED_COMM_COST_MONITOR_EXPERIMENT: This experiment demonstrates the effectiveness of using theoretical comm cost as a stopping condition when using architecture aware streaming partitioning
 # Strategies compared:
 	# prawS _bandwidth_hedgeEdge: monitors hedge plus edge cut as stopping condition
 	# prawS _bandwidth_hedgeCost: monitors theoretical cost on hedge simulations as stopping condition
