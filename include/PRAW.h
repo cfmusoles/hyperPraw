@@ -3,8 +3,8 @@
 #ifndef PRAW__H
 #define PRAW__H
 
-//#define SAVE_HISTORY        // stores partitioning iteration history in file
-//#define SAVE_COMM_COST      // store theoretical p2p communication based on partitioning
+#define SAVE_HISTORY        // stores partitioning iteration history in file
+#define SAVE_COMM_COST      // store theoretical p2p communication based on partitioning
 
 #include <vector>
 #include <time.h>
@@ -651,15 +651,15 @@ namespace PRAW {
                 int best_partition = partitioning[vid];
                 for(int pp=0; pp < num_processes; pp++) {
                     // total cost of communication (edgecuts * number of participating partitions)
-                    /*long int total_comm_cost = 0;
+                    long int total_comm_cost = 0;
                     for(int jj=0; jj < num_processes; jj++) {
                         if(pp != jj)
                             total_comm_cost += current_neighbours_in_partition[jj] > 0 ? 1 : 0;
-                    }*/
+                    }
                     
                     // TODO: How do we get to the good results in archer? Removing normalisation?
                     // better results without use total_neighbours
-                    double current_value = current_neighbours_in_partition[pp]/(double)total_neighbours -/*(double)total_comm_cost / (double)num_processes * */ comm_cost_per_partition[pp]/max_comm_cost - a * (part_load[pp]/expected_workload);
+                    double current_value = current_neighbours_in_partition[pp]/(double)total_neighbours -(double)total_comm_cost / (double)num_processes * comm_cost_per_partition[pp] - a * (part_load[pp]/expected_workload);
                     //double current_value = current_neighbours_in_partition[pp]/(double)total_neighbours -(double)total_comm_cost / (double)num_processes * comm_cost_per_partition[pp] - a * (part_load[pp]/expected_workload);
                     // double current_value  = current_neighbours_in_partition[pp] -(double)total_comm_cost * comm_cost_per_partition[pp] - a * g/2 * pow(part_load[pp],g-1);
                     
