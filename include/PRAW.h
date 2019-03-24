@@ -540,7 +540,7 @@ namespace PRAW {
         double a = sqrt(num_processes) * num_hyperedges / pow(num_vertices,g); // same as FENNEL Tsourakakis 2012
         // ta is the update rate of parameter a; was 1.7
         double ta_start = 1.7; // used when imbalance is above imbalance_tolerance
-        double ta_refine = 1.3; // used when imbalance is below imbalance_tolerance
+        double ta_refine = 1.2; // used when imbalance is below imbalance_tolerance
         // minimum number of iterations run (not checking imbalance threshold)
         // removed whilst we are using hyperPraw as refinement algorithm
         //      hence, if balanced is kept after first iteration, that's good enough
@@ -623,22 +623,23 @@ namespace PRAW {
                 // does not double count vertices that are present in multiple hyperedges
                 // communication cost should be based on hedge cut?
                 for(int he = 0; he < hedge_ptr[vid].size(); he++) {
-                    //bool* visited = (bool*)calloc(num_vertices,sizeof(bool));
+                    //bool* visited = (bool*)calloc(num_processes,sizeof(bool));
                     int he_id = hedge_ptr[vid][he];
                     for(int vt = 0; vt < hyperedges[he_id].size(); vt++) {
                         int dest_vertex = hyperedges[he_id][vt];
                         if(dest_vertex == vid) continue;
                         total_neighbours++;
                         int dest_part = partitioning[dest_vertex];
-                        //if(!visited[dest_vertex]) 
-                            current_neighbours_in_partition[dest_part] += 1;
-                        // recalculate comm cost for all possible partition assignments of vid
-                        //  commCost(v,Pi) = forall edge in edges(Pi) cost += w(e) * c(Pi,Pj) where i != j
-                        for(int fp=0; fp < num_processes; fp++) {
-                            comm_cost_per_partition[fp] += 1 * comm_cost_matrix[fp][dest_part];
-                            //max_comm_cost = std::max(max_comm_cost,comm_cost_per_partition[fp]);
-                        }
-                        //visited[dest_vertex] = true;
+                        current_neighbours_in_partition[dest_part] += 1;
+                        //if(!visited[dest_part]) {
+                            // recalculate comm cost for all possible partition assignments of vid
+                            //  commCost(v,Pi) = forall edge in edges(Pi) cost += w(e) * c(Pi,Pj) where i != j
+                            for(int fp=0; fp < num_processes; fp++) {
+                                comm_cost_per_partition[fp] += 1 * comm_cost_matrix[fp][dest_part];
+                                //max_comm_cost = std::max(max_comm_cost,comm_cost_per_partition[fp]);
+                            }
+                        //}
+                        //visited[dest_part] = true;
                     }
                     //free(visited);
                 }
@@ -656,9 +657,11 @@ namespace PRAW {
                         if(pp != jj)
                             total_comm_cost += current_neighbours_in_partition[jj] > 0 ? 1 : 0;
                     }
-                    
-                    //double current_value = current_neighbours_in_partition[pp]/(double)total_neighbours -/*(double)total_comm_cost / (double)num_processes * */ comm_cost_per_partition[pp] / max_comm_cost - a * (part_load[pp]/expected_workload);
-                    double current_value = current_neighbours_in_partition[pp]/(double)total_neighbours -(double)total_comm_cost / (double)num_processes * comm_cost_per_partition[pp] - a * (part_load[pp]/expected_workload);
+
+                    // TODO: try without current_neighbours_in_partition
+                    // TODO: test using visited bool array (but this time checks if partitions have already been considered for the cost)
+                    double current_value = current_neighbours_in_partition[pp]/(double)total_neighbours - comm_cost_per_partition[pp] - a * (part_load[pp]/expected_workload);
+                    //double current_value = current_neighbours_in_partition[pp]/(double)total_neighbours -(double)total_comm_cost / (double)num_processes * comm_cost_per_partition[pp] - a * (part_load[pp]/expected_workload);
                     // double current_value  = current_neighbours_in_partition[pp] -(double)total_comm_cost * comm_cost_per_partition[pp] - a * g/2 * pow(part_load[pp],g-1);
                     
                     // lesson learned, global hygergraph partitioners use connectivity metric as cost function
@@ -768,11 +771,11 @@ namespace PRAW {
 
             // update parameters
             if(imbalance > imbalance_tolerance) {
-                /*if(imbalance > ta_start) {
+                if(imbalance > ta_start) {
                     a *= imbalance;
-                } else {*/
+                } else {
                     a *= ta_start;
-                //}
+                }
                 
             } else {
                 a *= ta_refine;
