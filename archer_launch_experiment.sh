@@ -45,6 +45,7 @@ for f in *.tar.gz
 do
   tar zxvf "$f" -C ./
 done
+rm *.tar.gz
 
 #geometric progression
 for p in $(seq 1 $NUM_EXPERIMENTS)
