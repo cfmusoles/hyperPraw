@@ -323,7 +323,7 @@ namespace PRAW {
         *absorption=0;
         *max_imbalance=0;
         *total_edge_comm_cost=0;
-        *total_hedge_comm_cost=0;
+        if(total_hedge_comm_cost != NULL) *total_hedge_comm_cost=0;
         
         int* workload = (int*)calloc(num_processes,sizeof(int));
         int total_workload = 0;
@@ -405,13 +405,15 @@ namespace PRAW {
             if(connectivity.size() > 1) {
                 *soed += connectivity.size(); // counts as 1 external degree per partition participating
                 hyperedges_cut++;
+                if(total_hedge_comm_cost != NULL) {
                 // communication cost based on hyperedge cut
-                for (std::set<int>::iterator sender=connectivity.begin(); sender!=connectivity.end(); ++sender) {
-                    int sender_id = *sender;
-                    for (std::set<int>::iterator receiver=connectivity.begin(); receiver!=connectivity.end(); ++receiver) {
-                        int receiver_id = *receiver;    
-                        if (sender_id != receiver_id)
-                            *total_hedge_comm_cost += comm_cost_matrix[sender_id][receiver_id];
+                    for (std::set<int>::iterator sender=connectivity.begin(); sender!=connectivity.end(); ++sender) {
+                        int sender_id = *sender;
+                        for (std::set<int>::iterator receiver=connectivity.begin(); receiver!=connectivity.end(); ++receiver) {
+                            int receiver_id = *receiver;    
+                            if (sender_id != receiver_id)
+                                *total_hedge_comm_cost += comm_cost_matrix[sender_id][receiver_id];
+                        }
                     }
                 }
             }
@@ -467,7 +469,7 @@ namespace PRAW {
 #endif
         
 
-        PRINTF("Quality: %i (hedgecut, %.3f total) %.3f (cut net), %i (SOED), %.1f (absorption) %.3f (max imbalance), %f (edge comm cost),, %f (edge comm cost)\n",hyperedges_cut,*hyperedges_cut_ratio,*edges_cut_ratio,*soed,*absorption,*max_imbalance,*total_edge_comm_cost,*total_hedge_comm_cost);
+        PRINTF("Quality: %i (hedgecut, %.3f total) %.3f (cut net), %i (SOED), %.1f (absorption) %.3f (max imbalance), %f (edge comm cost),, %f (edge comm cost)\n",hyperedges_cut,*hyperedges_cut_ratio,*edges_cut_ratio,*soed,*absorption,*max_imbalance,*total_edge_comm_cost,total_hedge_comm_cost == NULL ? 0 : *total_hedge_comm_cost);
         
         // clean up
         free(workload);
@@ -537,8 +539,8 @@ namespace PRAW {
         // battaglino's initial alpha, was sqrt(2) * num_hyperedges / pow(num_vertices,g);
         double a = sqrt(num_processes) * num_hyperedges / pow(num_vertices,g); // same as FENNEL Tsourakakis 2012
         // ta is the update rate of parameter a; was 1.7
-        double ta_start = 1.7; // used when imbalance is far from imbalance_tolerance
-        double ta_refine = 1.3; // used when imbalance is close to imbalance_tolerance
+        double ta_start = 1.7; // used when imbalance is above imbalance_tolerance
+        double ta_refine = 1.3; // used when imbalance is below imbalance_tolerance
         // minimum number of iterations run (not checking imbalance threshold)
         // removed whilst we are using hyperPraw as refinement algorithm
         //      hence, if balanced is kept after first iteration, that's good enough
@@ -597,16 +599,15 @@ namespace PRAW {
         float last_imbalance = num_processes;
         //double timing = 0;
         //double ttt;
+        memset(part_load,0,num_processes * sizeof(long int));
+        double total_workload = 0;
+        for(int ii=0; ii < num_vertices; ii++) {
+            part_load[partitioning[ii]] += vtx_wgt[ii]; // workload for vertex
+            total_workload += vtx_wgt[ii];
+        }
+        double expected_workload = total_workload / num_processes;
         for(int iter=0; iter < iterations; iter++) {
             //timing = 0;
-            memset(part_load,0,num_processes * sizeof(long int));
-            double total_workload = 0;
-            for(int ii=0; ii < num_vertices; ii++) {
-                part_load[partitioning[ii]] += vtx_wgt[ii]; // workload for vertex
-                total_workload += vtx_wgt[ii];
-            }
-            double expected_workload = total_workload / num_processes;
-            
             // go through own vertex list and reassign
             for(int vid=0; vid < num_vertices; vid++) {
                 memset(current_neighbours_in_partition,0,num_processes * sizeof(int));
@@ -635,8 +636,8 @@ namespace PRAW {
                         //  commCost(v,Pi) = forall edge in edges(Pi) cost += w(e) * c(Pi,Pj) where i != j
                         for(int fp=0; fp < num_processes; fp++) {
                             comm_cost_per_partition[fp] += 1 * comm_cost_matrix[fp][dest_part];
-                            if(comm_cost_per_partition[fp] > max_comm_cost)
-                                max_comm_cost = comm_cost_per_partition[fp];
+                            /*if(comm_cost_per_partition[fp] > max_comm_cost)
+                                max_comm_cost = comm_cost_per_partition[fp];*/
                         }
                         //visited[dest_vertex] = true;
                     }
@@ -644,12 +645,11 @@ namespace PRAW {
                 }
                 
 
-                if(max_comm_cost < std::numeric_limits<double>::epsilon()) max_comm_cost = 1;
+                /*if(max_comm_cost < std::numeric_limits<double>::epsilon()) max_comm_cost = 1;*/
                 
                 // allocate vertex (for local heuristically, for non local speculatively)
                 double max_value = std::numeric_limits<double>::lowest();
                 int best_partition = partitioning[vid];
-                //std::vector<int> best_parts;
                 for(int pp=0; pp < num_processes; pp++) {
                     // total cost of communication (edgecuts * number of participating partitions)
                     long int total_comm_cost = 0;
@@ -675,15 +675,8 @@ namespace PRAW {
                     if(current_value > max_value) {
                         max_value = current_value;
                         best_partition = pp;
-                        //best_parts.clear();
-                        //best_parts.push_back(pp);
-                    } /*else if(fabs(current_value-max_value) <= std::numeric_limits<double>::epsilon()*2) {
-                        best_parts.push_back(pp);
-                    }*/
+                    } 
                 }
-                
-                //best_partition = best_parts[(int)(best_parts.size() * (double)rand() / (double)RAND_MAX)];
-                
                 
                 // update intermediate workload and assignment values
                 part_load[best_partition] += vtx_wgt[vid];
@@ -735,7 +728,10 @@ namespace PRAW {
                         double total_edge_comm_cost;
                         double total_hedge_comm_cost;
                         PRAW::getPartitionStatsFromFile(partitioning, num_processes, num_vertices, hypergraph_filename, NULL,comm_cost_matrix,
-                                    &hyperedges_cut_ratio, &edges_cut_ratio, &soed, &absorption, &max_imbalance, &total_edge_comm_cost,&total_hedge_comm_cost,false);
+                                    &hyperedges_cut_ratio, &edges_cut_ratio, &soed, &absorption, &max_imbalance, 
+                                    &total_edge_comm_cost,
+                                    stopping_condition == 3 ? &total_hedge_comm_cost : NULL, // only check hedge cost if it's going to be used
+                                    false);
                         double cut_metric;
                         if(stopping_condition == 1) cut_metric = hyperedges_cut_ratio + edges_cut_ratio;//hyperedges_cut_ratio;
                         if(stopping_condition == 2) cut_metric = total_edge_comm_cost;//hyperedges_cut_ratio;
@@ -775,12 +771,14 @@ namespace PRAW {
 
             // update parameters
             if(imbalance > imbalance_tolerance) {
-                if(imbalance > 1.2f * imbalance_tolerance) {
-                    a *= ta_start;
+                if(imbalance > ta_start) {
+                    a *= imbalance;
                 } else {
-                    a *= ta_refine;
+                    a *= ta_start;
                 }
                 
+            } else {
+                a *= ta_refine;
             }
             last_imbalance = imbalance;
         }
