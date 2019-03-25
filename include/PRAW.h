@@ -500,7 +500,7 @@ namespace PRAW {
         double a = sqrt(num_processes) * num_hyperedges / pow(num_vertices,g); // same as FENNEL Tsourakakis 2012
         // ta is the update rate of parameter a; was 1.7
         double ta_start = 1.7; // used when imbalance is above imbalance_tolerance
-        double ta_refine = 1.2; // used when imbalance is below imbalance_tolerance
+        double ta_refine = 1.3; // used when imbalance is below imbalance_tolerance
         // minimum number of iterations run (not checking imbalance threshold)
         // removed whilst we are using hyperPraw as refinement algorithm
         //      hence, if balanced is kept after first iteration, that's good enough
@@ -732,6 +732,10 @@ namespace PRAW {
                 // avoids the issue of overloading most of the communication to and from one single process
                 for (int vid=0; vid < num_vertices; vid++) {
                     partitioning[vid] = vid % num_processes;
+                }
+                memset(part_load,0,num_processes * sizeof(long int));
+                for(int ii=0; ii < num_vertices; ii++) {
+                    part_load[partitioning[ii]] += vtx_wgt[ii]; // workload for vertex
                 }
             }
             // update parameters
