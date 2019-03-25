@@ -1,5 +1,6 @@
 // Test harness for SPAAW (Streaming parallel Partitioning Architecture AWare)
 #define VERBOSE                 // extra debug info printed out during runtime
+#define SAVE_COMM_COST      // store actual p2p communication based on partitioning
 
 #include <mpi.h>
 #include <cstdio>
@@ -13,6 +14,54 @@
 #include "HyperPRAWPartitioning.h"
 #include <iterator>
 #include <numeric>
+
+void storeSimCommunication(int* sent_communication,int process_id, int num_processes, int mode, char* experiment_name, char* graph_file, char* part_method) {
+    // gather all results in node 0
+    if(process_id == 0) {
+        int** comm = (int**)malloc(num_processes * sizeof(int*));
+        for(int ii=0; ii < num_processes; ii++) {
+            comm[ii] = (int*)calloc(num_processes,sizeof(int));
+        }
+        memcpy(comm[0],sent_communication,sizeof(int) * num_processes);
+        for(int ii=1; ii < num_processes; ii++) {
+            MPI_Recv(comm[ii],num_processes,MPI_INT,ii,0,MPI_COMM_WORLD,MPI_STATUS_IGNORE);
+        }
+        // store matrix in a file
+        std::string filename = experiment_name;
+        filename += "_";
+        std::string graph_string = graph_file;
+        filename += PRAW::getFileName(graph_string);
+        filename += "_";
+        filename += part_method;
+        if(mode == 0) {
+            filename += "_edgeSim";
+        } else if (mode == 1) {
+            filename += "_hedgeSim";
+        }
+        filename += "_comm_cost";
+        char str_int[16];
+        sprintf(str_int,"%i",num_processes);
+        filename += "__";
+        filename +=  str_int;
+        bool fileexists = access(filename.c_str(), F_OK) != -1;
+        FILE *fp = fopen(filename.c_str(), "w");
+        if(fp == NULL) {
+            printf("Error when storing comm cost into file\n");
+        } else {
+            for(int jj=0; jj < num_processes; jj++) {
+                for(int ii=0; ii < num_processes; ii++) {
+                    fprintf(fp,"%i ",comm[jj][ii]);
+                }
+                fprintf(fp,"\n");
+            }
+        }
+        fclose(fp);
+    } else {
+        MPI_Send(sent_communication,num_processes,MPI_INT,0,0,MPI_COMM_WORLD);
+    }
+    
+    
+}
 
 
 int main(int argc, char** argv) {
@@ -134,6 +183,9 @@ int main(int argc, char** argv) {
     int* buffer = (int*)malloc(sizeof(int)*message_size);
     double timer = MPI_Wtime();
     long int messages_sent = 0;
+#ifdef SAVE_COMM_COST
+    int* sent_communication = (int*)calloc(num_processes,sizeof(int));
+#endif   
     
     for(int tt = 0; tt < sim_steps; tt++) {
         // for each local hyperedge
@@ -153,6 +205,9 @@ int main(int argc, char** argv) {
                     if(origin_part == process_id ) {
                         // send
                         messages_sent++;
+#ifdef SAVE_COMM_COST
+                        sent_communication[dest_part] += 1;
+#endif
                         MPI_Send(buffer,message_size,MPI_INT,dest_part,he_id,MPI_COMM_WORLD);
                     } else {
                         if(dest_part == process_id) {
@@ -175,13 +230,20 @@ int main(int argc, char** argv) {
     long int total_edge_messages_sent;
 	MPI_Allreduce(&messages_sent, &total_edge_messages_sent, 1, MPI_LONG, MPI_SUM, MPI_COMM_WORLD);
 
+#ifdef SAVE_COMM_COST
+    storeSimCommunication(sent_communication,process_id,num_processes,0,experiment_name,graph_file,part_method);
+#endif
 
     //////////////////////////////////////////////////////////////////////////////////
     // Hedge sim
     //////////////////////////////////////////////////////////////////////////////////
 
+    MPI_Barrier(MPI_COMM_WORLD);
     timer = MPI_Wtime();
     messages_sent = 0;
+#ifdef SAVE_COMM_COST
+    memset(sent_communication,0,num_processes * sizeof(int));
+#endif
     
     for(int tt = 0; tt < sim_steps; tt++) {
         // for each local hyperedge
@@ -205,6 +267,9 @@ int main(int argc, char** argv) {
                             int receiver_id = *receiver;
                             if(sender_id == receiver_id) continue;
                             messages_sent++;
+#ifdef SAVE_COMM_COST
+                            sent_communication[receiver_id] += 1;
+#endif
                             MPI_Send(buffer,message_size,MPI_INT,receiver_id,he_id,MPI_COMM_WORLD);
                         }
                     } else { // turn to receive messages
@@ -226,6 +291,7 @@ int main(int argc, char** argv) {
     long int total_hedge_messages_sent;
 	MPI_Allreduce(&messages_sent, &total_hedge_messages_sent, 1, MPI_LONG, MPI_SUM, MPI_COMM_WORLD);
 
+    storeSimCommunication(sent_communication,process_id,num_processes,1,experiment_name,graph_file,part_method);
 
     //////////////////////////////////////////////////////////////////////////////////
     //////////////////////////////////////////////////////////////////////////////////
@@ -262,7 +328,7 @@ int main(int argc, char** argv) {
         std::string filename = graph_file;
         
         PRAW::getPartitionStatsFromFile(partition->partitioning, num_processes, partition->num_vertices, filename, NULL,comm_cost_matrix,
-                                &hyperedges_cut_ratio, &edges_cut_ratio, &soed, &absorption, &max_imbalance, &total_edge_comm_cost,&total_hedge_comm_cost,true);
+                                &hyperedges_cut_ratio, &edges_cut_ratio, &soed, &absorption, &max_imbalance, &total_edge_comm_cost,&total_hedge_comm_cost);
         
         printf("Partition time %.2fs\nHedgecut, %.3f, %.3f (cut net), %i (SOED), %.1f (absorption) %.3f (max imbalance), %.0f (edge comm cost), %.0f (hedge comm cost)\nEdgesim messages sent %li,Hedgesim messages sent %li\n",partition_timer,hyperedges_cut_ratio,edges_cut_ratio,soed,absorption,max_imbalance,total_edge_comm_cost,total_hedge_comm_cost,total_edge_messages_sent,total_hedge_messages_sent);
         
@@ -298,6 +364,9 @@ int main(int argc, char** argv) {
     // clean up
     free(partition);
     free(buffer);
+#ifdef SAVE_COMM_COST
+    free(sent_communication);
+#endif
 
     // finalise MPI and application
     MPI_Finalize();

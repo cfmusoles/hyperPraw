@@ -4,7 +4,6 @@
 #define PRAW__H
 
 #define SAVE_HISTORY        // stores partitioning iteration history in file
-#define SAVE_COMM_COST      // store theoretical p2p communication based on partitioning
 
 #include <vector>
 #include <time.h>
@@ -256,7 +255,7 @@ namespace PRAW {
     }
 
     // load to distributed CSR format
-    int load_hypergraph_from_file_dist_CSR(std::string filename, std::vector<std::vector<int> >* hyperedges, std::vector<std::vector<int> >* hedge_ptr, int process_id, idx_t* partitioning) {
+    int load_hypergraph_from_file_dist_CSR(std::string filename, std::vector<std::vector<int> >* hyperedges, std::vector<std::vector<int> >* hedge_ptr, int process_id, idx_t* partitioning, bool load_all = false) {
         
         // get header info
         int total_vertices;;
@@ -295,10 +294,10 @@ namespace PRAW {
                 }
             }
             // add to memory only if local
-            if(local) {
+            if(local || load_all) {
                 for(int ii=0; ii < tokens.size(); ii++) {
                     int vertex_id = tokens[ii]-1;
-                    if(partitioning[vertex_id] == process_id) {
+                    if(partitioning[vertex_id] == process_id || load_all) {
                         hedge_ptr->at(vertex_id).push_back(counter);
                     }
                     hyperedges->at(counter).push_back(vertex_id);
@@ -313,7 +312,7 @@ namespace PRAW {
     }
 
     void getPartitionStatsFromFile(idx_t* partitioning, int num_processes, int num_vertices, std::string hgraph_filename, int* vtx_wgt,double** comm_cost_matrix, // input
-                            float* hyperedges_cut_ratio, float* edges_cut_ratio, int* soed, float* absorption, float* max_imbalance, double* total_edge_comm_cost, double* total_hedge_comm_cost, bool save_theoretical_comm) { // output
+                            float* hyperedges_cut_ratio, float* edges_cut_ratio, int* soed, float* absorption, float* max_imbalance, double* total_edge_comm_cost, double* total_hedge_comm_cost) { // output
 
         // take partitioning statistics directly from reading a graph file
         // loading the entire graph on a process should be avoided for scalability
@@ -342,12 +341,6 @@ namespace PRAW {
         
         std::ifstream istream(hgraph_filename.c_str());
 
-#ifdef SAVE_COMM_COST
-        int** theoretical_comm = (int**)malloc(num_processes * sizeof(int*));
-        for(int ii=0; ii < num_processes; ii++) {
-            theoretical_comm[ii] = (int*)calloc(num_processes,sizeof(int));
-        }
-#endif
         
         if(!istream) {
             printf("Error while opening hMETIS file %s\n",hgraph_filename.c_str());
@@ -395,9 +388,6 @@ namespace PRAW {
                     // this cost measures mainly edge cut
                     if(comm_cost_matrix != NULL) {
                         *total_edge_comm_cost += comm_cost_matrix[partitioning[from]][to_part];
-#ifdef SAVE_COMM_COST
-                        if(save_theoretical_comm) theoretical_comm[partitioning[from]][to_part] += 1;
-#endif
                     }
                 }
             }
@@ -437,36 +427,6 @@ namespace PRAW {
 
         *hyperedges_cut_ratio=(float)hyperedges_cut/total_hyperedges;
         *edges_cut_ratio=(float)edgecut/total_edges;
-
-#ifdef SAVE_COMM_COST
-        if(save_theoretical_comm) {
-            std::string comm_cost_file = getFileName(hgraph_filename);
-            comm_cost_file += "_theoretical_comm";
-            char str_int[16];
-            sprintf(str_int,"%i",num_processes);
-            comm_cost_file += "__";
-            comm_cost_file +=  str_int;
-            // remove  file if exists
-            FILE *fp = fopen(comm_cost_file.c_str(), "w");
-            if(fp == NULL) {
-                printf("Error when storing partitioning history into file\n");
-            } else {
-                for(int ii=0; ii < num_processes; ii++) {
-                    for(int jj=0; jj < num_processes; jj++) {
-                        fprintf(fp,"%i ",theoretical_comm[ii][jj]);
-                    }
-                    fprintf(fp,"\n");
-                }
-            }
-            fclose(fp);
-        }
-        
-            
-        for(int ii=0; ii < num_processes; ii++) {
-            free(theoretical_comm[ii]);
-        }
-        free(theoretical_comm);
-#endif
         
 
         PRINTF("Quality: %i (hedgecut, %.3f total) %.3f (cut net), %i (SOED), %.1f (absorption) %.3f (max imbalance), %f (edge comm cost),, %f (edge comm cost)\n",hyperedges_cut,*hyperedges_cut_ratio,*edges_cut_ratio,*soed,*absorption,*max_imbalance,*total_edge_comm_cost,total_hedge_comm_cost == NULL ? 0 : *total_hedge_comm_cost);
@@ -552,7 +512,7 @@ namespace PRAW {
         // needs to load num_vertices from file
         if(reset_partitioning) {
             for (int vid=0; vid < num_vertices; vid++) {
-                partitioning[vid] = MASTER_NODE;
+                partitioning[vid] = vid % num_processes;//MASTER_NODE;
             }
         }
         
@@ -561,7 +521,7 @@ namespace PRAW {
         //  for each local vertex, store the list of vertices adjacent to it (belonging to same hedges)
         std::vector<std::vector<int> > hyperedges;
         std::vector<std::vector<int> > hedge_ptr;
-        load_hypergraph_from_file_dist_CSR(hypergraph_filename, &hyperedges, &hedge_ptr, MASTER_NODE, partitioning);
+        load_hypergraph_from_file_dist_CSR(hypergraph_filename, &hyperedges, &hedge_ptr, MASTER_NODE, partitioning, true);
         
 
         // each process must read from file only the info relevant to its data
@@ -657,10 +617,9 @@ namespace PRAW {
                         if(pp != jj)
                             total_comm_cost += current_neighbours_in_partition[jj] > 0 ? 1 : 0;
                     }
-
-                    // TODO: try without current_neighbours_in_partition
+                    
                     // TODO: test using visited bool array (but this time checks if partitions have already been considered for the cost)
-                    double current_value = current_neighbours_in_partition[pp]/(double)total_neighbours - comm_cost_per_partition[pp] - a * (part_load[pp]/expected_workload);
+                    double current_value =  -comm_cost_per_partition[pp] - a * (part_load[pp]/expected_workload);
                     //double current_value = current_neighbours_in_partition[pp]/(double)total_neighbours -(double)total_comm_cost / (double)num_processes * comm_cost_per_partition[pp] - a * (part_load[pp]/expected_workload);
                     // double current_value  = current_neighbours_in_partition[pp] -(double)total_comm_cost * comm_cost_per_partition[pp] - a * g/2 * pow(part_load[pp],g-1);
                     
@@ -730,8 +689,7 @@ namespace PRAW {
                         PRAW::getPartitionStatsFromFile(partitioning, num_processes, num_vertices, hypergraph_filename, NULL,comm_cost_matrix,
                                     &hyperedges_cut_ratio, &edges_cut_ratio, &soed, &absorption, &max_imbalance, 
                                     &total_edge_comm_cost,
-                                    stopping_condition == 3 ? &total_hedge_comm_cost : NULL, // only check hedge cost if it's going to be used
-                                    false);
+                                    stopping_condition == 3 ? &total_hedge_comm_cost : NULL); // only check hedge cost if it's going to be used
                         double cut_metric;
                         if(stopping_condition == 1) cut_metric = hyperedges_cut_ratio + edges_cut_ratio;//hyperedges_cut_ratio;
                         if(stopping_condition == 2) cut_metric = total_edge_comm_cost;//hyperedges_cut_ratio;
@@ -769,6 +727,13 @@ namespace PRAW {
             }
             //if(frozen_iters <= iter && imbalance < imbalance_tolerance) break;
 
+            if(imbalance > 10) {
+                // if the assignment is too imbalanced, discard it and reset
+                // avoids the issue of overloading most of the communication to and from one single process
+                for (int vid=0; vid < num_vertices; vid++) {
+                    partitioning[vid] = vid % num_processes;
+                }
+            }
             // update parameters
             if(imbalance > imbalance_tolerance) {
                 if(imbalance > ta_start) {
@@ -1064,7 +1029,7 @@ namespace PRAW {
                         double total_edge_comm_cost;
                         double total_hedge_comm_cost;
                         PRAW::getPartitionStatsFromFile(partitioning, num_processes, num_vertices, hypergraph_filename, NULL,comm_cost_matrix,
-                                    &hyperedges_cut_ratio, &edges_cut_ratio, &soed, &absorption, &max_imbalance, &total_edge_comm_cost,&total_hedge_comm_cost,false);
+                                    &hyperedges_cut_ratio, &edges_cut_ratio, &soed, &absorption, &max_imbalance, &total_edge_comm_cost,&total_hedge_comm_cost);
                         double cut_metric = hyperedges_cut_ratio + edges_cut_ratio;//hyperedges_cut_ratio;
 
                         if(!check_overfit) {
