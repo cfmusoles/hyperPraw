@@ -8,15 +8,15 @@ from mpl_toolkits.mplot3d import Axes3D
 from matplotlib.ticker import LinearLocator, FormatStrFormatter
 from pylab import *
 
-num_processes = 384
+num_processes = 12
 plot_bandwidth = False			# plot network bandwidth data
-plot_sent_data = True			# plot application sent data
+plot_sent_data = False			# plot application sent data
 plot_comm_cost = True			# plot combined comm cost
 storeResults = False
 
-folder = "../results/test/"
+folder = "../"
 bandwidth_send_experiment_name = 'results_mpi_send_bandwidth_' + str(num_processes)
-sim_sent_experiment = 'test_default_hedgeEdge_crashbasis.mtx.hgr_prawS_hedgeSim_comm_cost__' + str(num_processes)
+sim_sent_experiment = 'test_bandwidth_crashbasis.mtx.hgr_prawS_hedgeSim_comm_cost__' + str(num_processes)
 
 xlabel = "Process"
 ylabel = "Process"
@@ -81,23 +81,57 @@ if plot_bandwidth:
 ## creating combined figure for cost of communication
 ## each value corresponds to a process-process pair: total data sent / bandwidth 
 if plot_sent_data:
+	## IN 3D##
 	data = get_data_from_csv(folder + sim_sent_experiment,' ')
 	plot_3dgraph(data,titles[1],zlabels[1],filenames[1])
+	####
+	
 
 if plot_comm_cost:
+	## Plot bandwidth and data sent separately in a double figure
 	bandwidth_data = get_data_from_csv(folder + bandwidth_send_experiment_name,'\t')
 	comm_data = get_data_from_csv(folder + sim_sent_experiment,' ')
 	cost_data = np.array([c/b for b, c in zip(bandwidth_data, comm_data)])
 	cost_data = np.nan_to_num(cost_data)
 	print('Total cost: ' + str(cost_data.sum()))
 	# colour maps http://scipy-cookbook.readthedocs.io/items/Matplotlib_Show_colormaps.html
-	pcolor(cost_data,cmap=get_cmap("binary"))
-	cbar = colorbar()
-	plt.title(titles[2])
-	plt.xlabel(xlabel)
-	plt.ylabel(ylabel)
-	cbar.ax.set_ylabel("Cost (time)",rotation=90)
+	fig, axes = plt.subplots(1,2)
+	# plot bandwidth
+	c = axes[0].pcolor(bandwidth_data,cmap=get_cmap("binary"))
+	axes[0].set_xlabel(xlabel)
+	axes[0].set_ylabel(ylabel)
+	axes[0].set_title("P2P Bandwidth")
+	fig.colorbar(c,ax=axes[0])
+	# plot data sent
+	c = axes[1].pcolor(comm_data,cmap=get_cmap("binary"))
+	axes[1].set_xlabel(xlabel)
+	axes[1].set_ylabel(ylabel)
+	axes[1].set_title("Actual data sent")
+	fig.colorbar(c,ax=axes[1])
+
+	fig.tight_layout()
+	
+
 	if storeResults:
 		plt.savefig(filenames[2] + "." + image_format,format=image_format,dpi=300)
 	plt.show()
+
+	## Compound graph##
+	#bandwidth_data = get_data_from_csv(folder + bandwidth_send_experiment_name,'\t')
+	#comm_data = get_data_from_csv(folder + sim_sent_experiment,' ')
+	#cost_data = np.array([c/b for b, c in zip(bandwidth_data, comm_data)])
+	#cost_data = np.nan_to_num(cost_data)
+	#print('Total cost: ' + str(cost_data.sum()))
+	# colour maps http://scipy-cookbook.readthedocs.io/items/Matplotlib_Show_colormaps.html
+	#pcolor(cost_data,cmap=get_cmap("binary"))
+	#cbar = colorbar()
+	#plt.title(titles[2])
+	#plt.xlabel(xlabel)
+	#plt.ylabel(ylabel)
+	#cbar.ax.set_ylabel("Cost (time)",rotation=90)
+	#if storeResults:
+	#	plt.savefig(filenames[2] + "." + image_format,format=image_format,dpi=300)
+	#plt.show()
+
+	####
 

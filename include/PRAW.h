@@ -483,6 +483,7 @@ namespace PRAW {
                     comm_cost_matrix[ii][jj] = ii == jj ? 0 : 1;
                 }
             }
+
         }
     }
 
@@ -500,7 +501,7 @@ namespace PRAW {
         double a = sqrt(num_processes) * num_hyperedges / pow(num_vertices,g); // same as FENNEL Tsourakakis 2012
         // ta is the update rate of parameter a; was 1.7
         double ta_start = 1.7; // used when imbalance is above imbalance_tolerance
-        double ta_refine = 1.3; // used when imbalance is below imbalance_tolerance
+        double ta_refine = 1; // used when imbalance is below imbalance_tolerance
         // minimum number of iterations run (not checking imbalance threshold)
         // removed whilst we are using hyperPraw as refinement algorithm
         //      hence, if balanced is kept after first iteration, that's good enough
@@ -619,8 +620,8 @@ namespace PRAW {
                     }
                     
                     // TODO: test using visited bool array (but this time checks if partitions have already been considered for the cost)
-                    //double current_value =  -comm_cost_per_partition[pp] - a * (part_load[pp]/expected_workload);
-                    double current_value = current_neighbours_in_partition[pp]/(double)total_neighbours -(double)total_comm_cost / (double)num_processes * comm_cost_per_partition[pp] - a * (part_load[pp]/expected_workload);
+                    double current_value =  -comm_cost_per_partition[pp] - a * (part_load[pp]/expected_workload);
+                    //double current_value = current_neighbours_in_partition[pp]/(double)total_neighbours -(double)total_comm_cost / (double)num_processes * comm_cost_per_partition[pp] - a * (part_load[pp]/expected_workload);
                     // double current_value  = current_neighbours_in_partition[pp] -(double)total_comm_cost * comm_cost_per_partition[pp] - a * g/2 * pow(part_load[pp],g-1);
                     
                     // lesson learned, global hygergraph partitioners use connectivity metric as cost function
@@ -727,7 +728,7 @@ namespace PRAW {
             }
             //if(frozen_iters <= iter && imbalance < imbalance_tolerance) break;
 
-            if(imbalance > 10) {
+            if(imbalance > num_processes) {
                 // if the assignment is too imbalanced, discard it and reset
                 // avoids the issue of overloading most of the communication to and from one single process
                 for (int vid=0; vid < num_vertices; vid++) {
