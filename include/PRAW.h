@@ -469,7 +469,7 @@ namespace PRAW {
                             [proportional_comm_cost,min_bandwidth,max_bandwidth] (double value) {  
                                 if(proportional_comm_cost) {
                                     float ratio = max_bandwidth / min_bandwidth;
-                                    return value <= std::numeric_limits<float>::epsilon() ? 0 : (1-(value-min_bandwidth)/(max_bandwidth-min_bandwidth)) * ratio + 1;
+                                    return value <= std::numeric_limits<float>::epsilon() ? 0 : (1-(value-min_bandwidth)/(max_bandwidth-min_bandwidth)) * ratio + ratio;
                                 } else {
                                     return value <= std::numeric_limits<float>::epsilon() ? 0 : 2 - ( (value-min_bandwidth)/(max_bandwidth-min_bandwidth) );
                                 }
@@ -533,7 +533,7 @@ namespace PRAW {
         
 #ifdef SAVE_HISTORY
         std::string history_file = getFileName(hypergraph_filename);
-        history_file += "_partition_history_parallel_";
+        history_file += "_partition_history_";
         char str_int[16];
         sprintf(str_int,"%i",num_processes);
         history_file += "__";
@@ -543,7 +543,7 @@ namespace PRAW {
         if(fp == NULL) {
             printf("Error when storing partitioning history into file\n");
         } else {
-            fprintf(fp,"%s\n","Imbalance");
+            fprintf(fp,"%s\n","Imbalance, Hedges cut, Edges cut, SOED, Absorption, Edge sim comm cost, Hedge sim comm cost");
         }
         fclose(fp);
         
@@ -653,11 +653,23 @@ namespace PRAW {
             PRINTF("%i: %f (%f | %f)\n",iter,imbalance,a,ta_start);
 
 #ifdef SAVE_HISTORY
+            // get cut metric
+            float hyperedges_cut_ratio;
+            float edges_cut_ratio;
+            int soed;
+            float absorption;
+            float max_imbalance;
+            double total_edge_comm_cost;
+            double total_hedge_comm_cost;
+            PRAW::getPartitionStatsFromFile(partitioning, num_processes, num_vertices, hypergraph_filename, NULL,comm_cost_matrix,
+                        &hyperedges_cut_ratio, &edges_cut_ratio, &soed, &absorption, &max_imbalance, 
+                        &total_edge_comm_cost,
+                        stopping_condition == 3 ? &total_hedge_comm_cost : NULL); // only check hedge cost if it's going to be used
             FILE *fp = fopen(history_file.c_str(), "ab+");
             if(fp == NULL) {
                 printf("Error when storing partitioning history into file\n");
             } else {
-                fprintf(fp,"%.3f\n",imbalance);
+                fprintf(fp,"%.3f,%.3f,%.3f,%i,%.3f,%.3f,%.3f\n",imbalance,hyperedges_cut_ratio,edges_cut_ratio,soed,absorption,total_edge_comm_cost,total_hedge_comm_cost);
             }
             fclose(fp);
             
@@ -680,6 +692,7 @@ namespace PRAW {
                 } else {
                     if (imbalance < imbalance_tolerance) {
                         // get cut metric
+#ifndef SAVE_HISTORY
                         float hyperedges_cut_ratio;
                         float edges_cut_ratio;
                         int soed;
@@ -691,6 +704,7 @@ namespace PRAW {
                                     &hyperedges_cut_ratio, &edges_cut_ratio, &soed, &absorption, &max_imbalance, 
                                     &total_edge_comm_cost,
                                     stopping_condition == 3 ? &total_hedge_comm_cost : NULL); // only check hedge cost if it's going to be used
+#endif
                         double cut_metric;
                         if(stopping_condition == 1) cut_metric = hyperedges_cut_ratio + edges_cut_ratio;//hyperedges_cut_ratio;
                         if(stopping_condition == 2) cut_metric = total_edge_comm_cost;//hyperedges_cut_ratio;
@@ -728,7 +742,7 @@ namespace PRAW {
             }
             //if(frozen_iters <= iter && imbalance < imbalance_tolerance) break;
 
-            if(imbalance > num_processes) {
+            if(false && imbalance > 10) {
                 // if the assignment is too imbalanced, discard it and reset
                 // avoids the issue of overloading most of the communication to and from one single process
                 for (int vid=0; vid < num_vertices; vid++) {
