@@ -53,13 +53,13 @@ run_experiment() {
 	HYPERGRAPH_FILE="$1"
 	SEED="$2"
 	# best default strategy from experiment 1
-	aprun -n $PROCESSES hyperPraw -n $EXPERIMENT_NAME"_default_hedgeEdge" -h $HYPERGRAPH_FILE -i 100 -m 1100 -p prawS -t $SIM_STEPS -s $SEED -k $MESSAGE_SIZE -o 1 -b $BM_FILE
+	aprun -n $PROCESSES hyperPraw -n $EXPERIMENT_NAME"_default" -h $HYPERGRAPH_FILE -i 100 -m 1100 -p prawS -t $SIM_STEPS -s $SEED -k $MESSAGE_SIZE -o 1 -b $BM_FILE
 	sleep 1
 	# bandwidth mapped to 0 - 1 default stopping condition
-	aprun -n $PROCESSES hyperPraw -n $EXPERIMENT_NAME"_bandwidth_0_1_hedgeEdge" -h $HYPERGRAPH_FILE -i 100 -m 1100 -p prawS -t $SIM_STEPS -s $SEED -k $MESSAGE_SIZE -o 1 -b $BM_FILE -W -c 0
+	aprun -n $PROCESSES hyperPraw -n $EXPERIMENT_NAME"_bandwidth_0_1" -h $HYPERGRAPH_FILE -i 100 -m 1100 -p prawS -t $SIM_STEPS -s $SEED -k $MESSAGE_SIZE -o 1 -b $BM_FILE -W -c 0
 	sleep 1
 	# bandwidth mapped to proportional default stopping condition
-	aprun -n $PROCESSES hyperPraw -n $EXPERIMENT_NAME"_bandwidth_proportional_hedgeEdge" -h $HYPERGRAPH_FILE -i 100 -m 1100 -p prawS -t $SIM_STEPS -s $SEED -k $MESSAGE_SIZE -o 1 -b $BM_FILE -W -c 1
+	aprun -n $PROCESSES hyperPraw -n $EXPERIMENT_NAME"_bandwidth_proportional" -h $HYPERGRAPH_FILE -i 100 -m 1100 -p prawS -t $SIM_STEPS -s $SEED -k $MESSAGE_SIZE -o 1 -b $BM_FILE -W -c 1
 	sleep 1
 	#aprun -n $PROCESSES hyperPraw -n $EXPERIMENT_NAME"_zoltan" -h $HYPERGRAPH_FILE -i 100 -m 1050 -p zoltan -t $SIM_STEPS -s $SEED -k $MESSAGE_SIZE -b $BM_FILE -c 1
 	#sleep 1

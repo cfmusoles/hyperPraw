@@ -8,15 +8,15 @@ from mpl_toolkits.mplot3d import Axes3D
 from matplotlib.ticker import LinearLocator, FormatStrFormatter
 from pylab import *
 
-num_processes = 192
-plot_bandwidth = True			# plot network bandwidth data
+num_processes = 384
+plot_bandwidth = False			# plot network bandwidth data
 plot_sent_data = True			# plot application sent data
 plot_comm_cost = True			# plot combined comm cost
 storeResults = False
 
-folder = ""
+folder = "../results/test/"
 bandwidth_send_experiment_name = 'results_mpi_send_bandwidth_' + str(num_processes)
-sim_sent_experiment = 'ISPD98_ibm18.hgr_theoretical_comm__' + str(num_processes)
+sim_sent_experiment = 'test_default_hedgeEdge_crashbasis.mtx.hgr_prawS_hedgeSim_comm_cost__' + str(num_processes)
 
 xlabel = "Process"
 ylabel = "Process"
