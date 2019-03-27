@@ -19,7 +19,7 @@ as_bar_plot = True
 
 folder = "../results/test/"
 experiment_name = "test"
-graph_name = "sat14_aaai10-planning-ipc5-pathways-17-step21.cnf.dual.hgr"
+graph_name = "venkat01.mtx.hgr"
 # each element on the following arrays corresponds to an experiment run (collection of files)
 experiments = [experiment_name +  "_zoltan_" + graph_name + "_zoltan",experiment_name + "_default_" + graph_name + "_prawS",experiment_name + "_bandwidth_0_1_" + graph_name + "_prawS",experiment_name + "_bandwidth_proportional_" + graph_name + "_prawS"]
 colours = ["red","green","blue","orange"] # as many as the number of experiments included

@@ -9,7 +9,7 @@
 	# zoltan: benchmark static partitioning
 # stable parameters
 	# proportional comm cost mapping
-	# imbalance tolerance 1.1 (zoltan has 1.05 since streaming tends to reduce the imbalance significantly under the tolerance)
+	# imbalance tolerance 1.1 
 	# 100 max iterations
 
 import sys
@@ -66,7 +66,7 @@ run_experiment() {
 	# bandwidth edge cost stopping condition
 	aprun -n $PROCESSES hyperPraw -n $EXPERIMENT_NAME"_bandwidth_edgeCost" -h $HYPERGRAPH_FILE -i 100 -m 1100 -p prawS -t $SIM_STEPS -s $SEED -k $MESSAGE_SIZE -o 2 -b $BM_FILE -W -c 1
 	sleep 1
-	aprun -n $PROCESSES hyperPraw -n $EXPERIMENT_NAME"_zoltan" -h $HYPERGRAPH_FILE -i 100 -m 1050 -p zoltan -t $SIM_STEPS -s $SEED -k $MESSAGE_SIZE -b $BM_FILE -c 1
+	aprun -n $PROCESSES hyperPraw -n $EXPERIMENT_NAME"_zoltan" -h $HYPERGRAPH_FILE -i 100 -m 1100 -p zoltan -t $SIM_STEPS -s $SEED -k $MESSAGE_SIZE -b $BM_FILE -c 1
 	sleep 1
 }
 

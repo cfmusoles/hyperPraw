@@ -706,7 +706,7 @@ namespace PRAW {
                                     stopping_condition == 3 ? &total_hedge_comm_cost : NULL); // only check hedge cost if it's going to be used
 #endif
                         double cut_metric;
-                        if(stopping_condition == 1) cut_metric = hyperedges_cut_ratio + edges_cut_ratio;//hyperedges_cut_ratio;
+                        if(stopping_condition == 1) cut_metric = soed;//hyperedges_cut_ratio + edges_cut_ratio;
                         if(stopping_condition == 2) cut_metric = total_edge_comm_cost;//hyperedges_cut_ratio;
                         if(stopping_condition == 3) cut_metric = total_hedge_comm_cost;//hyperedges_cut_ratio;
 

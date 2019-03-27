@@ -6,7 +6,7 @@
 	# prawS 0_1: uses bandwidth info as a 0 - 1 mapping to comm cost
 	# prawS proportional: uses bandwidth info with a proportional mapping to comm cost (from 0 to ratio max / min bandwidth)
 # stable parameters
-	# total edge comm cost as stopping condition
+	# SOED as stopping condition
 	# imbalance tolerance 1.1
 	# 100 max iterations
 	
@@ -24,7 +24,7 @@ template_2 = '''
 template_3=''':bigmem='''
 template_4='''
 # walltime
-#PBS -l walltime=0:20:0
+#PBS -l walltime=1:20:0
 # budget code
 #PBS -A e582
 # bandwidth probing parameters
@@ -53,17 +53,17 @@ run_experiment() {
 	HYPERGRAPH_FILE="$1"
 	SEED="$2"
 	# best default strategy from experiment 1
-	aprun -n $PROCESSES hyperPraw -n $EXPERIMENT_NAME"_default" -h $HYPERGRAPH_FILE -i 100 -m 1100 -p prawS -t $SIM_STEPS -s $SEED -k $MESSAGE_SIZE -o 2 -b $BM_FILE
+	aprun -n $PROCESSES hyperPraw -n $EXPERIMENT_NAME"_default" -h $HYPERGRAPH_FILE -i 100 -m 1100 -p prawS -t $SIM_STEPS -s $SEED -k $MESSAGE_SIZE -o 1 -b $BM_FILE
 	sleep 1
 	# bandwidth mapped to 0 - 1 default stopping condition
-	aprun -n $PROCESSES hyperPraw -n $EXPERIMENT_NAME"_bandwidth_0_1" -h $HYPERGRAPH_FILE -i 100 -m 1100 -p prawS -t $SIM_STEPS -s $SEED -k $MESSAGE_SIZE -o 2 -b $BM_FILE -W -c 0
+	aprun -n $PROCESSES hyperPraw -n $EXPERIMENT_NAME"_bandwidth_0_1" -h $HYPERGRAPH_FILE -i 100 -m 1100 -p prawS -t $SIM_STEPS -s $SEED -k $MESSAGE_SIZE -o 1 -b $BM_FILE -W -c 0
 	sleep 1
 	# bandwidth mapped to proportional default stopping condition
-	aprun -n $PROCESSES hyperPraw -n $EXPERIMENT_NAME"_bandwidth_proportional" -h $HYPERGRAPH_FILE -i 100 -m 1100 -p prawS -t $SIM_STEPS -s $SEED -k $MESSAGE_SIZE -o 2 -b $BM_FILE -W -c 1
+	aprun -n $PROCESSES hyperPraw -n $EXPERIMENT_NAME"_bandwidth_proportional" -h $HYPERGRAPH_FILE -i 100 -m 1100 -p prawS -t $SIM_STEPS -s $SEED -k $MESSAGE_SIZE -o 1 -b $BM_FILE -W -c 1
 	sleep 1
 
-	
-	aprun -n $PROCESSES hyperPraw -n $EXPERIMENT_NAME"_zoltan" -h $HYPERGRAPH_FILE -i 100 -m 1050 -p zoltan -t $SIM_STEPS -s $SEED -k $MESSAGE_SIZE -b $BM_FILE -c 1
+
+	aprun -n $PROCESSES hyperPraw -n $EXPERIMENT_NAME"_zoltan" -h $HYPERGRAPH_FILE -i 100 -m 1100 -p zoltan -t $SIM_STEPS -s $SEED -k $MESSAGE_SIZE -b $BM_FILE -c 1
 	sleep 1
 }
 
@@ -73,8 +73,8 @@ do
 	#run_experiment "sat14_E02F20.cnf.hgr" $SEED
 	run_experiment "crashbasis.mtx.hgr" $SEED
 	run_experiment "sat14_aaai10-planning-ipc5-pathways-17-step21.cnf.dual.hgr" $SEED
-	run_experiment "sparsine.mtx.hgr" $SEED
-	run_experiment "venkat01.mtx.hgr" $SEED
+	#run_experiment "sparsine.mtx.hgr" $SEED
+	#run_experiment "venkat01.mtx.hgr" $SEED
 done
 
 '''

@@ -16,7 +16,7 @@ storeResults = True
 
 folder = "../results/test/"
 bandwidth_send_experiment_name = 'results_mpi_send_bandwidth_' + str(num_processes)
-graph_name = "sat14_aaai10-planning-ipc5-pathways-17-step21.cnf.dual.hgr"
+graph_name = "crashbasis.mtx.hgr"
 partitioning = 'prawS'
 test_name = 'test_bandwidth_proportional'
 
