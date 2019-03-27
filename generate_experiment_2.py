@@ -32,7 +32,7 @@ SIZE=512
 ITERATIONS=20
 WINDOW=10
 
-TEST_REPETITIONS=2
+TEST_REPETITIONS=1
 PROCESSES='''
 template_5='''
 # simulation parameters

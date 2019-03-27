@@ -500,8 +500,8 @@ namespace PRAW {
         // battaglino's initial alpha, was sqrt(2) * num_hyperedges / pow(num_vertices,g);
         double a = sqrt(num_processes) * num_hyperedges / pow(num_vertices,g); // same as FENNEL Tsourakakis 2012
         // ta is the update rate of parameter a; was 1.7
-        double ta_start = 1.9; // used when imbalance is above imbalance_tolerance
-        double ta_refine = 0.8; // used when imbalance is below imbalance_tolerance
+        double ta_start = 1.7; // used when imbalance is above imbalance_tolerance
+        double ta_refine = 0.95; // used when imbalance is below imbalance_tolerance
         // minimum number of iterations run (not checking imbalance threshold)
         // removed whilst we are using hyperPraw as refinement algorithm
         //      hence, if balanced is kept after first iteration, that's good enough

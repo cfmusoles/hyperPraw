@@ -55,8 +55,8 @@ do
 	echo "Launching job: "$FILENAME
 	for a in $(seq 1 $REPETITIONS)
 	do
-		#qsub $FILENAME
-		qsub -q short $FILENAME
+		qsub $FILENAME
+		#qsub -q short $FILENAME
 		rm $FILENAME
 	done
 done
