@@ -12,11 +12,15 @@ num_processes = 192
 plot_bandwidth = False			# plot network bandwidth data
 plot_sent_data = False			# plot application sent data
 plot_comm_cost = True			# plot combined comm cost
-storeResults = False
+storeResults = True
 
 folder = "../results/test/"
 bandwidth_send_experiment_name = 'results_mpi_send_bandwidth_' + str(num_processes)
-sim_sent_experiment = 'test_bandwidth_0_1_crashbasis.mtx.hgr_prawS_hedgeSim_comm_cost__' + str(num_processes)
+graph_name = "sat14_aaai10-planning-ipc5-pathways-17-step21.cnf.dual.hgr"
+partitioning = 'prawS'
+test_name = 'test_bandwidth_proportional'
+
+sim_sent_experiment = test_name + '_' + graph_name + '_' + partitioning + '_hedgeSim_comm_cost__' + str(num_processes)
 
 xlabel = "Process"
 ylabel = "Process"

@@ -6,35 +6,35 @@ import matplotlib.pyplot as plt
 import matplotlib.patches as mpatches
 
 geometric_scaling = True
-min_num_processes = 96
+min_num_processes = 192
 # for linear scaling of processors
 max_num_processes = 288
 process_step = 32
 #for geometric scaling of processors
-num_experiments = 2
+num_experiments = 1
 geometric_step = 2
 
 show_error = True
 as_bar_plot = True
 
-folder = "../results/edges/"
-experiment_name = "edgesim"
-graph_name = "venkat01.mtx.hgr"
+folder = "../results/test/"
+experiment_name = "test"
+graph_name = "sat14_aaai10-planning-ipc5-pathways-17-step21.cnf.dual.hgr"
 # each element on the following arrays corresponds to an experiment run (collection of files)
-experiments = [experiment_name + "_" + graph_name + "_zoltan",experiment_name + "_default_" + graph_name + "_prawP",experiment_name + "_bandwidth_" + graph_name + "_prawP"]
-colours = ["red","green","blue"] # as many as the number of experiments included
-legend_labels = ['Zoltan','PRAW-no bandwidth','PRAW-bandwidth']
+experiments = [experiment_name +  "_zoltan_" + graph_name + "_zoltan",experiment_name + "_default_" + graph_name + "_prawS",experiment_name + "_bandwidth_0_1_" + graph_name + "_prawS",experiment_name + "_bandwidth_proportional_" + graph_name + "_prawS"]
+colours = ["red","green","blue","orange"] # as many as the number of experiments included
+legend_labels = ['Zoltan','PRAW-no bandwidth','PRAW-bandwidth01','PRAW-bandwidthP']
 
 # Each element on the following arrays corresponds to a column in columns_to_plot
-columns_to_plot = [1,2,4,5,6,7,3]
-reference_values = [0,2,1,6,7,8,3] # used to take values on each column divided by these
+columns_to_plot = [1,2,4,3,5,8,9,10,11]
+reference_values = [0,2,1,6,7,8,3,1,1] # used to take values on each column divided by these
 use_ref_values = False
-scale_plots = [1,1,1,1,1,1,1]
-plot_title = ["Simulation time","Hyperedge cut","Sum of external degrees","Absorption","Imbalance","Theoretical comm cost","Edgecut"]
-plot_xlabel = ["Number of processes","Number of processes","Number of processes","Number of processes","Number of processes","Number of processes","Edgecut"]
-plot_ylabel = ["Time(s)","Cut ratio","SOED","Absorption","Imbalance ratio","Cost","Cut ratio"]
+scale_plots = [1,1,1,1,1,1,1,1,1]
+plot_title = ["EdgeSim time","HedgeSim time","Edge cut","Hyperedge cut","SOED","Edge comm cost","Hedge comm cost","Messages sent (edge)","Messages sent (hedge)"]
+plot_xlabel = ["Number of processes","Number of processes","Number of processes","Number of processes","Number of processes","Number of processes","Number of processes","Number of processes","Number of processes"]
+plot_ylabel = ["Time(s)","Time(s)","Cut ratio","Cut ratio","SOED","Cost","Cost","Messages sent","Messages sent"]
 image_format = 'pdf'
-plot_name = ["venkat01_" + str(x) for x in range(len(columns_to_plot))] #["a1","a2","a3","a4","a5","a6","a7"]
+plot_name = ["a_" + str(x) for x in range(len(columns_to_plot))] #["a1","a2","a3","a4","a5","a6","a7"]
 
 bar_plot_size = 0.5 / len(experiments)
 
@@ -102,6 +102,8 @@ for i in range(len(columns_to_plot)):
 		
 		for p in experiment_range:
 			data = get_data_from_csv(folder + experiments[j] + "__" + str(p))
+			if data.ndim <= 1:
+				data = data.reshape(1,len(data))
 			if use_ref_values:
 				ref = [row[columns_to_plot[i]] / row[reference_values[i]] for row in data]
 				means[i].append(np.mean(ref))
