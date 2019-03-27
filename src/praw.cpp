@@ -219,7 +219,7 @@ int main(int argc, char** argv) {
             }
 
             // why is this needed?
-            //MPI_Barrier(MPI_COMM_WORLD);
+            MPI_Barrier(MPI_COMM_WORLD);
         }
     }
     // wait for all processes to finish
@@ -280,7 +280,7 @@ int main(int argc, char** argv) {
             }
 
             // why is this needed?
-            //MPI_Barrier(MPI_COMM_WORLD);
+            MPI_Barrier(MPI_COMM_WORLD);
         }
     }
     // wait for all processes to finish
