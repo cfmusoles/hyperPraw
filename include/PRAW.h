@@ -574,8 +574,8 @@ namespace PRAW {
                 memset(current_neighbours_in_partition,0,num_processes * sizeof(int));
                 memset(comm_cost_per_partition,0,num_processes * sizeof(double));
 
-                int total_neighbours = 1;
-                double max_comm_cost = 0;
+                //int total_neighbours = 1;
+                //double max_comm_cost = 0;
                 // reevaluate objective function per partition
                 // |P^t_i union N(v)| = number of vertices in partition i that are neighbours of vertex v 
                 // where are neighbours located
@@ -589,16 +589,16 @@ namespace PRAW {
                     for(int vt = 0; vt < hyperedges[he_id].size(); vt++) {
                         int dest_vertex = hyperedges[he_id][vt];
                         if(dest_vertex == vid) continue;
-                        total_neighbours++;
                         int dest_part = partitioning[dest_vertex];
                         current_neighbours_in_partition[dest_part] += 1;
+                        //total_neighbours++;
                         //if(!visited[dest_part]) {
                             // recalculate comm cost for all possible partition assignments of vid
                             //  commCost(v,Pi) = forall edge in edges(Pi) cost += w(e) * c(Pi,Pj) where i != j
-                            for(int fp=0; fp < num_processes; fp++) {
-                                comm_cost_per_partition[fp] += 1 * comm_cost_matrix[fp][dest_part];
+                            /*for(int fp=0; fp < num_processes; fp++) {
+                                comm_cost_per_partition[fp] += comm_cost_matrix[fp][dest_part];
                                 //max_comm_cost = std::max(max_comm_cost,comm_cost_per_partition[fp]);
-                            }
+                            }*/
                         //}
                         //visited[dest_part] = true;
                     }
@@ -613,14 +613,20 @@ namespace PRAW {
                 int best_partition = partitioning[vid];
                 for(int pp=0; pp < num_processes; pp++) {
                     // total cost of communication (edgecuts * number of participating partitions)
-                    long int total_comm_cost = 0;
+                    /*long int total_comm_cost = 0;
                     for(int jj=0; jj < num_processes; jj++) {
                         if(pp != jj)
                             total_comm_cost += current_neighbours_in_partition[jj] > 0 ? 1 : 0;
+                    }*/
+                    // total cost of communication (neighbours in other partitions * cost of communicating with those partitions)
+                    double total_comm_cost = 0;
+                    for(int jj=0; jj < num_processes; jj++) {
+                        if(pp != jj)
+                            total_comm_cost += current_neighbours_in_partition[jj] * comm_cost_matrix[pp][jj];
                     }
                     
-                    // TODO: test using visited bool array (but this time checks if partitions have already been considered for the cost)
-                    double current_value =  -comm_cost_per_partition[pp] - a * (part_load[pp]/expected_workload);
+                    double current_value =  -total_comm_cost - a * (part_load[pp]/expected_workload);
+                    //double current_value =  -comm_cost_per_partition[pp] - a * (part_load[pp]/expected_workload);
                     //double current_value = current_neighbours_in_partition[pp]/(double)total_neighbours -(double)total_comm_cost / (double)num_processes * comm_cost_per_partition[pp] - a * (part_load[pp]/expected_workload);
                     // double current_value  = current_neighbours_in_partition[pp] -(double)total_comm_cost * comm_cost_per_partition[pp] - a * g/2 * pow(part_load[pp],g-1);
                     
