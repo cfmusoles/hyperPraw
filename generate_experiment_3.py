@@ -1,17 +1,16 @@
 # Create ARCHER job files based on parameters passed
 
-# EXPECTED_COMM_COST_MONITOR_EXPERIMENT: This experiment demonstrates the effectiveness of using theoretical comm cost as a stopping condition when using architecture aware streaming partitioning
+# COMM_COST_EXPERIMENT: This experiment demonstrates the effectiveness of architecture aware partitioning, evaluating different bandwidth to comm cost mappings
 # Strategies compared:
-	# prawS _bandwidth_hedgeEdge: monitors hedge plus edge cut as stopping condition
-	# prawS _bandwidth_hedgeCost: monitors theoretical cost on hedge simulations as stopping condition
-	# prawS _bandwidth_edgeCost: monitors theoretical cost on edge simulations as stopping condition
-	# prawS default: benchmark streaming without bandwidth
-	# zoltan: benchmark static partitioning
+	# prawS default: not using bandwidth info (baseline)
+	# prawS 0_1: uses bandwidth info as a 0 - 1 mapping to comm cost
+	# prawS proportional: uses bandwidth info with a proportional mapping to comm cost (from 0 to ratio max / min bandwidth)
 # stable parameters
-	# proportional comm cost mapping
-	# imbalance tolerance 1.1 (zoltan has 1.075 since streaming tends to reduce the imbalance significantly under the tolerance)
+	# total edge cost communication as stopping condition
+	# imbalance tolerance 1.1
 	# 100 max iterations
-
+	# 0.95 tempering  refinement
+	
 import sys
 import math
 
@@ -26,7 +25,7 @@ template_2 = '''
 template_3=''':bigmem='''
 template_4='''
 # walltime
-#PBS -l walltime=0:20:0
+#PBS -l walltime=1:00:0
 # budget code
 #PBS -A e582
 # bandwidth probing parameters
@@ -34,7 +33,7 @@ SIZE=512
 ITERATIONS=20
 WINDOW=10
 
-TEST_REPETITIONS=2
+TEST_REPETITIONS=1
 PROCESSES='''
 template_5='''
 # simulation parameters
@@ -54,18 +53,17 @@ aprun -n $PROCESSES mpi_perf $SIZE $ITERATIONS $WINDOW
 run_experiment() {
 	HYPERGRAPH_FILE="$1"
 	SEED="$2"
-	# best default strategy from experiment 1 and best comm cost mapping
-	aprun -n $PROCESSES hyperPraw -n $EXPERIMENT_NAME"_default_hedgeEdge" -h $HYPERGRAPH_FILE -i 100 -m 1100 -p prawS -t $SIM_STEPS -s $SEED -k $MESSAGE_SIZE -o 1 -b $BM_FILE -c 1
+	# best default strategy from experiment 1
+	aprun -n $PROCESSES hyperPraw -n $EXPERIMENT_NAME"_default" -h $HYPERGRAPH_FILE -i 100 -m 1100 -p prawS -t $SIM_STEPS -s $SEED -k $MESSAGE_SIZE -o 2 -b $BM_FILE -r 950
 	sleep 1
-	# bandwidth default stopping condition
-	aprun -n $PROCESSES hyperPraw -n $EXPERIMENT_NAME"_bandwidth_hedgeEdge" -h $HYPERGRAPH_FILE -i 100 -m 1100 -p prawS -t $SIM_STEPS -s $SEED -k $MESSAGE_SIZE -o 1 -b $BM_FILE -W -c 1
+	# bandwidth mapped to 0 - 1 default stopping condition
+	aprun -n $PROCESSES hyperPraw -n $EXPERIMENT_NAME"_bandwidth_0_1" -h $HYPERGRAPH_FILE -i 100 -m 1100 -p prawS -t $SIM_STEPS -s $SEED -k $MESSAGE_SIZE -o 2 -b $BM_FILE -W -c 0 -r 950
 	sleep 1
-	# bandwidth hedge cost stopping condition
-	aprun -n $PROCESSES hyperPraw -n $EXPERIMENT_NAME"_bandwidth_hedgeCost" -h $HYPERGRAPH_FILE -i 100 -m 1100 -p prawS -t $SIM_STEPS -s $SEED -k $MESSAGE_SIZE -o 3 -b $BM_FILE -W -c 1
+	# bandwidth mapped to proportional default stopping condition
+	aprun -n $PROCESSES hyperPraw -n $EXPERIMENT_NAME"_bandwidth_proportional" -h $HYPERGRAPH_FILE -i 100 -m 1100 -p prawS -t $SIM_STEPS -s $SEED -k $MESSAGE_SIZE -o 2 -b $BM_FILE -W -c 1 -r 950
 	sleep 1
-	# bandwidth edge cost stopping condition
-	aprun -n $PROCESSES hyperPraw -n $EXPERIMENT_NAME"_bandwidth_edgeCost" -h $HYPERGRAPH_FILE -i 100 -m 1100 -p prawS -t $SIM_STEPS -s $SEED -k $MESSAGE_SIZE -o 2 -b $BM_FILE -W -c 1
-	sleep 1
+
+
 	aprun -n $PROCESSES hyperPraw -n $EXPERIMENT_NAME"_zoltan" -h $HYPERGRAPH_FILE -i 100 -m 1075 -p zoltan -t $SIM_STEPS -s $SEED -k $MESSAGE_SIZE -b $BM_FILE -c 1
 	sleep 1
 }
@@ -73,10 +71,17 @@ run_experiment() {
 for i in $(seq 1 $TEST_REPETITIONS)
 do
 	SEED=$RANDOM
-	run_experiment "sat14_E02F20.cnf.hgr" $SEED
-	run_experiment "ISPD98_ibm18.hgr" $SEED
-	run_experiment "sat14_aaai10-planning-ipc5-pathways-17-step21.cnf.dual.hgr" $SEED
-	run_experiment "dac2012_superblue19.hgr" $SEED
+	#run_experiment "sat14_E02F20.cnf.hgr" $SEED
+	#run_experiment "crashbasis.mtx.hgr" $SEED
+	#run_experiment "sat14_aaai10-planning-ipc5-pathways-17-step21.cnf.dual.hgr" $SEED
+	#run_experiment "sparsine.mtx.hgr" $SEED
+	#run_experiment "venkat01.mtx.hgr" $SEED
+
+	run_experiment "dac2012_superblue6.hgr" $SEED
+	run_experiment "sat14_ACG-20-5p0.cnf.dual.hgr" $SEED
+	run_experiment "sat14_ACG-20-5p0.cnf.primal.hgr" $SEED
+	run_experiment "StocF-1465.mtx.hgr" $SEED
+
 done
 
 '''

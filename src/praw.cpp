@@ -86,12 +86,13 @@ int main(int argc, char** argv) {
     int message_size = 1;
     int stopping_condition = 0;
     bool proportional_comm_cost = false;
+    float ta_refinement = 1.0f;
 
     // getting command line parameters
     extern char *optarg;
 	extern int optind, opterr, optopt;
 	int c;
-	while( (c = getopt(argc,argv,"n:h:i:m:b:Ws:p:t:k:o:c:")) != -1 ) {
+	while( (c = getopt(argc,argv,"n:h:i:m:b:Ws:p:t:k:o:c:r:")) != -1 ) {
 		switch(c) {
 			case 'n': // test name
 				experiment_name = optarg;
@@ -129,6 +130,9 @@ int main(int argc, char** argv) {
             case 'c': // type of comm cost mapping
 				proportional_comm_cost = atoi(optarg) == 1;
 				break;
+            case 'r': // tempering alpha when within imbalance tolerance
+				ta_refinement = atoi(optarg) * 0.001f;
+				break;
 		}
 	}
 
@@ -148,12 +152,12 @@ int main(int argc, char** argv) {
         //Partitioning* p1 = new ZoltanPartitioning(graph_file,imbalance_tolerance);
         //Partitioning* p1 = new HyperPRAWPartitioning(graph_file,imbalance_tolerance,iterations,NULL,true,false,false);
         //p1->perform_partitioning(num_processes,process_id);
-		partition = new HyperPRAWPartitioning(graph_file,imbalance_tolerance,iterations,bandwidth_file,true,use_bandwidth_in_partitioning,false,stopping_condition,proportional_comm_cost);
+		partition = new HyperPRAWPartitioning(graph_file,imbalance_tolerance,ta_refinement,iterations,bandwidth_file,true,use_bandwidth_in_partitioning,false,stopping_condition,proportional_comm_cost);
         //memcpy(partition->partitioning,p1->partitioning,partition->num_vertices * sizeof(idx_t));
         //free(p1);
     } else if(strcmp(part_method,"prawS") == 0) {  
 		PRINTF("%i: Partitioning: sequential hyperPRAW\n",process_id);
-		partition = new HyperPRAWPartitioning(graph_file,imbalance_tolerance,iterations,bandwidth_file,false,use_bandwidth_in_partitioning,true,stopping_condition,proportional_comm_cost);
+		partition = new HyperPRAWPartitioning(graph_file,imbalance_tolerance,ta_refinement,iterations,bandwidth_file,false,use_bandwidth_in_partitioning,true,stopping_condition,proportional_comm_cost);
 	} else { // default is random
 		PRINTF("%i: Partitioning: random\n",process_id);
 		partition = new RandomPartitioning(graph_file,imbalance_tolerance);

@@ -487,7 +487,7 @@ namespace PRAW {
         }
     }
 
-    int SequentialStreamingPartitioning(idx_t* partitioning, int num_processes, double** comm_cost_matrix, std::string hypergraph_filename, int* vtx_wgt, int iterations, float imbalance_tolerance, bool reset_partitioning, int stopping_condition) {
+    int SequentialStreamingPartitioning(idx_t* partitioning, int num_processes, double** comm_cost_matrix, std::string hypergraph_filename, int* vtx_wgt, int iterations, float imbalance_tolerance, float ta_refine, bool reset_partitioning, int stopping_condition) {
         
         // get meta info (num vertices and hyperedges)
         int num_vertices, num_hyperedges;
@@ -501,7 +501,7 @@ namespace PRAW {
         double a = sqrt(num_processes) * num_hyperedges / pow(num_vertices,g); // same as FENNEL Tsourakakis 2012
         // ta is the update rate of parameter a; was 1.7
         double ta_start = 1.7; // used when imbalance is above imbalance_tolerance
-        double ta_refine = 0.95; // used when imbalance is below imbalance_tolerance
+        //double ta_refine = 0.95; // used when imbalance is below imbalance_tolerance
         // minimum number of iterations run (not checking imbalance threshold)
         // removed whilst we are using hyperPraw as refinement algorithm
         //      hence, if balanced is kept after first iteration, that's good enough
@@ -584,7 +584,6 @@ namespace PRAW {
                 // does not double count vertices that are present in multiple hyperedges
                 // communication cost should be based on hedge cut?
                 for(int he = 0; he < hedge_ptr[vid].size(); he++) {
-                    //bool* visited = (bool*)calloc(num_processes,sizeof(bool));
                     int he_id = hedge_ptr[vid][he];
                     for(int vt = 0; vt < hyperedges[he_id].size(); vt++) {
                         int dest_vertex = hyperedges[he_id][vt];
@@ -592,17 +591,7 @@ namespace PRAW {
                         int dest_part = partitioning[dest_vertex];
                         current_neighbours_in_partition[dest_part] += 1;
                         //total_neighbours++;
-                        //if(!visited[dest_part]) {
-                            // recalculate comm cost for all possible partition assignments of vid
-                            //  commCost(v,Pi) = forall edge in edges(Pi) cost += w(e) * c(Pi,Pj) where i != j
-                            /*for(int fp=0; fp < num_processes; fp++) {
-                                comm_cost_per_partition[fp] += comm_cost_matrix[fp][dest_part];
-                                //max_comm_cost = std::max(max_comm_cost,comm_cost_per_partition[fp]);
-                            }*/
-                        //}
-                        //visited[dest_part] = true;
                     }
-                    //free(visited);
                 }
                 
 

@@ -1,15 +1,13 @@
 # Create ARCHER job files based on parameters passed
 
-# COMM_COST_EXPERIMENT: This experiment demonstrates the effectiveness of architecture aware partitioning, evaluating different bandwidth to comm cost mappings
+# TA REFINEMENT VALUE: This experiment demonstrates the effect of using different values of tempering once imbalance tolerance has been reached
 # Strategies compared:
-	# prawS default: not using bandwidth info (baseline)
-	# prawS 0_1: uses bandwidth info as a 0 - 1 mapping to comm cost
-	# prawS proportional: uses bandwidth info with a proportional mapping to comm cost (from 0 to ratio max / min bandwidth)
+	# prawS XXXX: uses the value XXXX/1000 as the tempering parameter for alpha
 # stable parameters
-	# total edge cost communication as stopping condition
 	# imbalance tolerance 1.1
 	# 100 max iterations
-	
+	# total edge comm cost stopping condition
+
 import sys
 import math
 
@@ -24,13 +22,9 @@ template_2 = '''
 template_3=''':bigmem='''
 template_4='''
 # walltime
-#PBS -l walltime=1:00:0
+#PBS -l walltime=0:20:0
 # budget code
 #PBS -A e582
-# bandwidth probing parameters
-SIZE=512
-ITERATIONS=20
-WINDOW=10
 
 TEST_REPETITIONS=1
 PROCESSES='''
@@ -45,43 +39,27 @@ template_8='''
 # This shifts to the directory that you submitted the job from
 cd $PBS_O_WORKDIR
 
-# bandwidth matrix creation
-BM_FILE="results_mpi_send_bandwidth_"$PROCESSES
-aprun -n $PROCESSES mpi_perf $SIZE $ITERATIONS $WINDOW
-
 run_experiment() {
 	HYPERGRAPH_FILE="$1"
 	SEED="$2"
-	# best default strategy from experiment 1
-	aprun -n $PROCESSES hyperPraw -n $EXPERIMENT_NAME"_default" -h $HYPERGRAPH_FILE -i 100 -m 1100 -p prawS -t $SIM_STEPS -s $SEED -k $MESSAGE_SIZE -o 2 -b $BM_FILE
+	aprun -n $PROCESSES hyperPraw -n $EXPERIMENT_NAME"_1700" -h $HYPERGRAPH_FILE -i 100 -m 1100 -p prawS -t $SIM_STEPS -s $SEED -k $MESSAGE_SIZE -o 2 -r 1700
 	sleep 1
-	# bandwidth mapped to 0 - 1 default stopping condition
-	aprun -n $PROCESSES hyperPraw -n $EXPERIMENT_NAME"_bandwidth_0_1" -h $HYPERGRAPH_FILE -i 100 -m 1100 -p prawS -t $SIM_STEPS -s $SEED -k $MESSAGE_SIZE -o 2 -b $BM_FILE -W -c 0
+	aprun -n $PROCESSES hyperPraw -n $EXPERIMENT_NAME"_1000" -h $HYPERGRAPH_FILE -i 100 -m 1100 -p prawS -t $SIM_STEPS -s $SEED -k $MESSAGE_SIZE -o 2 -r 1000
 	sleep 1
-	# bandwidth mapped to proportional default stopping condition
-	aprun -n $PROCESSES hyperPraw -n $EXPERIMENT_NAME"_bandwidth_proportional" -h $HYPERGRAPH_FILE -i 100 -m 1100 -p prawS -t $SIM_STEPS -s $SEED -k $MESSAGE_SIZE -o 2 -b $BM_FILE -W -c 1
+	aprun -n $PROCESSES hyperPraw -n $EXPERIMENT_NAME"_950" -h $HYPERGRAPH_FILE -i 100 -m 1100 -p prawS -t $SIM_STEPS -s $SEED -k $MESSAGE_SIZE -o 2 -r 950
 	sleep 1
-
-
-	aprun -n $PROCESSES hyperPraw -n $EXPERIMENT_NAME"_zoltan" -h $HYPERGRAPH_FILE -i 100 -m 1075 -p zoltan -t $SIM_STEPS -s $SEED -k $MESSAGE_SIZE -b $BM_FILE -c 1
+	aprun -n $PROCESSES hyperPraw -n $EXPERIMENT_NAME"_600" -h $HYPERGRAPH_FILE -i 100 -m 1100 -p prawS -t $SIM_STEPS -s $SEED -k $MESSAGE_SIZE -o 2 -r 600
 	sleep 1
 }
 
 for i in $(seq 1 $TEST_REPETITIONS)
 do
 	SEED=$RANDOM
-	#run_experiment "sat14_E02F20.cnf.hgr" $SEED
-	#run_experiment "crashbasis.mtx.hgr" $SEED
-	#run_experiment "sat14_aaai10-planning-ipc5-pathways-17-step21.cnf.dual.hgr" $SEED
-	#run_experiment "sparsine.mtx.hgr" $SEED
+	run_experiment "sat14_E02F20.cnf.hgr" $SEED
+	run_experiment "crashbasis.mtx.hgr" $SEED
+	run_experiment "sat14_aaai10-planning-ipc5-pathways-17-step21.cnf.dual.hgr" $SEED
+	run_experiment "sparsine.mtx.hgr" $SEED
 	run_experiment "venkat01.mtx.hgr" $SEED
-
-	#run_experiment "dac2012_superblue7.hgr" $SEED
-	#run_experiment "sat14_11pipe_k.cnf.dual.hgr" $SEED
-	#run_experiment "sat14_11pipe_k.cnf.hgr" $SEED
-	#run_experiment "sat14_11pipe_k.cnf.primal.hgr" $SEED
-	#run_experiment "wb-edu.mtx.hgr" $SEED
-
 done
 
 '''

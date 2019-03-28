@@ -14,7 +14,7 @@
 class HyperPRAWPartitioning : public Partitioning {
 public:
 	
-	HyperPRAWPartitioning(char* graph_file, float imbalance_tolerance, int iterations, char* comm_bandwidth_file, bool parallel, bool useBandwidth, bool resetPartitioning, int stoppingCondition, bool proportionalCommCost) : Partitioning(graph_file,imbalance_tolerance) {
+	HyperPRAWPartitioning(char* graph_file, float imbalance_tolerance, float ta_ref, int iterations, char* comm_bandwidth_file, bool parallel, bool useBandwidth, bool resetPartitioning, int stoppingCondition, bool proportionalCommCost) : Partitioning(graph_file,imbalance_tolerance) {
 		comm_bandwidth_filename = comm_bandwidth_file;
         isParallel = parallel;
         use_bandwidth_file = useBandwidth;
@@ -22,6 +22,7 @@ public:
         reset_partitioning = resetPartitioning;
         stopping_condition = stoppingCondition;
         proportional_comm_cost = proportionalCommCost;
+        ta_refinement = ta_ref;
 	}
 	virtual ~HyperPRAWPartitioning() {}
 	
@@ -56,7 +57,7 @@ public:
             PRAW::ParallelIndependentRestreamingPartitioning(partitioning, comm_cost_matrix, hgraph_name, vtx_wgt, max_iterations, imbalance_tolerance, reset_partitioning);
         } else {
             if(process_id == 0) {
-                PRAW::SequentialStreamingPartitioning(partitioning, num_processes, comm_cost_matrix, hgraph_name, vtx_wgt, max_iterations, imbalance_tolerance,reset_partitioning,stopping_condition);
+                PRAW::SequentialStreamingPartitioning(partitioning, num_processes, comm_cost_matrix, hgraph_name, vtx_wgt, max_iterations, imbalance_tolerance,ta_refinement,reset_partitioning,stopping_condition);
             } 
             MPI_Barrier(MPI_COMM_WORLD);
             // share new partitioning with other processes
@@ -81,6 +82,7 @@ private:
     int stopping_condition;
     bool reset_partitioning = false;
     bool proportional_comm_cost = false;
+    float ta_refinement;
 };
 
 

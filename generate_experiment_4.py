@@ -6,10 +6,12 @@
 	# prawS bandwidth: architecture aware bandwidth
 	# zoltan: multilevel partitioning benchmark
 # stable parameters
-	# hedgeEdge as stopping condition
 	# imbalance tolerance 1.1 (zoltan has 1.075 since streaming tends to reduce the imbalance significantly under the tolerance)
 	# 100 max iterations
 	# proportional comm cost mapping
+	# total edge cost communication as stopping condition
+	# 0.95 tempering  refinement
+	
 
 import sys
 import math
@@ -54,9 +56,9 @@ run_experiment() {
 	HYPERGRAPH_FILE="$1"
 	SEED="$2"
 	# best default strategy from experiment 1 and best comm cost mapping
-	aprun -n $PROCESSES hyperPraw -n $EXPERIMENT_NAME"_default" -h $HYPERGRAPH_FILE -i 100 -m 1100 -p prawS -t $SIM_STEPS -s $SEED -k $MESSAGE_SIZE -o 1 -b $BM_FILE -c 1
+	aprun -n $PROCESSES hyperPraw -n $EXPERIMENT_NAME"_default" -h $HYPERGRAPH_FILE -i 100 -m 1100 -p prawS -t $SIM_STEPS -s $SEED -k $MESSAGE_SIZE -o 2 -b $BM_FILE -c 1 -r 950
 	sleep 1
-	aprun -n $PROCESSES hyperPraw -n $EXPERIMENT_NAME"_bandwidth" -h $HYPERGRAPH_FILE -i 100 -m 1100 -p prawS -t $SIM_STEPS -s $SEED -k $MESSAGE_SIZE -o 1 -b $BM_FILE -W -c 1
+	aprun -n $PROCESSES hyperPraw -n $EXPERIMENT_NAME"_bandwidth" -h $HYPERGRAPH_FILE -i 100 -m 1100 -p prawS -t $SIM_STEPS -s $SEED -k $MESSAGE_SIZE -o 2 -b $BM_FILE -W -c 1 -r 950
 	sleep 1
 	aprun -n $PROCESSES hyperPraw -n $EXPERIMENT_NAME"_zoltan" -h $HYPERGRAPH_FILE -i 100 -m 1075 -p zoltan -t $SIM_STEPS -s $SEED -k $MESSAGE_SIZE -b $BM_FILE -c 1
 	sleep 1
@@ -65,12 +67,11 @@ run_experiment() {
 for i in $(seq 1 $TEST_REPETITIONS)
 do
 	SEED=$RANDOM
-	# 5 large hgraphs
-	run_experiment "dac2012_superblue7.hgr" $SEED
-	run_experiment "sat14_11pipe_k.cnf.dual.hgr" $SEED
-	run_experiment "sat14_11pipe_k.cnf.hgr" $SEED
-	run_experiment "sat14_11pipe_k.cnf.primal.hgr" $SEED
-	run_experiment "wb-edu.mtx.hgr" $SEED
+	# 4 large hgraphs
+	run_experiment "dac2012_superblue6.hgr" $SEED
+	run_experiment "sat14_ACG-20-5p0.cnf.dual.hgr" $SEED
+	run_experiment "sat14_ACG-20-5p0.cnf.primal.hgr" $SEED
+	run_experiment "StocF-1465.mtx.hgr" $SEED
 done
 
 '''
