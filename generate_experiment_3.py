@@ -25,7 +25,7 @@ template_2 = '''
 template_3=''':bigmem='''
 template_4='''
 # walltime
-#PBS -l walltime=1:00:0
+#PBS -l walltime=1:50:0
 # budget code
 #PBS -A e582
 # bandwidth probing parameters
@@ -64,23 +64,23 @@ run_experiment() {
 	sleep 1
 
 
-	aprun -n $PROCESSES hyperPraw -n $EXPERIMENT_NAME"_zoltan" -h $HYPERGRAPH_FILE -i 100 -m 1075 -p zoltan -t $SIM_STEPS -s $SEED -k $MESSAGE_SIZE -b $BM_FILE -c 1
+	aprun -n $PROCESSES hyperPraw -n $EXPERIMENT_NAME"_zoltan" -h $HYPERGRAPH_FILE -i 100 -m 1075 -p zoltan -t $SIM_STEPS -s $SEED -k $MESSAGE_SIZE -b $BM_FILE
 	sleep 1
 }
 
 for i in $(seq 1 $TEST_REPETITIONS)
 do
 	SEED=$RANDOM
-	#run_experiment "sat14_E02F20.cnf.hgr" $SEED
-	#run_experiment "crashbasis.mtx.hgr" $SEED
-	#run_experiment "sat14_aaai10-planning-ipc5-pathways-17-step21.cnf.dual.hgr" $SEED
+	run_experiment "sat14_E02F20.cnf.hgr" $SEED
+	run_experiment "crashbasis.mtx.hgr" $SEED
+	run_experiment "sat14_aaai10-planning-ipc5-pathways-17-step21.cnf.dual.hgr" $SEED
 	#run_experiment "sparsine.mtx.hgr" $SEED
-	#run_experiment "venkat01.mtx.hgr" $SEED
+	run_experiment "venkat01.mtx.hgr" $SEED
 
-	run_experiment "dac2012_superblue6.hgr" $SEED
-	run_experiment "sat14_ACG-20-5p0.cnf.dual.hgr" $SEED
-	run_experiment "sat14_ACG-20-5p0.cnf.primal.hgr" $SEED
-	run_experiment "StocF-1465.mtx.hgr" $SEED
+	#run_experiment "dac2012_superblue6.hgr" $SEED
+	#run_experiment "sat14_ACG-20-5p0.cnf.dual.hgr" $SEED
+	#run_experiment "sat14_ACG-20-5p0.cnf.primal.hgr" $SEED
+	#run_experiment "StocF-1465.mtx.hgr" $SEED
 
 done
 

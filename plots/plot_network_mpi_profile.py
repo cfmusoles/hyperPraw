@@ -18,7 +18,7 @@ folder = "../results/t_large/"
 bandwidth_send_experiment_name = 'results_mpi_send_bandwidth_' + str(num_processes)
 graph_name = "dac2012_superblue6.hgr"
 partitioning = 'prawS'
-test_name = 't_large_bandwidth_proportional'
+test_name = 't_large_default'
 
 sim_sent_experiment = test_name + '_' + graph_name + '_' + partitioning + '_hedgeSim_comm_cost__' + str(num_processes)
 
