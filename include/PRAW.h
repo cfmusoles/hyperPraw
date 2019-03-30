@@ -552,8 +552,12 @@ namespace PRAW {
         long int* part_load = (long int*)calloc(num_processes,sizeof(long int));
         int* current_neighbours_in_partition = (int*)malloc(num_processes*sizeof(int));
         int** current_connectivity = (int**)malloc(num_processes*sizeof(int*));
+        double total_bandwidths = 0;
         for(int ii=0; ii < num_processes; ii++) {
             current_connectivity[ii] = (int*)calloc(num_processes,sizeof(int));
+            for(int jj=0; jj < num_processes; jj++) {
+                total_bandwidths += comm_cost_matrix[ii][jj];
+            }
         }
 
         // load starting connectivity
@@ -563,6 +567,7 @@ namespace PRAW {
         // expected num edge between each i j partition = total edges * bandwidth(i,j) / sum ( all i,j bandwidths)
         // edge imbalance of partition i = sum for each j ( expected edges between i,j - actual edges between i,j - i neighbours in j )
         // the highest value means vid needs to be placed in i
+        long int total_edges = 0;
         for(int vid=0; vid < num_vertices; vid++) {
             for(int he = 0; he < hedge_ptr[vid].size(); he++) {
                 int he_id = hedge_ptr[vid][he];
@@ -571,6 +576,7 @@ namespace PRAW {
                     int dest_vertex = hyperedges[he_id][vt];
                     int dest_part = partitioning[dest_vertex];
                     current_connectivity[origin_part][dest_part] += 1;
+                    total_edges++;
                 }
             }
         }
