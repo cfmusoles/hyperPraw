@@ -429,7 +429,7 @@ namespace PRAW {
         *edges_cut_ratio=(float)edgecut/total_edges;
         
 
-        PRINTF("Quality: %i (hedgecut, %.3f total) %.3f (cut net), %i (SOED), %.1f (absorption) %.3f (max imbalance), %f (edge comm cost),, %f (edge comm cost)\n",hyperedges_cut,*hyperedges_cut_ratio,*edges_cut_ratio,*soed,*absorption,*max_imbalance,*total_edge_comm_cost,total_hedge_comm_cost == NULL ? 0 : *total_hedge_comm_cost);
+        PRINTF("Quality: %i (hedgecut, %.3f total) %.3f (cut net), %i (SOED), %.1f (absorption) %.3f (max imbalance), %f (edge comm cost),, %f (hedge comm cost)\n",hyperedges_cut,*hyperedges_cut_ratio,*edges_cut_ratio,*soed,*absorption,*max_imbalance,*total_edge_comm_cost,total_hedge_comm_cost == NULL ? 0 : *total_hedge_comm_cost);
         
         // clean up
         free(workload);
@@ -609,12 +609,15 @@ namespace PRAW {
                     }*/
                     // total cost of communication (neighbours in other partitions * cost of communicating with those partitions)
                     double total_comm_cost = 0;
+                    int neighbouring_partitions = 0;
                     for(int jj=0; jj < num_processes; jj++) {
-                        if(pp != jj)
+                        if(pp != jj) {
                             total_comm_cost += current_neighbours_in_partition[jj] * comm_cost_matrix[pp][jj];
+                            neighbouring_partitions += current_neighbours_in_partition[jj] > 0 ? 1 : 0;
+                        }
                     }
                     
-                    double current_value =  -total_comm_cost - a * (part_load[pp]/expected_workload);
+                    double current_value =  -(double)neighbouring_partitions/(double)num_processes * total_comm_cost - a * (part_load[pp]/expected_workload);
                     //double current_value =  -comm_cost_per_partition[pp] - a * (part_load[pp]/expected_workload);
                     //double current_value = current_neighbours_in_partition[pp]/(double)total_neighbours -(double)total_comm_cost / (double)num_processes * comm_cost_per_partition[pp] - a * (part_load[pp]/expected_workload);
                     // double current_value  = current_neighbours_in_partition[pp] -(double)total_comm_cost * comm_cost_per_partition[pp] - a * g/2 * pow(part_load[pp],g-1);

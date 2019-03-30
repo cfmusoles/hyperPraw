@@ -14,11 +14,11 @@ plot_sent_data = False			# plot application sent data
 plot_comm_cost = True			# plot combined comm cost
 storeResults = True
 
-folder = "../results/test/"
+folder = "../results/t_large/"
 bandwidth_send_experiment_name = 'results_mpi_send_bandwidth_' + str(num_processes)
-graph_name = "sparsine.mtx.hgr"
+graph_name = "dac2012_superblue6.hgr"
 partitioning = 'prawS'
-test_name = 'test_bandwidth_proportional'
+test_name = 't_large_bandwidth_proportional'
 
 sim_sent_experiment = test_name + '_' + graph_name + '_' + partitioning + '_hedgeSim_comm_cost__' + str(num_processes)
 
