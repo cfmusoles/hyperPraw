@@ -550,8 +550,31 @@ namespace PRAW {
             
 #endif
         long int* part_load = (long int*)calloc(num_processes,sizeof(long int));
-        double* comm_cost_per_partition = (double*)malloc(num_processes*sizeof(double));
         int* current_neighbours_in_partition = (int*)malloc(num_processes*sizeof(int));
+        int** current_connectivity = (int**)malloc(num_processes*sizeof(int*));
+        for(int ii=0; ii < num_processes; ii++) {
+            current_connectivity[ii] = (int*)calloc(num_processes,sizeof(int));
+        }
+
+        // load starting connectivity
+        // inspired in Xue, et al 2015 (architecture aware streaming graph partitioning)
+        // not only keep workload balance, but p2p comms balanced (according to bandwidth)
+        // see page 6 of their paper for more info
+        // expected num edge between each i j partition = total edges * bandwidth(i,j) / sum ( all i,j bandwidths)
+        // edge imbalance of partition i = sum for each j ( expected edges between i,j - actual edges between i,j - i neighbours in j )
+        // the highest value means vid needs to be placed in i
+        for(int vid=0; vid < num_vertices; vid++) {
+            for(int he = 0; he < hedge_ptr[vid].size(); he++) {
+                int he_id = hedge_ptr[vid][he];
+                int origin_part = partitioning[vid];
+                for(int vt = 0; vt < hyperedges[he_id].size(); vt++) {
+                    int dest_vertex = hyperedges[he_id][vt];
+                    int dest_part = partitioning[dest_vertex];
+                    current_connectivity[origin_part][dest_part] += 1;
+                }
+            }
+        }
+
         // overfit variables
         bool check_overfit = false;
         idx_t* last_partitioning = NULL;
@@ -572,12 +595,8 @@ namespace PRAW {
             // go through own vertex list and reassign
             for(int vid=0; vid < num_vertices; vid++) {
                 memset(current_neighbours_in_partition,0,num_processes * sizeof(int));
-                memset(comm_cost_per_partition,0,num_processes * sizeof(double));
 
                 //int total_neighbours = 1;
-                //double max_comm_cost = 0;
-                // reevaluate objective function per partition
-                // |P^t_i union N(v)| = number of vertices in partition i that are neighbours of vertex v 
                 // where are neighbours located
                 // new communication cost incurred
                 
@@ -594,20 +613,11 @@ namespace PRAW {
                     }
                 }
                 
-
-                //if(max_comm_cost < std::numeric_limits<double>::epsilon()) max_comm_cost = 1;
-                
-                // allocate vertex (for local heuristically, for non local speculatively)
+                // allocate vertex
                 double max_value = std::numeric_limits<double>::lowest();
                 int best_partition = partitioning[vid];
                 for(int pp=0; pp < num_processes; pp++) {
-                    // total cost of communication (edgecuts * number of participating partitions)
-                    /*long int total_comm_cost = 0;
-                    for(int jj=0; jj < num_processes; jj++) {
-                        if(pp != jj)
-                            total_comm_cost += current_neighbours_in_partition[jj] > 0 ? 1 : 0;
-                    }*/
-                    // total cost of communication (neighbours in other partitions * cost of communicating with those partitions)
+                    // total cost of communication (edgecuts * comm cost * number of participating partitions)
                     double total_comm_cost = 0;
                     int neighbouring_partitions = 0;
                     for(int jj=0; jj < num_processes; jj++) {
@@ -704,7 +714,7 @@ namespace PRAW {
                                     stopping_condition == 3 ? &total_hedge_comm_cost : NULL); // only check hedge cost if it's going to be used
 #endif
                         double cut_metric;
-                        if(stopping_condition == 1) cut_metric = soed;//hyperedges_cut_ratio + edges_cut_ratio;
+                        if(stopping_condition == 1) cut_metric = hyperedges_cut_ratio + edges_cut_ratio;//hyperedges_cut_ratio + edges_cut_ratio;
                         if(stopping_condition == 2) cut_metric = total_edge_comm_cost;//hyperedges_cut_ratio;
                         if(stopping_condition == 3) cut_metric = total_hedge_comm_cost;//hyperedges_cut_ratio;
 
@@ -774,8 +784,11 @@ namespace PRAW {
 
         // clean up
         free(part_load);
-        free(comm_cost_per_partition);
         free(current_neighbours_in_partition);
+        for(int ii=0; ii < num_processes; ii++) {
+            free(current_connectivity[ii]);
+        }
+        free(current_connectivity);
 
         return 0;
     }
