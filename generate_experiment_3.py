@@ -60,7 +60,7 @@ run_experiment() {
 	aprun -n $PROCESSES hyperPraw -n $EXPERIMENT_NAME"_bandwidth_0_1" -h $HYPERGRAPH_FILE -i 100 -m 1100 -p prawS -t $SIM_STEPS -s $SEED -k $MESSAGE_SIZE -o 2 -b $BM_FILE -W -c 0 -r 950
 	sleep 1
 	# bandwidth mapped to proportional default stopping condition
-	aprun -n $PROCESSES hyperPraw -n $EXPERIMENT_NAME"_bandwidth_proportional" -h $HYPERGRAPH_FILE -i 100 -m 1100 -p prawS -t $SIM_STEPS -s $SEED -k $MESSAGE_SIZE -o 2 -b $BM_FILE -W -c 1 -r 950
+	#aprun -n $PROCESSES hyperPraw -n $EXPERIMENT_NAME"_bandwidth_proportional" -h $HYPERGRAPH_FILE -i 100 -m 1100 -p prawS -t $SIM_STEPS -s $SEED -k $MESSAGE_SIZE -o 2 -b $BM_FILE -W -c 1 -r 950
 	sleep 1
 
 
@@ -78,7 +78,7 @@ do
 	#run_experiment "sparsine.mtx.hgr" $SEED
 	#run_experiment "venkat01.mtx.hgr" $SEED
 
-	run_experiment "gupta3.mtx.hgr" $SEED
+	run_experiment "pdb1HYS.mtx.hgr" $SEED
 	run_experiment "parabolic_fem.mtx.hgr" $SEED
 	run_experiment "sat14_10pipe_q0_k.cnf.primal.hgr" $SEED
 	run_experiment "sat14_11pipe_q0_k.cnf.dual.hgr" $SEED
