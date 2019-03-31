@@ -11,6 +11,9 @@
 	# proportional comm cost mapping
 	# total edge cost communication as stopping condition
 	# 0.95 tempering  refinement
+
+# 192 nodes for optimising parameters
+# 1728 (192 * 9) for large scale architecture profile
 	
 
 import sys
