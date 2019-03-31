@@ -71,20 +71,21 @@ run_experiment() {
 for i in $(seq 1 $TEST_REPETITIONS)
 do
 	SEED=$RANDOM
-	#run_experiment "sat14_E02F22.cnf.hgr" $SEED
+	#run_experiment "sat14_E02F20.cnf.hgr" $SEED
 	#run_experiment "sat14_itox_vc1130.cnf.dual.hgr" $SEED
 	#run_experiment "2cubes_sphere.mtx.hgr" $SEED
 	#run_experiment "ABACUS_shell_hd.mtx.hgr" $SEED
 	#run_experiment "sparsine.mtx.hgr" $SEED
 	#run_experiment "venkat01.mtx.hgr" $SEED
 
-	run_experiment "pdb1HYS.mtx.hgr" $SEED
-	run_experiment "parabolic_fem.mtx.hgr" $SEED
-	run_experiment "sat14_10pipe_q0_k.cnf.primal.hgr" $SEED
-	run_experiment "sat14_11pipe_q0_k.cnf.dual.hgr" $SEED
+	#run_experiment "pdb1HYS.mtx.hgr" $SEED
+	#run_experiment "parabolic_fem.mtx.hgr" $SEED
+	#run_experiment "sat14_10pipe_q0_k.cnf.primal.hgr" $SEED
+	#run_experiment "sat14_E02F22.cnf.hgr" $SEED
+	run_experiment "sat14_openstacks-p30_3.085-SAT.cnf.dual.hgr" $SEED
 	run_experiment "webbase-1M.mtx.hgr" $SEED
 	run_experiment "sat14_dated-10-17-u.cnf.dual.hgr" $SEED
-	run_experiment "sat14_q_query_3_L200_coli.sat.cnf.primal.hgr" $SEED
+	run_experiment "sat14_velev-vliw-uns-2.0-uq5.cnf.primal.hgr" $SEED
 	run_experiment "ship_001.mtx.hgr" $SEED
 
 done
