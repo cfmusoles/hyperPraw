@@ -551,35 +551,30 @@ namespace PRAW {
 #endif
         long int* part_load = (long int*)calloc(num_processes,sizeof(long int));
         int* current_neighbours_in_partition = (int*)malloc(num_processes*sizeof(int));
-        int** current_connectivity = (int**)malloc(num_processes*sizeof(int*));
-        double total_bandwidths = 0;
-        for(int ii=0; ii < num_processes; ii++) {
-            current_connectivity[ii] = (int*)calloc(num_processes,sizeof(int));
-            for(int jj=0; jj < num_processes; jj++) {
-                total_bandwidths += comm_cost_matrix[ii][jj];
+
+        // communication balance variables
+        double* sum_all_bandwidth = (double*)calloc(num_processes,sizeof(double));
+        //long int** current_edge_connectivity = (long int*)calloc(num_processes,sizeof(long int));
+        for (int ii=0; ii < num_processes ; ii++) {
+            for (int jj=0; jj < num_processes ; jj++) {
+                sum_all_bandwidth[ii] += 1.0/comm_cost_matrix[ii][jj];
+                //current_edge_connectivity = (long int*)calloc(num_processes,sizeof(long int));
             }
         }
-
-        // load starting connectivity
-        // inspired in Xue, et al 2015 (architecture aware streaming graph partitioning)
-        // not only keep workload balance, but p2p comms balanced (according to bandwidth)
-        // see page 6 of their paper for more info
-        // expected num edge between each i j partition = total edges * bandwidth(i,j) / sum ( all i,j bandwidths)
-        // edge imbalance of partition i = sum for each j ( expected edges between i,j - actual edges between i,j - i neighbours in j )
-        // the highest value means vid needs to be placed in i
-        long int total_edges = 0;
-        for(int vid=0; vid < num_vertices; vid++) {
+        // initialise current p2p connectivity
+        /*for(int vid=0; vid < num_vertices; vid++) {
             for(int he = 0; he < hedge_ptr[vid].size(); he++) {
                 int he_id = hedge_ptr[vid][he];
-                int origin_part = partitioning[vid];
                 for(int vt = 0; vt < hyperedges[he_id].size(); vt++) {
                     int dest_vertex = hyperedges[he_id][vt];
+                    if(dest_vertex == vid) continue;
                     int dest_part = partitioning[dest_vertex];
-                    current_connectivity[origin_part][dest_part] += 1;
+                    current_neighbours_in_partition[dest_part] += 1;
+                    //total_neighbours++;
                     total_edges++;
                 }
             }
-        }
+        }*/
 
         // overfit variables
         bool check_overfit = false;
@@ -601,6 +596,7 @@ namespace PRAW {
             // go through own vertex list and reassign
             for(int vid=0; vid < num_vertices; vid++) {
                 memset(current_neighbours_in_partition,0,num_processes * sizeof(int));
+                long int total_edges = 0;
 
                 //int total_neighbours = 1;
                 // where are neighbours located
@@ -616,6 +612,7 @@ namespace PRAW {
                         int dest_part = partitioning[dest_vertex];
                         current_neighbours_in_partition[dest_part] += 1;
                         //total_neighbours++;
+                        total_edges++;
                     }
                 }
                 
@@ -623,18 +620,31 @@ namespace PRAW {
                 double max_value = std::numeric_limits<double>::lowest();
                 int best_partition = partitioning[vid];
                 for(int pp=0; pp < num_processes; pp++) {
-                    // total cost of communication (edgecuts * comm cost * number of participating partitions)
+                    double connectivity_imbalance = 0;
                     double total_comm_cost = 0;
                     int neighbouring_partitions = 0;
+                    long int outer_edges = total_edges - current_neighbours_in_partition[pp];
                     for(int jj=0; jj < num_processes; jj++) {
                         if(pp != jj) {
+                            // total cost of communication (edgecuts * comm cost * number of participating partitions)
                             total_comm_cost += current_neighbours_in_partition[jj] * comm_cost_matrix[pp][jj];
                             neighbouring_partitions += current_neighbours_in_partition[jj] > 0 ? 1 : 0;
+                            // load starting connectivity
+                            // inspired in Xue, et al 2015 (architecture aware streaming graph partitioning)
+                            // not only keep workload balance, but p2p comms balanced (according to bandwidth)
+                            // see page 6 of their paper for more info
+                            // expected num edge between each i j partition = total edges * bandwidth(i,j) / sum ( all i,j bandwidths)
+                            // edge imbalance of partition i = sum for each j ( expected edges between i,j - actual edges between i,j - i neighbours in j )
+                            // the highest value means vid needs to be placed in i
+                            // do not count edges to partition that will be local
+                            connectivity_imbalance += (outer_edges * (1.0/comm_cost_matrix[pp][jj]) / sum_all_bandwidth[pp] - current_neighbours_in_partition[jj]);
                         }
+                        
+
                     }
                     
-                    double current_value =  -(double)neighbouring_partitions/(double)num_processes * total_comm_cost - a * (part_load[pp]/expected_workload);
-                    //double current_value =  -comm_cost_per_partition[pp] - a * (part_load[pp]/expected_workload);
+                    double current_value =  -(double)neighbouring_partitions/(double)num_processes * total_comm_cost - a * (part_load[pp]/expected_workload) - 1.5*connectivity_imbalance;
+                    //double current_value =  -(double)neighbouring_partitions/(double)num_processes * total_comm_cost - a * (part_load[pp]/expected_workload);
                     //double current_value = current_neighbours_in_partition[pp]/(double)total_neighbours -(double)total_comm_cost / (double)num_processes * comm_cost_per_partition[pp] - a * (part_load[pp]/expected_workload);
                     // double current_value  = current_neighbours_in_partition[pp] -(double)total_comm_cost * comm_cost_per_partition[pp] - a * g/2 * pow(part_load[pp],g-1);
                     
@@ -721,8 +731,8 @@ namespace PRAW {
 #endif
                         double cut_metric;
                         if(stopping_condition == 1) cut_metric = hyperedges_cut_ratio + edges_cut_ratio;//hyperedges_cut_ratio + edges_cut_ratio;
-                        if(stopping_condition == 2) cut_metric = total_edge_comm_cost;//hyperedges_cut_ratio;
-                        if(stopping_condition == 3) cut_metric = total_hedge_comm_cost;//hyperedges_cut_ratio;
+                        if(stopping_condition == 2) cut_metric = ceil(total_edge_comm_cost);//hyperedges_cut_ratio;
+                        if(stopping_condition == 3) cut_metric = ceil(total_hedge_comm_cost);//hyperedges_cut_ratio;
 
                         if(!check_overfit) {
                             // record partitioning and cut metric
@@ -791,10 +801,7 @@ namespace PRAW {
         // clean up
         free(part_load);
         free(current_neighbours_in_partition);
-        for(int ii=0; ii < num_processes; ii++) {
-            free(current_connectivity[ii]);
-        }
-        free(current_connectivity);
+        free(sum_all_bandwidth);
 
         return 0;
     }
