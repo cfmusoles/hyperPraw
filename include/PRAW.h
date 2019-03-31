@@ -553,26 +553,10 @@ namespace PRAW {
         int* current_neighbours_in_partition = (int*)malloc(num_processes*sizeof(int));
 
         // communication balance variables
-        double* sum_all_bandwidth = (double*)calloc(num_processes,sizeof(double));
-        //long int** current_edge_connectivity = (long int*)calloc(num_processes,sizeof(long int));
+        /*double* sum_all_bandwidth = (double*)calloc(num_processes,sizeof(double));
         for (int ii=0; ii < num_processes ; ii++) {
             for (int jj=0; jj < num_processes ; jj++) {
                 sum_all_bandwidth[ii] += 1.0/comm_cost_matrix[ii][jj];
-                //current_edge_connectivity = (long int*)calloc(num_processes,sizeof(long int));
-            }
-        }
-        // initialise current p2p connectivity
-        /*for(int vid=0; vid < num_vertices; vid++) {
-            for(int he = 0; he < hedge_ptr[vid].size(); he++) {
-                int he_id = hedge_ptr[vid][he];
-                for(int vt = 0; vt < hyperedges[he_id].size(); vt++) {
-                    int dest_vertex = hyperedges[he_id][vt];
-                    if(dest_vertex == vid) continue;
-                    int dest_part = partitioning[dest_vertex];
-                    current_neighbours_in_partition[dest_part] += 1;
-                    //total_neighbours++;
-                    total_edges++;
-                }
             }
         }*/
 
@@ -596,7 +580,7 @@ namespace PRAW {
             // go through own vertex list and reassign
             for(int vid=0; vid < num_vertices; vid++) {
                 memset(current_neighbours_in_partition,0,num_processes * sizeof(int));
-                long int total_edges = 0;
+                //long int total_edges = 0;
 
                 //int total_neighbours = 1;
                 // where are neighbours located
@@ -612,7 +596,7 @@ namespace PRAW {
                         int dest_part = partitioning[dest_vertex];
                         current_neighbours_in_partition[dest_part] += 1;
                         //total_neighbours++;
-                        total_edges++;
+                        //total_edges++;
                     }
                 }
                 
@@ -623,7 +607,7 @@ namespace PRAW {
                     double connectivity_imbalance = 0;
                     double total_comm_cost = 0;
                     int neighbouring_partitions = 0;
-                    long int outer_edges = total_edges - current_neighbours_in_partition[pp];
+                    //long int outer_edges = total_edges - current_neighbours_in_partition[pp];
                     for(int jj=0; jj < num_processes; jj++) {
                         if(pp != jj) {
                             // total cost of communication (edgecuts * comm cost * number of participating partitions)
@@ -637,14 +621,14 @@ namespace PRAW {
                             // edge imbalance of partition i = sum for each j ( expected edges between i,j - actual edges between i,j - i neighbours in j )
                             // the highest value means vid needs to be placed in i
                             // do not count edges to partition that will be local
-                            connectivity_imbalance += (outer_edges * (1.0/comm_cost_matrix[pp][jj]) / sum_all_bandwidth[pp] - current_neighbours_in_partition[jj]);
+                            //connectivity_imbalance += (outer_edges * (1.0/comm_cost_matrix[pp][jj]) / sum_all_bandwidth[pp] - current_neighbours_in_partition[jj]);
                         }
                         
 
                     }
                     
-                    double current_value =  -(double)neighbouring_partitions/(double)num_processes * total_comm_cost - a * (part_load[pp]/expected_workload) - 1.5*connectivity_imbalance;
-                    //double current_value =  -(double)neighbouring_partitions/(double)num_processes * total_comm_cost - a * (part_load[pp]/expected_workload);
+                    //double current_value =  -(double)neighbouring_partitions/(double)num_processes * total_comm_cost - a * (part_load[pp]/expected_workload) - 1.5*connectivity_imbalance;
+                    double current_value =  -(double)neighbouring_partitions/(double)num_processes * total_comm_cost - a * (part_load[pp]/expected_workload);
                     //double current_value = current_neighbours_in_partition[pp]/(double)total_neighbours -(double)total_comm_cost / (double)num_processes * comm_cost_per_partition[pp] - a * (part_load[pp]/expected_workload);
                     // double current_value  = current_neighbours_in_partition[pp] -(double)total_comm_cost * comm_cost_per_partition[pp] - a * g/2 * pow(part_load[pp],g-1);
                     
@@ -801,7 +785,7 @@ namespace PRAW {
         // clean up
         free(part_load);
         free(current_neighbours_in_partition);
-        free(sum_all_bandwidth);
+        //free(sum_all_bandwidth);
 
         return 0;
     }

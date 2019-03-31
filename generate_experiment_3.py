@@ -25,7 +25,7 @@ template_2 = '''
 template_3=''':bigmem='''
 template_4='''
 # walltime
-#PBS -l walltime=1:50:0
+#PBS -l walltime=6:00:0
 # budget code
 #PBS -A e582
 # bandwidth probing parameters
@@ -71,11 +71,14 @@ run_experiment() {
 for i in $(seq 1 $TEST_REPETITIONS)
 do
 	SEED=$RANDOM
-	run_experiment "sat14_E02F20.cnf.hgr" $SEED
-	run_experiment "crashbasis.mtx.hgr" $SEED
-	run_experiment "sat14_aaai10-planning-ipc5-pathways-17-step21.cnf.dual.hgr" $SEED
+	run_experiment "sat14_E02F22.cnf.hgr" $SEED
+	run_experiment "sat14_itox_vc1130.cnf.dual.hgr" $SEED
+	run_experiment "2cubes_sphere.mtx.hgr" $SEED
+	run_experiment "ABACUS_shell_hd.mtx.hgr" $SEED
+	#run_experiment "webbase-1M.mtx.hgr" $SEED
+	run_experiment "xenon2.mtx.hgr" $SEED
 	#run_experiment "sparsine.mtx.hgr" $SEED
-	run_experiment "venkat01.mtx.hgr" $SEED
+	#run_experiment "venkat01.mtx.hgr" $SEED
 
 	#run_experiment "dac2012_superblue6.hgr" $SEED
 	#run_experiment "sat14_ACG-20-5p0.cnf.dual.hgr" $SEED
