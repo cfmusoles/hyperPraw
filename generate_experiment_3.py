@@ -25,7 +25,7 @@ template_2 = '''
 template_3=''':bigmem='''
 template_4='''
 # walltime
-#PBS -l walltime=6:00:0
+#PBS -l walltime=5:00:0
 # budget code
 #PBS -A e582
 # bandwidth probing parameters
@@ -60,7 +60,7 @@ run_experiment() {
 	aprun -n $PROCESSES hyperPraw -n $EXPERIMENT_NAME"_bandwidth_0_1" -h $HYPERGRAPH_FILE -i 100 -m 1100 -p prawS -t $SIM_STEPS -s $SEED -k $MESSAGE_SIZE -o 2 -b $BM_FILE -W -c 0 -r 950
 	sleep 1
 	# bandwidth mapped to proportional default stopping condition
-	#aprun -n $PROCESSES hyperPraw -n $EXPERIMENT_NAME"_bandwidth_proportional" -h $HYPERGRAPH_FILE -i 100 -m 1100 -p prawS -t $SIM_STEPS -s $SEED -k $MESSAGE_SIZE -o 2 -b $BM_FILE -W -c 1 -r 950
+	aprun -n $PROCESSES hyperPraw -n $EXPERIMENT_NAME"_bandwidth_proportional" -h $HYPERGRAPH_FILE -i 100 -m 1100 -p prawS -t $SIM_STEPS -s $SEED -k $MESSAGE_SIZE -o 2 -b $BM_FILE -W -c 1 -r 950
 	sleep 1
 
 
@@ -71,22 +71,22 @@ run_experiment() {
 for i in $(seq 1 $TEST_REPETITIONS)
 do
 	SEED=$RANDOM
-	#run_experiment "sat14_E02F20.cnf.hgr" $SEED
-	#run_experiment "sat14_itox_vc1130.cnf.dual.hgr" $SEED
-	#run_experiment "2cubes_sphere.mtx.hgr" $SEED
-	#run_experiment "ABACUS_shell_hd.mtx.hgr" $SEED
+	#run_experiment "sat14_E02F20.cnf.hgr" $SEED #Y
+	run_experiment "sat14_itox_vc1130.cnf.dual.hgr" $SEED
+	run_experiment "2cubes_sphere.mtx.hgr" $SEED
+	run_experiment "ABACUS_shell_hd.mtx.hgr" $SEED
 	#run_experiment "sparsine.mtx.hgr" $SEED
-	#run_experiment "venkat01.mtx.hgr" $SEED
+	run_experiment "venkat01.mtx.hgr" $SEED
 
-	#run_experiment "pdb1HYS.mtx.hgr" $SEED
-	#run_experiment "parabolic_fem.mtx.hgr" $SEED
-	#run_experiment "sat14_10pipe_q0_k.cnf.primal.hgr" $SEED
-	#run_experiment "sat14_E02F22.cnf.hgr" $SEED
-	run_experiment "sat14_openstacks-p30_3.085-SAT.cnf.dual.hgr" $SEED
-	run_experiment "webbase-1M.mtx.hgr" $SEED
-	run_experiment "sat14_dated-10-17-u.cnf.dual.hgr" $SEED
-	run_experiment "sat14_velev-vliw-uns-2.0-uq5.cnf.primal.hgr" $SEED
-	run_experiment "ship_001.mtx.hgr" $SEED
+	#run_experiment "pdb1HYS.mtx.hgr" $SEED #Y
+	#run_experiment "parabolic_fem.mtx.hgr" $SEED #N
+	#run_experiment "sat14_10pipe_q0_k.cnf.primal.hgr" $SEED #Y
+	run_experiment "sat14_E02F22.cnf.hgr" $SEED
+	#run_experiment "sat14_openstacks-p30_3.085-SAT.cnf.dual.hgr" $SEED #Y
+	#run_experiment "webbase-1M.mtx.hgr" $SEED #Y
+	#run_experiment "sat14_dated-10-17-u.cnf.dual.hgr" $SEED #~
+	run_experiment "sat14_velev-vliw-uns-2.0-uq5.cnf.primal.hgr" $SEED #?
+	#run_experiment "ship_001.mtx.hgr" $SEED #Y
 
 done
 
