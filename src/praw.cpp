@@ -1,5 +1,5 @@
 // Test harness for SPAAW (Streaming parallel Partitioning Architecture AWare)
-#define VERBOSE                 // extra debug info printed out during runtime
+//#define VERBOSE                 // extra debug info printed out during runtime
 #define SAVE_COMM_COST      // store actual p2p communication based on partitioning
 
 #include <mpi.h>
@@ -196,7 +196,6 @@ int main(int argc, char** argv) {
 
         MPI_Barrier(MPI_COMM_WORLD);
 
-        printf("%i: iter %i\n",process_id,iteration);
         //////////////////////////////////////////////////////////////////////////////////
         // Edge sim
         //////////////////////////////////////////////////////////////////////////////////
@@ -250,8 +249,6 @@ int main(int argc, char** argv) {
         }
         // wait for all processes to finish
         MPI_Barrier(MPI_COMM_WORLD);
-
-        printf("%i: end edge sim\n",process_id);
 
         double total_edge_sim_time = MPI_Wtime() - timer;
         //total number of messages exchanged
@@ -388,8 +385,6 @@ int main(int argc, char** argv) {
             }
             free(comm_cost_matrix);
         }
-
-        printf("%i: end\n",process_id);
 
         // clean up
         free(buffer);
