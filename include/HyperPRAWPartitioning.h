@@ -14,8 +14,9 @@
 class HyperPRAWPartitioning : public Partitioning {
 public:
 	
-	HyperPRAWPartitioning(char* graph_file, float imbalance_tolerance, float ta_ref, int iterations, char* comm_bandwidth_file, bool parallel, bool useBandwidth, bool resetPartitioning, int stoppingCondition, bool proportionalCommCost, bool saveHistory) : Partitioning(graph_file,imbalance_tolerance) {
-		comm_bandwidth_filename = comm_bandwidth_file;
+	HyperPRAWPartitioning(char* experimentName, char* graph_file, float imbalance_tolerance, float ta_ref, int iterations, char* comm_bandwidth_file, bool parallel, bool useBandwidth, bool resetPartitioning, int stoppingCondition, bool proportionalCommCost, bool saveHistory) : Partitioning(graph_file,imbalance_tolerance) {
+		experiment_name = experimentName;
+        comm_bandwidth_filename = comm_bandwidth_file;
         isParallel = parallel;
         use_bandwidth_file = useBandwidth;
         max_iterations = iterations;
@@ -55,10 +56,10 @@ public:
             for(int outer_iter=0; outer_iter < max_outer_iters; outer_iter++) {
                 //PRAW::ParallelIndependentRestreamingPartitioning(partitioning, comm_cost_matrix, hgraph_name, vtx_wgt, max_iterations, imbalance_tolerance, outer_iter == 0);
             }
-            PRAW::ParallelIndependentRestreamingPartitioning(partitioning, comm_cost_matrix, hgraph_name, vtx_wgt, max_iterations, imbalance_tolerance, reset_partitioning,save_partitioning_history);
+            PRAW::ParallelIndependentRestreamingPartitioning(experiment_name,partitioning, comm_cost_matrix, hgraph_name, vtx_wgt, max_iterations, imbalance_tolerance, reset_partitioning,save_partitioning_history);
         } else {
             if(process_id == 0) {
-                PRAW::SequentialStreamingPartitioning(partitioning, num_processes, comm_cost_matrix, hgraph_name, vtx_wgt, max_iterations, imbalance_tolerance,ta_refinement,reset_partitioning,stopping_condition,save_partitioning_history);
+                PRAW::SequentialStreamingPartitioning(experiment_name,partitioning, num_processes, comm_cost_matrix, hgraph_name, vtx_wgt, max_iterations, imbalance_tolerance,ta_refinement,reset_partitioning,stopping_condition,save_partitioning_history);
             } 
             MPI_Barrier(MPI_COMM_WORLD);
             // share new partitioning with other processes
@@ -76,6 +77,7 @@ public:
 	}
 
 private:
+    char* experiment_name = NULL;
     char* comm_bandwidth_filename = NULL;
     bool isParallel = false;
     bool use_bandwidth_file = false;

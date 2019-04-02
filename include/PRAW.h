@@ -485,7 +485,7 @@ namespace PRAW {
         }
     }
 
-    int SequentialStreamingPartitioning(idx_t* partitioning, int num_processes, double** comm_cost_matrix, std::string hypergraph_filename, int* vtx_wgt, int iterations, float imbalance_tolerance, float ta_refine, bool reset_partitioning, int stopping_condition, bool save_partitioning_history) {
+    int SequentialStreamingPartitioning(char* experiment_name, idx_t* partitioning, int num_processes, double** comm_cost_matrix, std::string hypergraph_filename, int* vtx_wgt, int iterations, float imbalance_tolerance, float ta_refine, bool reset_partitioning, int stopping_condition, bool save_partitioning_history) {
         
         // get meta info (num vertices and hyperedges)
         int num_vertices, num_hyperedges;
@@ -529,8 +529,11 @@ namespace PRAW {
         //      b - update tempering parameters
         //      c - share with all new partition assignments
         
-        std::string history_file = getFileName(hypergraph_filename);
+        std::string history_file = experiment_name;
+        
         if(save_partitioning_history) {
+            history_file += "_";
+            history_file += getFileName(hypergraph_filename);
             history_file += "_partition_history_";
             char str_int[16];
             sprintf(str_int,"%i",num_processes);
@@ -780,7 +783,7 @@ namespace PRAW {
         return 0;
     }
 
-    int ParallelIndependentRestreamingPartitioning(idx_t* partitioning, double** comm_cost_matrix, std::string hypergraph_filename, int* vtx_wgt, int iterations, float imbalance_tolerance, bool reset_partitioning, bool save_partitioning_history) {
+    int ParallelIndependentRestreamingPartitioning(char* experiment_name, idx_t* partitioning, double** comm_cost_matrix, std::string hypergraph_filename, int* vtx_wgt, int iterations, float imbalance_tolerance, bool reset_partitioning, bool save_partitioning_history) {
         
         int process_id;
         MPI_Comm_rank(MPI_COMM_WORLD,&process_id);
@@ -832,9 +835,12 @@ namespace PRAW {
         //      b - update tempering parameters
         //      c - share with all new partition assignments
         
-        std::string history_file = getFileName(hypergraph_filename);
+        std::string history_file = experiment_name;
+        
         if(save_partitioning_history) {
-            history_file += "_partition_history_parallel_";
+            history_file += "_";
+            history_file += getFileName(hypergraph_filename);
+            history_file += "_partition_history_";
             char str_int[16];
             sprintf(str_int,"%i",num_processes);
             history_file += "__";
