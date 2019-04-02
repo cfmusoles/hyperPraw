@@ -1,6 +1,6 @@
 # Create ARCHER job files based on parameters passed
 
-# stop_condition: This experiment demonstrates the effectiveness of a stopping condition when using streaming partitioning
+# stop_cnd: This experiment demonstrates the effectiveness of a stopping condition when using streaming partitioning
 # Strategies compared:
 	# prawS hard stop: stops when imbalance tolerance has been reached
 	# prawS refinement 1000: stops when imbalance tolerance is reached AND the total edge comm cost is no longer improving (no ta refinement when balanced)

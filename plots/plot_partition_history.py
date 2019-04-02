@@ -5,22 +5,22 @@ import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.patches as mpatches
 
-num_processes = 12
+num_processes = 144
 
 as_bar_plot = False
 
-folder = "../"
-experiments = ["test_default","test_bandwidth"] 
-graph_name = "venkat01.mtx.hgr"
+folder = "../results/stop_cnd/"
+experiments = ["stop_cnd_refine_1700","stop_cnd_refine_1000","stop_cnd_refine_950","stop_cnd_hard"] 
+graph_name = "sat14_itox_vc1130.cnf.dual.hgr"
 # each element on the following arrays corresponds to an experiment run (collection of files)
-colours = ["red","green"] # as many as the number of experiments included
-legend_labels = ['Default PRAW','PRAW-bandwidth']
+colours = ["green","orange","blue","red"] # as many as the number of experiments included
+legend_labels = ['Refinement 1.7','Refinement 1.0','Refinement 0.95','Imbalance reached']
 
 # Each element on the following arrays corresponds to a column in columns_to_plot
-columns_to_plot = [0,1,2]
-plot_title = ["Workload imbalance","Hedge cut","Edge cut"]
-plot_xlabel = ["Iteration","Iteration","Iteration"]
-plot_ylabel = ["Imbalance","Hyperedgecut ratio","Edgecut ratio"]
+columns_to_plot = [1,2]#,5,0]
+plot_title = ["Hedge cut","Edge cut","Communication cost","Workload imbalance"]
+plot_xlabel = ["Iteration","Iteration","Iteration","Iteration"]
+plot_ylabel = ["Hyperedgecut ratio","Edgecut ratio","Edge comm cost","Imbalance"]
 image_format = 'pdf'
 plot_name = ["a_" + str(x) for x in range(len(columns_to_plot))] #["a1","a2","a3","a4","a5","a6","a7"]
 
@@ -47,7 +47,7 @@ def plot(x,y, title,xlabel,ylabel,name,colour,legend,show,global_counter):
 		rx = x + global_counter * bar_plot_size*np.array(x)
 		plt.bar(rx,y,width=bar_plot_size*np.array(x),color=colour,label=legend)
 	else:	
-		plt.errorbar(x, y,linewidth=1,color=colour,label=legend,marker='s',markersize=5)
+		plt.errorbar(x, y,linestyle="-",linewidth=1,color=colour,label=legend,marker='s',markersize=2)
 
 	#plt.yscale("linear")
 	#plt.xscale("linear")
