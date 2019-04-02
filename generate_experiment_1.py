@@ -3,11 +3,13 @@
 # STOP_CONDITION_EXPERIMENT: This experiment demonstrates the effectiveness of a stopping condition when using streaming partitioning
 # Strategies compared:
 	# prawS hard stop: stops when imbalance tolerance has been reached
-	# prawS total edge cost: stops when imbalance tolerance is reached AND the total edge comm cost is no longer improving
+	# prawS refinement 1000: stops when imbalance tolerance is reached AND the total edge comm cost is no longer improving (no ta refinement when balanced)
+	# prawS refinement 1700: stops when imbalance tolerance is reached AND the total edge comm cost is no longer improving (same ta refinement when balanced)
+	# prawS refinement 950: stops when imbalance tolerance is reached AND the total edge comm cost is no longer improving (negative ta refinement when balanced)
 # stable parameters
 	# imbalance tolerance 1.1
 	# 100 max iterations
-	# 0.95 ta refinement
+	# sim step 0
 
 import sys
 import math
@@ -23,7 +25,7 @@ template_2 = '''
 template_3=''':bigmem='''
 template_4='''
 # walltime
-#PBS -l walltime=0:20:0
+#PBS -l walltime=4:00:0
 # budget code
 #PBS -A e582
 
@@ -43,20 +45,26 @@ cd $PBS_O_WORKDIR
 run_experiment() {
 	HYPERGRAPH_FILE="$1"
 	SEED="$2"
-	aprun -n $PROCESSES hyperPraw -n $EXPERIMENT_NAME"_hard" -h $HYPERGRAPH_FILE -i 100 -m 1100 -p prawS -t $SIM_STEPS -s $SEED -k $MESSAGE_SIZE -o 0 -r 950
+	aprun -n $PROCESSES hyperPraw -n $EXPERIMENT_NAME"_hard" -h $HYPERGRAPH_FILE -i 100 -m 1100 -p prawS -t $SIM_STEPS -s $SEED -k $MESSAGE_SIZE -o 0
 	sleep 1
-	aprun -n $PROCESSES hyperPraw -n $EXPERIMENT_NAME"_soed" -h $HYPERGRAPH_FILE -i 100 -m 1100 -p prawS -t $SIM_STEPS -s $SEED -k $MESSAGE_SIZE -o 2 -r 950
+	aprun -n $PROCESSES hyperPraw -n $EXPERIMENT_NAME"_refine_1000" -h $HYPERGRAPH_FILE -i 100 -m 1100 -p prawS -t $SIM_STEPS -s $SEED -k $MESSAGE_SIZE -o 2 -r 1000
 	sleep 1
+	aprun -n $PROCESSES hyperPraw -n $EXPERIMENT_NAME"_refine_1700" -h $HYPERGRAPH_FILE -i 100 -m 1100 -p prawS -t $SIM_STEPS -s $SEED -k $MESSAGE_SIZE -o 2 -r 1700
+	sleep 1
+	aprun -n $PROCESSES hyperPraw -n $EXPERIMENT_NAME"_refine_950" -h $HYPERGRAPH_FILE -i 100 -m 1100 -p prawS -t $SIM_STEPS -s $SEED -k $MESSAGE_SIZE -o 2 -r 950
+	sleep 1
+	
 }
 
 for i in $(seq 1 $TEST_REPETITIONS)
 do
 	SEED=$RANDOM
-	run_experiment "sat14_E02F20.cnf.hgr" $SEED
-	run_experiment "crashbasis.mtx.hgr" $SEED
-	run_experiment "sat14_aaai10-planning-ipc5-pathways-17-step21.cnf.dual.hgr" $SEED
+	run_experiment "sat14_E02F20.cnf.hgr" $SEED #Y
+	run_experiment "sat14_itox_vc1130.cnf.dual.hgr" $SEED #Y for esim
+	run_experiment "2cubes_sphere.mtx.hgr" $SEED #Y for esim
+	run_experiment "ABACUS_shell_hd.mtx.hgr" $SEED #Y
 	run_experiment "sparsine.mtx.hgr" $SEED
-	run_experiment "venkat01.mtx.hgr" $SEED
+	run_experiment "venkat01.mtx.hgr" $SEED #Y
 done
 
 '''

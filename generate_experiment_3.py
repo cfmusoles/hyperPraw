@@ -1,16 +1,20 @@
 # Create ARCHER job files based on parameters passed
 
-# COMM_COST_EXPERIMENT: This experiment demonstrates the effectiveness of architecture aware partitioning, evaluating different bandwidth to comm cost mappings
+# FINAL_BENCHMARK: This experiment compares praw restreaming partitioning agains a state-of-the-art benchmark (zoltan)
 # Strategies compared:
-	# prawS default: not using bandwidth info (baseline)
-	# prawS 0_1: uses bandwidth info as a 0 - 1 mapping to comm cost
-	# prawS proportional: uses bandwidth info with a proportional mapping to comm cost (from 0 to ratio max / min bandwidth)
+	# prawS bandwidth: architecture aware bandwidth
+	# prawS refinement: architecture aware used to refine a good partition (zoltan)
+	# zoltan: multilevel partitioning benchmark
 # stable parameters
-	# total edge cost communication as stopping condition
-	# imbalance tolerance 1.1
+	# imbalance tolerance 1.1 (zoltan has 1.075 since streaming tends to reduce the imbalance significantly under the tolerance)
 	# 100 max iterations
+	# total edge cost communication as stopping condition
 	# 0.95 tempering  refinement
+
+# 192 nodes for optimising parameters
+# 1728 (192 * 9) for large scale architecture profile
 	
+
 import sys
 import math
 
@@ -25,7 +29,7 @@ template_2 = '''
 template_3=''':bigmem='''
 template_4='''
 # walltime
-#PBS -l walltime=5:00:0
+#PBS -l walltime=15:00:0
 # budget code
 #PBS -A e582
 # bandwidth probing parameters
@@ -33,7 +37,7 @@ SIZE=512
 ITERATIONS=20
 WINDOW=10
 
-TEST_REPETITIONS=1
+TEST_REPETITIONS=2
 PROCESSES='''
 template_5='''
 # simulation parameters
@@ -53,41 +57,27 @@ aprun -n $PROCESSES mpi_perf $SIZE $ITERATIONS $WINDOW
 run_experiment() {
 	HYPERGRAPH_FILE="$1"
 	SEED="$2"
-	# best default strategy from experiment 1
-	aprun -n $PROCESSES hyperPraw -n $EXPERIMENT_NAME"_default" -h $HYPERGRAPH_FILE -i 100 -m 1100 -p prawS -t $SIM_STEPS -s $SEED -k $MESSAGE_SIZE -o 2 -b $BM_FILE -r 950
+	aprun -n $PROCESSES hyperPraw -n $EXPERIMENT_NAME"_bandwidth" -h $HYPERGRAPH_FILE -i 100 -m 1100 -p prawS -t $SIM_STEPS -s $SEED -k $MESSAGE_SIZE -o 2 -b $BM_FILE -W -c 0 -r 950
 	sleep 1
-	# bandwidth mapped to 0 - 1 default stopping condition
-	aprun -n $PROCESSES hyperPraw -n $EXPERIMENT_NAME"_bandwidth_0_1" -h $HYPERGRAPH_FILE -i 100 -m 1100 -p prawS -t $SIM_STEPS -s $SEED -k $MESSAGE_SIZE -o 2 -b $BM_FILE -W -c 0 -r 950
+	aprun -n $PROCESSES hyperPraw -n $EXPERIMENT_NAME"_refinement" -h $HYPERGRAPH_FILE -i 100 -m 1100 -p prawSref -t $SIM_STEPS -s $SEED -k $MESSAGE_SIZE -o 2 -b $BM_FILE -W -c 0 -r 950
 	sleep 1
-	# bandwidth mapped to proportional default stopping condition
-	aprun -n $PROCESSES hyperPraw -n $EXPERIMENT_NAME"_bandwidth_proportional" -h $HYPERGRAPH_FILE -i 100 -m 1100 -p prawS -t $SIM_STEPS -s $SEED -k $MESSAGE_SIZE -o 2 -b $BM_FILE -W -c 1 -r 950
-	sleep 1
-
-
-	aprun -n $PROCESSES hyperPraw -n $EXPERIMENT_NAME"_zoltan" -h $HYPERGRAPH_FILE -i 100 -m 1075 -p zoltan -t $SIM_STEPS -s $SEED -k $MESSAGE_SIZE -b $BM_FILE
+	aprun -n $PROCESSES hyperPraw -n $EXPERIMENT_NAME"_zoltan" -h $HYPERGRAPH_FILE -i 100 -m 1075 -p zoltan -t $SIM_STEPS -s $SEED -k $MESSAGE_SIZE -b $BM_FILE -c 0
 	sleep 1
 }
 
 for i in $(seq 1 $TEST_REPETITIONS)
 do
 	SEED=$RANDOM
-	#run_experiment "sat14_E02F20.cnf.hgr" $SEED #Y
-	run_experiment "sat14_itox_vc1130.cnf.dual.hgr" $SEED
-	run_experiment "2cubes_sphere.mtx.hgr" $SEED
-	run_experiment "ABACUS_shell_hd.mtx.hgr" $SEED
-	#run_experiment "sparsine.mtx.hgr" $SEED
-	run_experiment "venkat01.mtx.hgr" $SEED
 
-	#run_experiment "pdb1HYS.mtx.hgr" $SEED #Y
-	#run_experiment "parabolic_fem.mtx.hgr" $SEED #N
-	#run_experiment "sat14_10pipe_q0_k.cnf.primal.hgr" $SEED #Y
-	run_experiment "sat14_E02F22.cnf.hgr" $SEED
-	#run_experiment "sat14_openstacks-p30_3.085-SAT.cnf.dual.hgr" $SEED #Y
-	#run_experiment "webbase-1M.mtx.hgr" $SEED #Y
-	#run_experiment "sat14_dated-10-17-u.cnf.dual.hgr" $SEED #~
-	run_experiment "sat14_velev-vliw-uns-2.0-uq5.cnf.primal.hgr" $SEED #?
-	#run_experiment "ship_001.mtx.hgr" $SEED #Y
-
+	#large graphs
+	run_experiment "pdb1HYS.mtx.hgr" $SEED #Y
+	run_experiment "parabolic_fem.mtx.hgr" $SEED #N
+	run_experiment "sat14_10pipe_q0_k.cnf.primal.hgr" $SEED #Y
+	run_experiment "sat14_E02F22.cnf.hgr" $SEED #Y
+	run_experiment "sat14_openstacks-p30_3.085-SAT.cnf.dual.hgr" $SEED #Y
+	run_experiment "webbase-1M.mtx.hgr" $SEED #Y
+	run_experiment "sat14_dated-10-17-u.cnf.dual.hgr" $SEED #~
+	run_experiment "ship_001.mtx.hgr" $SEED #Y
 done
 
 '''

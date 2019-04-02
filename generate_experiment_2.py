@@ -1,13 +1,17 @@
 # Create ARCHER job files based on parameters passed
 
-# TA REFINEMENT VALUE: This experiment demonstrates the effect of using different values of tempering once imbalance tolerance has been reached
+# COMM_COST_EXPERIMENT: This experiment demonstrates the effectiveness of architecture aware partitioning
 # Strategies compared:
-	# prawS XXXX: uses the value XXXX/1000 as the tempering parameter for alpha
+	# prawS default: not using bandwidth info (baseline)
+	# prawS bandwidth: uses bandwidth info as a 0 - 1 mapping to comm cost
+	# zoltan: baseline 
+	# praw refinement: zoltan + prawS
 # stable parameters
+	# total edge cost communication as stopping condition
 	# imbalance tolerance 1.1
 	# 100 max iterations
-	# total edge comm cost stopping condition
-
+	# 0.95 tempering  refinement
+	
 import sys
 import math
 
@@ -22,9 +26,13 @@ template_2 = '''
 template_3=''':bigmem='''
 template_4='''
 # walltime
-#PBS -l walltime=0:20:0
+#PBS -l walltime=5:00:0
 # budget code
 #PBS -A e582
+# bandwidth probing parameters
+SIZE=512
+ITERATIONS=20
+WINDOW=10
 
 TEST_REPETITIONS=1
 PROCESSES='''
@@ -39,27 +47,35 @@ template_8='''
 # This shifts to the directory that you submitted the job from
 cd $PBS_O_WORKDIR
 
+# bandwidth matrix creation
+BM_FILE="results_mpi_send_bandwidth_"$PROCESSES
+aprun -n $PROCESSES mpi_perf $SIZE $ITERATIONS $WINDOW
+
 run_experiment() {
 	HYPERGRAPH_FILE="$1"
 	SEED="$2"
-	aprun -n $PROCESSES hyperPraw -n $EXPERIMENT_NAME"_1700" -h $HYPERGRAPH_FILE -i 100 -m 1100 -p prawS -t $SIM_STEPS -s $SEED -k $MESSAGE_SIZE -o 2 -r 1700
+	# best default strategy from experiment 1
+	aprun -n $PROCESSES hyperPraw -n $EXPERIMENT_NAME"_default" -h $HYPERGRAPH_FILE -i 100 -m 1100 -p prawS -t $SIM_STEPS -s $SEED -k $MESSAGE_SIZE -o 2 -b $BM_FILE -r 950
 	sleep 1
-	aprun -n $PROCESSES hyperPraw -n $EXPERIMENT_NAME"_1000" -h $HYPERGRAPH_FILE -i 100 -m 1100 -p prawS -t $SIM_STEPS -s $SEED -k $MESSAGE_SIZE -o 2 -r 1000
+	# bandwidth mapped to 0 - 1 default stopping condition
+	aprun -n $PROCESSES hyperPraw -n $EXPERIMENT_NAME"_bandwidth" -h $HYPERGRAPH_FILE -i 100 -m 1100 -p prawS -t $SIM_STEPS -s $SEED -k $MESSAGE_SIZE -o 2 -b $BM_FILE -W -c 0 -r 950
 	sleep 1
-	aprun -n $PROCESSES hyperPraw -n $EXPERIMENT_NAME"_950" -h $HYPERGRAPH_FILE -i 100 -m 1100 -p prawS -t $SIM_STEPS -s $SEED -k $MESSAGE_SIZE -o 2 -r 950
+	aprun -n $PROCESSES hyperPraw -n $EXPERIMENT_NAME"_zoltan" -h $HYPERGRAPH_FILE -i 100 -m 1075 -p zoltan -t $SIM_STEPS -s $SEED -k $MESSAGE_SIZE -b $BM_FILE
 	sleep 1
-	aprun -n $PROCESSES hyperPraw -n $EXPERIMENT_NAME"_600" -h $HYPERGRAPH_FILE -i 100 -m 1100 -p prawS -t $SIM_STEPS -s $SEED -k $MESSAGE_SIZE -o 2 -r 600
+	aprun -n $PROCESSES hyperPraw -n $EXPERIMENT_NAME"_refinement" -h $HYPERGRAPH_FILE -i 100 -m 1100 -p prawSref -t $SIM_STEPS -s $SEED -k $MESSAGE_SIZE -o 2 -b $BM_FILE -W -c 0 -r 950
 	sleep 1
 }
 
 for i in $(seq 1 $TEST_REPETITIONS)
 do
 	SEED=$RANDOM
-	run_experiment "sat14_E02F20.cnf.hgr" $SEED
-	run_experiment "crashbasis.mtx.hgr" $SEED
-	run_experiment "sat14_aaai10-planning-ipc5-pathways-17-step21.cnf.dual.hgr" $SEED
+	#run_experiment "sat14_E02F20.cnf.hgr" $SEED #Y
+	#run_experiment "sat14_itox_vc1130.cnf.dual.hgr" $SEED #Y for esim
+	#run_experiment "2cubes_sphere.mtx.hgr" $SEED #Y for esim
+	#run_experiment "ABACUS_shell_hd.mtx.hgr" $SEED #Y
 	run_experiment "sparsine.mtx.hgr" $SEED
-	run_experiment "venkat01.mtx.hgr" $SEED
+	#run_experiment "venkat01.mtx.hgr" $SEED #Y
+
 done
 
 '''
