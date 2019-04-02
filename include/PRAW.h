@@ -3,8 +3,6 @@
 #ifndef PRAW__H
 #define PRAW__H
 
-#define SAVE_HISTORY        // stores partitioning iteration history in file
-
 #include <vector>
 #include <time.h>
 #include <mpi.h>
@@ -487,7 +485,7 @@ namespace PRAW {
         }
     }
 
-    int SequentialStreamingPartitioning(idx_t* partitioning, int num_processes, double** comm_cost_matrix, std::string hypergraph_filename, int* vtx_wgt, int iterations, float imbalance_tolerance, float ta_refine, bool reset_partitioning, int stopping_condition) {
+    int SequentialStreamingPartitioning(idx_t* partitioning, int num_processes, double** comm_cost_matrix, std::string hypergraph_filename, int* vtx_wgt, int iterations, float imbalance_tolerance, float ta_refine, bool reset_partitioning, int stopping_condition, bool save_partitioning_history) {
         
         // get meta info (num vertices and hyperedges)
         int num_vertices, num_hyperedges;
@@ -531,24 +529,24 @@ namespace PRAW {
         //      b - update tempering parameters
         //      c - share with all new partition assignments
         
-#ifdef SAVE_HISTORY
         std::string history_file = getFileName(hypergraph_filename);
-        history_file += "_partition_history_";
-        char str_int[16];
-        sprintf(str_int,"%i",num_processes);
-        history_file += "__";
-        history_file +=  str_int;
-        // remove history file if exists
-        FILE *fp = fopen(history_file.c_str(), "w");
-        if(fp == NULL) {
-            printf("Error when storing partitioning history into file\n");
-        } else {
-            fprintf(fp,"%s\n","Imbalance, Hedges cut, Edges cut, SOED, Absorption, Edge sim comm cost, Hedge sim comm cost");
+        if(save_partitioning_history) {
+            history_file += "_partition_history_";
+            char str_int[16];
+            sprintf(str_int,"%i",num_processes);
+            history_file += "__";
+            history_file +=  str_int;
+            // remove history file if exists
+            FILE *fp = fopen(history_file.c_str(), "w");
+            if(fp == NULL) {
+                printf("Error when storing partitioning history into file\n");
+            } else {
+                fprintf(fp,"%s\n","Imbalance, Hedges cut, Edges cut, SOED, Absorption, Edge sim comm cost, Hedge sim comm cost");
+            }
+            fclose(fp);
         }
-        fclose(fp);
         
-            
-#endif
+
         long int* part_load = (long int*)calloc(num_processes,sizeof(long int));
         int* current_neighbours_in_partition = (int*)malloc(num_processes*sizeof(int));
 
@@ -660,7 +658,6 @@ namespace PRAW {
             float imbalance = calculateImbalance(partitioning,num_processes,num_vertices,vtx_wgt);
             PRINTF("%i: %f (%f | %f)\n",iter,imbalance,a,ta_start);
 
-#ifdef SAVE_HISTORY
             // get cut metric
             float hyperedges_cut_ratio;
             float edges_cut_ratio;
@@ -669,20 +666,20 @@ namespace PRAW {
             float max_imbalance;
             double total_edge_comm_cost;
             double total_hedge_comm_cost;
-            PRAW::getPartitionStatsFromFile(partitioning, num_processes, num_vertices, hypergraph_filename, NULL,comm_cost_matrix,
-                        &hyperedges_cut_ratio, &edges_cut_ratio, &soed, &absorption, &max_imbalance, 
-                        &total_edge_comm_cost,
-                        stopping_condition == 3 ? &total_hedge_comm_cost : NULL); // only check hedge cost if it's going to be used
-            FILE *fp = fopen(history_file.c_str(), "ab+");
-            if(fp == NULL) {
-                printf("Error when storing partitioning history into file\n");
-            } else {
-                fprintf(fp,"%.3f,%.3f,%.3f,%i,%.3f,%.3f,%.3f\n",imbalance,hyperedges_cut_ratio,edges_cut_ratio,soed,absorption,total_edge_comm_cost,total_hedge_comm_cost);
+            if(save_partitioning_history) {
+                PRAW::getPartitionStatsFromFile(partitioning, num_processes, num_vertices, hypergraph_filename, NULL,comm_cost_matrix,
+                            &hyperedges_cut_ratio, &edges_cut_ratio, &soed, &absorption, &max_imbalance, 
+                            &total_edge_comm_cost,
+                            stopping_condition == 3 ? &total_hedge_comm_cost : NULL); // only check hedge cost if it's going to be used
+                FILE *fp = fopen(history_file.c_str(), "ab+");
+                if(fp == NULL) {
+                    printf("Error when storing partitioning history into file\n");
+                } else {
+                    fprintf(fp,"%.3f,%.3f,%.3f,%i,%.3f,%.3f,%.3f\n",imbalance,hyperedges_cut_ratio,edges_cut_ratio,soed,absorption,total_edge_comm_cost,total_hedge_comm_cost);
+                }
+                fclose(fp);
             }
-            fclose(fp);
             
-            
-#endif
             
             // stop the process in the following conditions based on stopping_condition parameter
             // 0 = stop as soon as imbalance tolerance has been reached
@@ -700,19 +697,12 @@ namespace PRAW {
                 } else {
                     if (imbalance < imbalance_tolerance) {
                         // get cut metric
-#ifndef SAVE_HISTORY
-                        float hyperedges_cut_ratio;
-                        float edges_cut_ratio;
-                        int soed;
-                        float absorption;
-                        float max_imbalance;
-                        double total_edge_comm_cost;
-                        double total_hedge_comm_cost;
-                        PRAW::getPartitionStatsFromFile(partitioning, num_processes, num_vertices, hypergraph_filename, NULL,comm_cost_matrix,
-                                    &hyperedges_cut_ratio, &edges_cut_ratio, &soed, &absorption, &max_imbalance, 
-                                    &total_edge_comm_cost,
-                                    stopping_condition == 3 ? &total_hedge_comm_cost : NULL); // only check hedge cost if it's going to be used
-#endif
+                        if(!save_partitioning_history) {
+                            PRAW::getPartitionStatsFromFile(partitioning, num_processes, num_vertices, hypergraph_filename, NULL,comm_cost_matrix,
+                                        &hyperedges_cut_ratio, &edges_cut_ratio, &soed, &absorption, &max_imbalance, 
+                                        &total_edge_comm_cost,
+                                        stopping_condition == 3 ? &total_hedge_comm_cost : NULL); // only check hedge cost if it's going to be used
+                        }
                         double cut_metric;
                         if(stopping_condition == 1) cut_metric = hyperedges_cut_ratio + edges_cut_ratio;//hyperedges_cut_ratio + edges_cut_ratio;
                         if(stopping_condition == 2) cut_metric = ceil(total_edge_comm_cost);//hyperedges_cut_ratio;
@@ -790,7 +780,7 @@ namespace PRAW {
         return 0;
     }
 
-    int ParallelIndependentRestreamingPartitioning(idx_t* partitioning, double** comm_cost_matrix, std::string hypergraph_filename, int* vtx_wgt, int iterations, float imbalance_tolerance, bool reset_partitioning) {
+    int ParallelIndependentRestreamingPartitioning(idx_t* partitioning, double** comm_cost_matrix, std::string hypergraph_filename, int* vtx_wgt, int iterations, float imbalance_tolerance, bool reset_partitioning, bool save_partitioning_history) {
         
         int process_id;
         MPI_Comm_rank(MPI_COMM_WORLD,&process_id);
@@ -842,25 +832,25 @@ namespace PRAW {
         //      b - update tempering parameters
         //      c - share with all new partition assignments
         
-#ifdef SAVE_HISTORY
         std::string history_file = getFileName(hypergraph_filename);
-        history_file += "_partition_history_parallel_";
-        char str_int[16];
-        sprintf(str_int,"%i",num_processes);
-        history_file += "__";
-        history_file +=  str_int;
-        // remove history file if exists
-        if(process_id == 0) {
-            FILE *fp = fopen(history_file.c_str(), "w");
-            if(fp == NULL) {
-                printf("Error when storing partitioning history into file\n");
-            } else {
-                fprintf(fp,"%s\n","Imbalance");
+        if(save_partitioning_history) {
+            history_file += "_partition_history_parallel_";
+            char str_int[16];
+            sprintf(str_int,"%i",num_processes);
+            history_file += "__";
+            history_file +=  str_int;
+            // remove history file if exists
+            if(process_id == 0) {
+                FILE *fp = fopen(history_file.c_str(), "w");
+                if(fp == NULL) {
+                    printf("Error when storing partitioning history into file\n");
+                } else {
+                    fprintf(fp,"%s\n","Imbalance");
+                }
+                fclose(fp);
             }
-            fclose(fp);
         }
-            
-#endif
+
         long int* part_load = (long int*)calloc(num_processes,sizeof(long int));
         idx_t* local_stream_partitioning = (idx_t*)malloc(num_vertices*sizeof(idx_t));
         double* comm_cost_per_partition = (double*)malloc(num_processes*sizeof(double));
@@ -1023,18 +1013,19 @@ namespace PRAW {
             float imbalance = calculateImbalance(partitioning,num_processes,num_vertices,vtx_wgt);
             PRINTF("%i: %f (%f | %f)\n",iter,imbalance,a,ta_start);
 
-#ifdef SAVE_HISTORY
-            if(process_id == MASTER_NODE) {
-                FILE *fp = fopen(history_file.c_str(), "ab+");
-                if(fp == NULL) {
-                    printf("Error when storing partitioning history into file\n");
-                } else {
-                    fprintf(fp,"%.3f\n",imbalance);
+        
+            if(save_partitioning_history) {
+                if(process_id == MASTER_NODE) {
+                    FILE *fp = fopen(history_file.c_str(), "ab+");
+                    if(fp == NULL) {
+                        printf("Error when storing partitioning history into file\n");
+                    } else {
+                        fprintf(fp,"%.3f\n",imbalance);
+                    }
+                    fclose(fp);
                 }
-                fclose(fp);
             }
             
-#endif
             // stop the process in the following conditions
             //  1. imbalance tolerance has been reached
             //      record current cut metric and partitioning and do one more iteration

@@ -10,6 +10,7 @@
 	# imbalance tolerance 1.1
 	# 100 max iterations
 	# sim step 0
+	# store partitioning history
 
 import sys
 import math
@@ -45,13 +46,13 @@ cd $PBS_O_WORKDIR
 run_experiment() {
 	HYPERGRAPH_FILE="$1"
 	SEED="$2"
-	aprun -n $PROCESSES hyperPraw -n $EXPERIMENT_NAME"_hard" -h $HYPERGRAPH_FILE -i 100 -m 1100 -p prawS -t $SIM_STEPS -s $SEED -k $MESSAGE_SIZE -o 0
+	aprun -n $PROCESSES hyperPraw -n $EXPERIMENT_NAME"_hard" -h $HYPERGRAPH_FILE -i 100 -m 1100 -p prawS -t $SIM_STEPS -s $SEED -k $MESSAGE_SIZE -o 0 -H
 	sleep 1
-	aprun -n $PROCESSES hyperPraw -n $EXPERIMENT_NAME"_refine_1000" -h $HYPERGRAPH_FILE -i 100 -m 1100 -p prawS -t $SIM_STEPS -s $SEED -k $MESSAGE_SIZE -o 2 -r 1000
+	aprun -n $PROCESSES hyperPraw -n $EXPERIMENT_NAME"_refine_1000" -h $HYPERGRAPH_FILE -i 100 -m 1100 -p prawS -t $SIM_STEPS -s $SEED -k $MESSAGE_SIZE -o 2 -r 1000 -H
 	sleep 1
-	aprun -n $PROCESSES hyperPraw -n $EXPERIMENT_NAME"_refine_1700" -h $HYPERGRAPH_FILE -i 100 -m 1100 -p prawS -t $SIM_STEPS -s $SEED -k $MESSAGE_SIZE -o 2 -r 1700
+	aprun -n $PROCESSES hyperPraw -n $EXPERIMENT_NAME"_refine_1700" -h $HYPERGRAPH_FILE -i 100 -m 1100 -p prawS -t $SIM_STEPS -s $SEED -k $MESSAGE_SIZE -o 2 -r 1700 -H
 	sleep 1
-	aprun -n $PROCESSES hyperPraw -n $EXPERIMENT_NAME"_refine_950" -h $HYPERGRAPH_FILE -i 100 -m 1100 -p prawS -t $SIM_STEPS -s $SEED -k $MESSAGE_SIZE -o 2 -r 950
+	aprun -n $PROCESSES hyperPraw -n $EXPERIMENT_NAME"_refine_950" -h $HYPERGRAPH_FILE -i 100 -m 1100 -p prawS -t $SIM_STEPS -s $SEED -k $MESSAGE_SIZE -o 2 -r 950 -H
 	sleep 1
 	
 }
