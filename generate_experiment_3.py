@@ -51,7 +51,15 @@ cd $PBS_O_WORKDIR
 #renaming is necessary to avoid clashes between simultaneous jobs
 ORIGINAL_BM_FILE="results_mpi_send_bandwidth_"$PROCESSES
 aprun -n $PROCESSES mpi_perf $SIZE $ITERATIONS $WINDOW
-BM_FILE="results_mpi_send_bandwidth_1_"$PROCESSES
+for p in $(seq 1 3)
+do
+	FILENAME="results_mpi_send_bandwidth_"$p"_"$PROCESSES
+	if [ ! -f $FILENAME ]; then
+	    BM_FILE="results_mpi_send_bandwidth_"$p"_"$PROCESSES
+	    break
+	fi
+done
+
 mv $ORIGINAL_BM_FILE $BM_FILE
 
 run_experiment() {
