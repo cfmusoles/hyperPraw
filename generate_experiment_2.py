@@ -74,6 +74,8 @@ do
 
 done
 
+mv $BM_FILE "results_mpi_send_bandwidth_1_"$PROCESSES
+
 '''
 
 
