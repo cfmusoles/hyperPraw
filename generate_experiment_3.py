@@ -40,13 +40,10 @@ WINDOW=10
 TEST_REPETITIONS=1
 PROCESSES='''
 template_5='''
-# simulation parameters
-SIM_STEPS='''
-template_6='''
 EXPERIMENT_NAME='''
-template_7='''
+template_6='''
 MESSAGE_SIZE='''
-template_8='''
+template_7='''
 # This shifts to the directory that you submitted the job from
 cd $PBS_O_WORKDIR
 
@@ -57,6 +54,7 @@ aprun -n $PROCESSES mpi_perf $SIZE $ITERATIONS $WINDOW
 run_experiment() {
 	HYPERGRAPH_FILE="$1"
 	SEED="$2"
+	SIM_STEPS="$3"
 	aprun -n $PROCESSES hyperPraw -n $EXPERIMENT_NAME"_bandwidth" -h $HYPERGRAPH_FILE -i 100 -m 1100 -p prawS -t $SIM_STEPS -s $SEED -k $MESSAGE_SIZE -o 2 -b $BM_FILE -W -c 0 -r 950 -q 3
 	sleep 1
 	aprun -n $PROCESSES hyperPraw -n $EXPERIMENT_NAME"_refinement" -h $HYPERGRAPH_FILE -i 100 -m 1100 -p prawSref -t $SIM_STEPS -s $SEED -k $MESSAGE_SIZE -o 2 -b $BM_FILE -W -c 0 -r 950 -q 3
@@ -70,20 +68,20 @@ do
 	SEED=$RANDOM
 
 	#large graphs
-	run_experiment "pdb1HYS.mtx.hgr" $SEED #Y
-	run_experiment "parabolic_fem.mtx.hgr" $SEED #N
-	run_experiment "sat14_10pipe_q0_k.cnf.primal.hgr" $SEED #Y
-	run_experiment "sat14_E02F22.cnf.hgr" $SEED #Y
-	run_experiment "sat14_openstacks-p30_3.085-SAT.cnf.dual.hgr" $SEED #Y
-	run_experiment "webbase-1M.mtx.hgr" $SEED #Y
-	run_experiment "sat14_dated-10-17-u.cnf.dual.hgr" $SEED #~
-	run_experiment "ship_001.mtx.hgr" $SEED #Y
+	run_experiment "pdb1HYS.mtx.hgr" $SEED 1 #Y
+	run_experiment "parabolic_fem.mtx.hgr" $SEED 1 #N
+	run_experiment "sat14_10pipe_q0_k.cnf.primal.hgr" $SEED 1 #Y
+	run_experiment "sat14_E02F22.cnf.hgr" $SEED 1 #Y
+	run_experiment "sat14_openstacks-p30_3.085-SAT.cnf.dual.hgr" $SEED 1 #Y
+	run_experiment "webbase-1M.mtx.hgr" $SEED 1 #Y
+	run_experiment "sat14_dated-10-17-u.cnf.dual.hgr" $SEED 1 #~
+	run_experiment "ship_001.mtx.hgr" $SEED 1 #Y
 done
 
 '''
 
 
-if len(sys.argv) < 8:
+if len(sys.argv) < 7:
 	print("Input error: usage -> python generate_archer_job.py jobName min_processes num_experiments geometric_step big_mem[true|false] simulation_steps")
 	exit()
 
@@ -92,8 +90,7 @@ min_processes = int(sys.argv[2])
 num_experiments = int(sys.argv[3])
 geometric_step = int(sys.argv[4])
 big_mem = (sys.argv[5] == "true" or sys.argv[5] == "True")
-sim_steps = int(sys.argv[6])
-message_size = int(sys.argv[7])
+message_size = int(sys.argv[6])
 
 process_counts = [min_processes * geometric_step ** (n-1) for n in range (1, num_experiments+1)]
 print("Generating experiments")
@@ -106,10 +103,9 @@ for p in process_counts:
 	writebuffer.write(template_2 + str(nodes))
 	writebuffer.write(template_3 + str(big_mem).lower())
 	writebuffer.write(template_4 + str(p))
-	writebuffer.write(template_5 + str(sim_steps))
-	writebuffer.write(template_6 + test_name)
-	writebuffer.write(template_7 + str(message_size))
-	writebuffer.write(template_8)
+	writebuffer.write(template_5 + test_name)
+	writebuffer.write(template_6 + str(message_size))
+	writebuffer.write(template_7)
 
 
 

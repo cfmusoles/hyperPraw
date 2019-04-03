@@ -33,19 +33,17 @@ template_4='''
 TEST_REPETITIONS=1
 PROCESSES='''
 template_5='''
-# simulation parameters
-SIM_STEPS='''
-template_6='''
 EXPERIMENT_NAME='''
-template_7='''
+template_6='''
 MESSAGE_SIZE='''
-template_8='''
+template_7='''
 # This shifts to the directory that you submitted the job from
 cd $PBS_O_WORKDIR
 
 run_experiment() {
 	HYPERGRAPH_FILE="$1"
 	SEED="$2"
+	SIM_STEPS="$3"
 	aprun -n $PROCESSES hyperPraw -n $EXPERIMENT_NAME"_hard" -h $HYPERGRAPH_FILE -i 100 -m 1100 -p prawS -t $SIM_STEPS -s $SEED -k $MESSAGE_SIZE -o 0 -H
 	sleep 1
 	aprun -n $PROCESSES hyperPraw -n $EXPERIMENT_NAME"_refine_1000" -h $HYPERGRAPH_FILE -i 100 -m 1100 -p prawS -t $SIM_STEPS -s $SEED -k $MESSAGE_SIZE -o 2 -r 1000 -H
@@ -60,18 +58,18 @@ run_experiment() {
 for i in $(seq 1 $TEST_REPETITIONS)
 do
 	SEED=$RANDOM
-	run_experiment "sat14_E02F20.cnf.hgr" $SEED #Y
-	run_experiment "sat14_itox_vc1130.cnf.dual.hgr" $SEED #Y for esim
-	run_experiment "2cubes_sphere.mtx.hgr" $SEED #Y for esim
-	run_experiment "ABACUS_shell_hd.mtx.hgr" $SEED #Y
-	run_experiment "sparsine.mtx.hgr" $SEED
-	run_experiment "venkat01.mtx.hgr" $SEED #Y
+	run_experiment "sat14_E02F20.cnf.hgr" $SEED 10 #Y
+	run_experiment "sat14_itox_vc1130.cnf.dual.hgr" $SEED 2 #Y for esim
+	run_experiment "2cubes_sphere.mtx.hgr" $SEED 4 #Y for esim
+	run_experiment "ABACUS_shell_hd.mtx.hgr" 50 #Y
+	run_experiment "sparsine.mtx.hgr" $SEED 2 
+	run_experiment "venkat01.mtx.hgr" $SEED 5 #Y
 done
 
 '''
 
 
-if len(sys.argv) < 8:
+if len(sys.argv) < 7:
 	print("Input error: usage -> python generate_archer_job.py jobName min_processes num_experiments geometric_step big_mem[true|false] simulation_steps")
 	exit()
 
@@ -80,8 +78,7 @@ min_processes = int(sys.argv[2])
 num_experiments = int(sys.argv[3])
 geometric_step = int(sys.argv[4])
 big_mem = (sys.argv[5] == "true" or sys.argv[5] == "True")
-sim_steps = int(sys.argv[6])
-message_size = int(sys.argv[7])
+message_size = int(sys.argv[6])
 
 process_counts = [min_processes * geometric_step ** (n-1) for n in range (1, num_experiments+1)]
 print("Generating experiments")
@@ -94,10 +91,9 @@ for p in process_counts:
 	writebuffer.write(template_2 + str(nodes))
 	writebuffer.write(template_3 + str(big_mem).lower())
 	writebuffer.write(template_4 + str(p))
-	writebuffer.write(template_5 + str(sim_steps))
-	writebuffer.write(template_6 + test_name)
-	writebuffer.write(template_7 + str(message_size))
-	writebuffer.write(template_8)
+	writebuffer.write(template_5 + test_name)
+	writebuffer.write(template_6 + str(message_size))
+	writebuffer.write(template_7)
 
 
 
