@@ -45,8 +45,11 @@ template_7='''
 cd $PBS_O_WORKDIR
 
 # bandwidth matrix creation
-BM_FILE="results_mpi_send_bandwidth_"$PROCESSES
+#renaming is necessary to avoid clashes between simultaneous jobs
+ORIGINAL_BM_FILE="results_mpi_send_bandwidth_"$PROCESSES
 aprun -n $PROCESSES mpi_perf $SIZE $ITERATIONS $WINDOW
+BM_FILE="results_mpi_send_bandwidth_1_"$PROCESSES
+mv $ORIGINAL_BM_FILE $BM_FILE
 
 run_experiment() {
 	HYPERGRAPH_FILE="$1"
@@ -73,8 +76,6 @@ do
 	run_experiment "venkat01.mtx.hgr" $SEED 5 #Y
 
 done
-
-mv $BM_FILE "results_mpi_send_bandwidth_1_"$PROCESSES
 
 '''
 
