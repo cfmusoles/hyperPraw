@@ -76,12 +76,12 @@ run_experiment() {
 for i in $(seq 1 $TEST_REPETITIONS)
 do
 	SEED=$RANDOM
-	run_experiment "sat14_E02F20.cnf.hgr" $SEED 10 #Y
-	run_experiment "sat14_itox_vc1130.cnf.dual.hgr" $SEED 2 #Y for esim
-	run_experiment "2cubes_sphere.mtx.hgr" $SEED 4 #Y for esim
-	run_experiment "ABACUS_shell_hd.mtx.hgr" 50 #Y
-	run_experiment "sparsine.mtx.hgr" $SEED 2 
-	run_experiment "venkat01.mtx.hgr" $SEED 5 #Y
+	#run_experiment "sat14_E02F20.cnf.hgr" $SEED 10 #Y
+	#run_experiment "sat14_itox_vc1130.cnf.dual.hgr" $SEED 2 #Y for esim
+	#run_experiment "2cubes_sphere.mtx.hgr" $SEED 4 #Y for esim
+	run_experiment "ABACUS_shell_hd.mtx.hgr" $SEED 50 #Y
+	#run_experiment "sparsine.mtx.hgr" $SEED 2 
+	#run_experiment "venkat01.mtx.hgr" $SEED 5 #Y
 
 done
 

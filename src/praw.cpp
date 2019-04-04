@@ -301,7 +301,7 @@ int main(int argc, char** argv) {
                                 sent_communication[receiver_id] += 1;
     #endif
                                 //MPI_Send(buffer,message_size,MPI_INT,receiver_id,he_id,MPI_COMM_WORLD);
-                                MPI_Send(bf,neighbouring_partitions[receiver_id],MPI_INT,receiver_id,he_id,MPI_COMM_WORLD);
+                                MPI_Send(bf,m_size,MPI_INT,receiver_id,he_id,MPI_COMM_WORLD);
                                 free(bf);
                             }
                         } else { // turn to receive messages
