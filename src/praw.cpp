@@ -1,5 +1,5 @@
 // Test harness for SPAAW (Streaming parallel Partitioning Architecture AWare)
-//#define VERBOSE                 // extra debug info printed out during runtime
+#define VERBOSE                 // extra debug info printed out during runtime
 #define SAVE_COMM_COST      // store actual p2p communication based on partitioning
 
 #include <mpi.h>
@@ -264,11 +264,12 @@ int main(int argc, char** argv) {
         //////////////////////////////////////////////////////////////////////////////////
 
         MPI_Barrier(MPI_COMM_WORLD);
-        timer = MPI_Wtime();
         messages_sent = 0;
     #ifdef SAVE_COMM_COST
         memset(sent_communication,0,num_processes * sizeof(int));
     #endif
+        int* neighbouring_partitions = (int*)calloc(num_processes,sizeof(int));
+        timer = MPI_Wtime();
         
         for(int tt = 0; tt < sim_steps; tt++) {
             // for each local hyperedge
@@ -278,10 +279,12 @@ int main(int argc, char** argv) {
             //          send messages in a ring order
             for(int he_id = 0; he_id < hyperedges.size(); he_id++) {
                 // communication is proportional to hedge cut alone
+                memset(neighbouring_partitions,0,num_processes * sizeof(int));
                 std::set<int> partitions;
                 for(int vid = 0; vid < hyperedges[he_id].size(); vid++) {
                     int dest_vertex = hyperedges[he_id][vid];
                     partitions.insert(partition->partitioning[dest_vertex]);
+                    neighbouring_partitions[partition->partitioning[dest_vertex]] += 1;
                 }
                 if(partitions.size() > 1) {
                     for (std::set<int>::iterator it=partitions.begin(); it!=partitions.end(); ++it) {
@@ -292,14 +295,23 @@ int main(int argc, char** argv) {
                                 int receiver_id = *receiver;
                                 if(sender_id == receiver_id) continue;
                                 messages_sent++;
+                                int m_size = message_size * neighbouring_partitions[receiver_id];
+                                int* bf = (int*)malloc(m_size * sizeof(int));
     #ifdef SAVE_COMM_COST
                                 sent_communication[receiver_id] += 1;
     #endif
-                                MPI_Send(buffer,message_size,MPI_INT,receiver_id,he_id,MPI_COMM_WORLD);
+                                //MPI_Send(buffer,message_size,MPI_INT,receiver_id,he_id,MPI_COMM_WORLD);
+                                MPI_Send(bf,neighbouring_partitions[receiver_id],MPI_INT,receiver_id,he_id,MPI_COMM_WORLD);
+                                free(bf);
                             }
                         } else { // turn to receive messages
                             // receive one message from sender id
-                            MPI_Recv(buffer,message_size,MPI_INT,sender_id,he_id,MPI_COMM_WORLD,MPI_STATUS_IGNORE);
+                            //MPI_Recv(buffer,message_size,MPI_INT,sender_id,he_id,MPI_COMM_WORLD,MPI_STATUS_IGNORE);
+                            // TODO: variable size, probe for info
+                            int m_size = message_size * neighbouring_partitions[process_id];
+                            int* bf = (int*)malloc(m_size * sizeof(int));
+                            MPI_Recv(bf,m_size,MPI_INT,sender_id,he_id,MPI_COMM_WORLD,MPI_STATUS_IGNORE);
+                            free(bf);
                         }
                     }
                 }
