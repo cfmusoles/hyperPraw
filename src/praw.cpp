@@ -307,7 +307,6 @@ int main(int argc, char** argv) {
                         } else { // turn to receive messages
                             // receive one message from sender id
                             //MPI_Recv(buffer,message_size,MPI_INT,sender_id,he_id,MPI_COMM_WORLD,MPI_STATUS_IGNORE);
-                            // TODO: variable size, probe for info
                             int m_size = message_size * neighbouring_partitions[process_id];
                             int* bf = (int*)malloc(m_size * sizeof(int));
                             MPI_Recv(bf,m_size,MPI_INT,sender_id,he_id,MPI_COMM_WORLD,MPI_STATUS_IGNORE);

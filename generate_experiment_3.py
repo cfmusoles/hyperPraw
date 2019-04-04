@@ -6,7 +6,7 @@
 	# prawS refinement: architecture aware used to refine a good partition (zoltan)
 	# zoltan: multilevel partitioning benchmark
 # stable parameters
-	# imbalance tolerance 1.1 (zoltan has 1.075 since streaming tends to reduce the imbalance significantly under the tolerance)
+	# imbalance tolerance 1.1 (zoltan has 1.070 since streaming tends to reduce the imbalance significantly under the tolerance)
 	# 100 max iterations
 	# total edge cost communication as stopping condition
 	# 0.95 tempering  refinement
@@ -70,7 +70,7 @@ run_experiment() {
 	sleep 1
 	aprun -n $PROCESSES hyperPraw -n $EXPERIMENT_NAME"_refinement" -h $HYPERGRAPH_FILE -i 100 -m 1100 -p prawSref -t $SIM_STEPS -s $SEED -k $MESSAGE_SIZE -o 2 -b $BM_FILE -W -c 0 -r 950 -q 2
 	sleep 1
-	aprun -n $PROCESSES hyperPraw -n $EXPERIMENT_NAME"_zoltan" -h $HYPERGRAPH_FILE -i 100 -m 1075 -p zoltan -t $SIM_STEPS -s $SEED -k $MESSAGE_SIZE -b $BM_FILE -c 0 -q 2
+	aprun -n $PROCESSES hyperPraw -n $EXPERIMENT_NAME"_zoltan" -h $HYPERGRAPH_FILE -i 100 -m 1070 -p zoltan -t $SIM_STEPS -s $SEED -k $MESSAGE_SIZE -b $BM_FILE -c 0 -q 2
 	sleep 1
 }
 

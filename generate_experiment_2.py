@@ -8,7 +8,7 @@
 	# praw refinement: zoltan + prawS
 # stable parameters
 	# total edge cost communication as stopping condition
-	# imbalance tolerance 1.1
+	# imbalance tolerance 1.1 (zoltan has 1.070 since streaming tends to reduce the imbalance significantly under the tolerance)
 	# 100 max iterations
 	# 0.95 tempering  refinement
 	
@@ -67,7 +67,7 @@ run_experiment() {
 	sleep 1
 	aprun -n $PROCESSES hyperPraw -n $EXPERIMENT_NAME"_bandwidth" -h $HYPERGRAPH_FILE -i 100 -m 1100 -p prawS -t $SIM_STEPS -s $SEED -k $MESSAGE_SIZE -o 2 -b $BM_FILE -W -c 0 -r 950  -q 2
 	sleep 1
-	aprun -n $PROCESSES hyperPraw -n $EXPERIMENT_NAME"_zoltan" -h $HYPERGRAPH_FILE -i 100 -m 1075 -p zoltan -t $SIM_STEPS -s $SEED -k $MESSAGE_SIZE -b $BM_FILE  -q 2
+	aprun -n $PROCESSES hyperPraw -n $EXPERIMENT_NAME"_zoltan" -h $HYPERGRAPH_FILE -i 100 -m 1070 -p zoltan -t $SIM_STEPS -s $SEED -k $MESSAGE_SIZE -b $BM_FILE  -q 2
 	sleep 1
 	aprun -n $PROCESSES hyperPraw -n $EXPERIMENT_NAME"_refinement" -h $HYPERGRAPH_FILE -i 100 -m 1100 -p prawSref -t $SIM_STEPS -s $SEED -k $MESSAGE_SIZE -o 2 -b $BM_FILE -W -c 0 -r 950  -q 2
 	sleep 1
@@ -76,12 +76,12 @@ run_experiment() {
 for i in $(seq 1 $TEST_REPETITIONS)
 do
 	SEED=$RANDOM
-	#run_experiment "sat14_E02F20.cnf.hgr" $SEED 10 #Y
-	#run_experiment "sat14_itox_vc1130.cnf.dual.hgr" $SEED 2 #Y for esim
-	#run_experiment "2cubes_sphere.mtx.hgr" $SEED 4 #Y for esim
-	run_experiment "ABACUS_shell_hd.mtx.hgr" $SEED 50 #Y
-	#run_experiment "sparsine.mtx.hgr" $SEED 2 
-	#run_experiment "venkat01.mtx.hgr" $SEED 5 #Y
+	run_experiment "sat14_E02F20.cnf.hgr" $SEED 8 #Y
+	run_experiment "sat14_itox_vc1130.cnf.dual.hgr" $SEED 2 #Y for esim
+	run_experiment "2cubes_sphere.mtx.hgr" $SEED 3 #Y for esim
+	run_experiment "ABACUS_shell_hd.mtx.hgr" $SEED 40 #Y
+	run_experiment "sparsine.mtx.hgr" $SEED 2 
+	run_experiment "venkat01.mtx.hgr" $SEED 4 #Y
 
 done
 
