@@ -65,12 +65,13 @@ mv $ORIGINAL_BM_FILE $BM_FILE
 run_experiment() {
 	HYPERGRAPH_FILE="$1"
 	SEED="$2"
-	SIM_STEPS="$3"
-	aprun -n $PROCESSES hyperPraw -n $EXPERIMENT_NAME"_bandwidth" -h $HYPERGRAPH_FILE -i 100 -m 1100 -p prawS -t $SIM_STEPS -s $SEED -k $MESSAGE_SIZE -o 2 -b $BM_FILE -W -c 0 -r 950 -q 2
+	E_SIM_STEPS="$3"
+	H_SIM_STEPS_MULT="$4"
+	aprun -n $PROCESSES hyperPraw -n $EXPERIMENT_NAME"_bandwidth" -h $HYPERGRAPH_FILE -i 100 -m 1100 -p prawS -t $E_SIM_STEPS -x $H_SIM_STEPS_MULT -s $SEED -k $MESSAGE_SIZE -o 2 -b $BM_FILE -W -c 0 -r 950 -q 2
 	sleep 1
-	#aprun -n $PROCESSES hyperPraw -n $EXPERIMENT_NAME"_refinement" -h $HYPERGRAPH_FILE -i 100 -m 1100 -p prawSref -t $SIM_STEPS -s $SEED -k $MESSAGE_SIZE -o 2 -b $BM_FILE -W -c 0 -r 950 -q 2
+	#aprun -n $PROCESSES hyperPraw -n $EXPERIMENT_NAME"_refinement" -h $HYPERGRAPH_FILE -i 100 -m 1100 -p prawSref -t $E_SIM_STEPS -x $H_SIM_STEPS_MULT -s $SEED -k $MESSAGE_SIZE -o 2 -b $BM_FILE -W -c 0 -r 950 -q 2
 	sleep 1
-	#aprun -n $PROCESSES hyperPraw -n $EXPERIMENT_NAME"_zoltan" -h $HYPERGRAPH_FILE -i 100 -m 1070 -p zoltan -t $SIM_STEPS -s $SEED -k $MESSAGE_SIZE -b $BM_FILE -c 0 -q 2
+	#aprun -n $PROCESSES hyperPraw -n $EXPERIMENT_NAME"_zoltan" -h $HYPERGRAPH_FILE -i 100 -m 1070 -p zoltan -t $E_SIM_STEPS -x $H_SIM_STEPS_MULT -s $SEED -k $MESSAGE_SIZE -b $BM_FILE -c 0 -q 2
 	sleep 1
 }
 
@@ -79,14 +80,14 @@ do
 	SEED=$RANDOM
 
 	#large graphs
-	run_experiment "pdb1HYS.mtx.hgr" $SEED 1 #Y
-	run_experiment "parabolic_fem.mtx.hgr" $SEED 1 #N
-	run_experiment "sat14_10pipe_q0_k.cnf.primal.hgr" $SEED 1 #Y
-	run_experiment "sat14_E02F22.cnf.hgr" $SEED 1 #Y
-	run_experiment "sat14_openstacks-p30_3.085-SAT.cnf.dual.hgr" $SEED 1 #Y
-	run_experiment "webbase-1M.mtx.hgr" $SEED 1 #Y
-	run_experiment "sat14_dated-10-17-u.cnf.dual.hgr" $SEED 1 #~
-	run_experiment "ship_001.mtx.hgr" $SEED 1 #Y
+	run_experiment "pdb1HYS.mtx.hgr" $SEED 1 30 #Y # hedge sim is too short
+	run_experiment "parabolic_fem.mtx.hgr" $SEED 5 1 #N 
+	run_experiment "sat14_10pipe_q0_k.cnf.primal.hgr" $SEED 1 1 #Y
+	run_experiment "sat14_E02F22.cnf.hgr" $SEED 3 1 #Y
+	run_experiment "sat14_openstacks-p30_3.085-SAT.cnf.dual.hgr" $SEED 1 1 #Y
+	run_experiment "webbase-1M.mtx.hgr" $SEED 1 1 #Y
+	run_experiment "sat14_dated-10-17-u.cnf.dual.hgr" $SEED 6 1 #~
+	run_experiment "ship_001.mtx.hgr" $SEED 1 50 #Y # hedge sim is too short
 done
 
 

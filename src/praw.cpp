@@ -89,12 +89,13 @@ int main(int argc, char** argv) {
     float ta_refinement = 1.0f;
     bool save_partitioning_history = false;
     int simulation_iterations = 1;
+    int hedge_sim_steps_multiplier = 1;
 
     // getting command line parameters
     extern char *optarg;
 	extern int optind, opterr, optopt;
 	int c;
-	while( (c = getopt(argc,argv,"n:h:i:m:b:Ws:p:t:k:o:c:r:Hq:")) != -1 ) {
+	while( (c = getopt(argc,argv,"n:h:i:m:b:Ws:p:t:k:o:c:r:Hq:x:")) != -1 ) {
 		switch(c) {
 			case 'n': // test name
 				experiment_name = optarg;
@@ -140,6 +141,9 @@ int main(int argc, char** argv) {
 				break;
             case 'q': // simulation iterations
 				simulation_iterations = atoi(optarg);
+				break;
+            case 'x': // simulated steps multiplier for hedge sims
+				hedge_sim_steps_multiplier = atoi(optarg);
 				break;
 		}
 	}
@@ -271,7 +275,7 @@ int main(int argc, char** argv) {
         int* neighbouring_partitions = (int*)calloc(num_processes,sizeof(int));
         timer = MPI_Wtime();
         
-        for(int tt = 0; tt < sim_steps; tt++) {
+        for(int tt = 0; tt < sim_steps * hedge_sim_steps_multiplier; tt++) {
             // for each local hyperedge
             //      if any vertex is not local, add destination to target list
             //      send messages all to all for processes in target list plus local
