@@ -17,7 +17,7 @@ colours = ["green","orange","blue","red"] # as many as the number of experiments
 legend_labels = ['Refinement 1.7','Refinement 1.0','Refinement 0.95','Imbalance reached']
 
 # Each element on the following arrays corresponds to a column in columns_to_plot
-columns_to_plot = [1,2]#,5,0]
+columns_to_plot = [1,2,5]#,0]
 plot_title = ["Hedge cut","Edge cut","Communication cost","Workload imbalance"]
 plot_xlabel = ["Iteration","Iteration","Iteration","Iteration"]
 plot_ylabel = ["Hyperedgecut ratio","Edgecut ratio","Edge comm cost","Imbalance"]
