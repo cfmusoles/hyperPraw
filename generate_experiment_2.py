@@ -62,26 +62,27 @@ mv $ORIGINAL_BM_FILE $BM_FILE
 run_experiment() {
 	HYPERGRAPH_FILE="$1"
 	SEED="$2"
-	SIM_STEPS="$3"
-	aprun -n $PROCESSES hyperPraw -n $EXPERIMENT_NAME"_default" -h $HYPERGRAPH_FILE -i 100 -m 1100 -p prawS -t $SIM_STEPS -s $SEED -k $MESSAGE_SIZE -o 2 -b $BM_FILE -r 950 -q 2
+	E_SIM_STEPS="$3"
+	H_SIM_STEPS_MULT="$4"
+	aprun -n $PROCESSES hyperPraw -n $EXPERIMENT_NAME"_default" -h $HYPERGRAPH_FILE -i 100 -m 1100 -p prawS -t $E_SIM_STEPS -x $H_SIM_STEPS_MULT -s $SEED -k $MESSAGE_SIZE -o 2 -b $BM_FILE -r 950 -q 2
 	sleep 1
-	aprun -n $PROCESSES hyperPraw -n $EXPERIMENT_NAME"_bandwidth" -h $HYPERGRAPH_FILE -i 100 -m 1100 -p prawS -t $SIM_STEPS -s $SEED -k $MESSAGE_SIZE -o 2 -b $BM_FILE -W -c 0 -r 950  -q 2
+	aprun -n $PROCESSES hyperPraw -n $EXPERIMENT_NAME"_bandwidth" -h $HYPERGRAPH_FILE -i 100 -m 1100 -p prawS -t $E_SIM_STEPS -x $H_SIM_STEPS_MULT -s $SEED -k $MESSAGE_SIZE -o 2 -b $BM_FILE -W -c 0 -r 950  -q 2
 	sleep 1
-	aprun -n $PROCESSES hyperPraw -n $EXPERIMENT_NAME"_zoltan" -h $HYPERGRAPH_FILE -i 100 -m 1070 -p zoltan -t $SIM_STEPS -s $SEED -k $MESSAGE_SIZE -b $BM_FILE  -q 2
+	aprun -n $PROCESSES hyperPraw -n $EXPERIMENT_NAME"_zoltan" -h $HYPERGRAPH_FILE -i 100 -m 1070 -p zoltan -t $E_SIM_STEPS -x $H_SIM_STEPS_MULT -s $SEED -k $MESSAGE_SIZE -b $BM_FILE  -q 2
 	sleep 1
-	aprun -n $PROCESSES hyperPraw -n $EXPERIMENT_NAME"_refinement" -h $HYPERGRAPH_FILE -i 100 -m 1100 -p prawSref -t $SIM_STEPS -s $SEED -k $MESSAGE_SIZE -o 2 -b $BM_FILE -W -c 0 -r 950  -q 2
+	aprun -n $PROCESSES hyperPraw -n $EXPERIMENT_NAME"_refinement" -h $HYPERGRAPH_FILE -i 100 -m 1100 -p prawSref -t $E_SIM_STEPS -x $H_SIM_STEPS_MULT -s $SEED -k $MESSAGE_SIZE -o 2 -b $BM_FILE -W -c 0 -r 950  -q 2
 	sleep 1
 }
 
 for i in $(seq 1 $TEST_REPETITIONS)
 do
 	SEED=$RANDOM
-	run_experiment "sat14_E02F20.cnf.hgr" $SEED 8 #Y
-	run_experiment "sat14_itox_vc1130.cnf.dual.hgr" $SEED 2 #Y for esim
-	run_experiment "2cubes_sphere.mtx.hgr" $SEED 3 #Y for esim
-	run_experiment "ABACUS_shell_hd.mtx.hgr" $SEED 40 #Y
-	run_experiment "sparsine.mtx.hgr" $SEED 2 
-	run_experiment "venkat01.mtx.hgr" $SEED 4 #Y
+	run_experiment "sat14_E02F20.cnf.hgr" $SEED 7 1 #Y
+	run_experiment "sat14_itox_vc1130.cnf.dual.hgr" $SEED 2 3 #Y for esim
+	run_experiment "2cubes_sphere.mtx.hgr" $SEED 3 3 #Y for esim
+	run_experiment "ABACUS_shell_hd.mtx.hgr" $SEED 40 3 #Y
+	run_experiment "sparsine.mtx.hgr" $SEED 2 2
+	run_experiment "venkat01.mtx.hgr" $SEED 3 4 #Y
 
 done
 

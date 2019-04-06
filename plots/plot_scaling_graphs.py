@@ -6,7 +6,7 @@ import matplotlib.pyplot as plt
 import matplotlib.patches as mpatches
 
 geometric_scaling = True
-min_num_processes = 192
+min_num_processes = 144
 # for linear scaling of processors
 max_num_processes = 288
 process_step = 32
@@ -17,26 +17,42 @@ geometric_step = 2
 show_error = True
 as_bar_plot = True
 
-folder = "../results/final_test/"
-experiment_name = "test"
-graph_name = "sat14_itox_vc1130.cnf.dual.hgr"
+# "sat14_E02F20.cnf.hgr" $SEED 8 #Y
+# "sat14_itox_vc1130.cnf.dual.hgr" $SEED 2 #Y for esim
+# "2cubes_sphere.mtx.hgr" $SEED 3 #Y for esim
+# "ABACUS_shell_hd.mtx.hgr" $SEED 40 #Y
+# "sparsine.mtx.hgr" $SEED 2 
+# "venkat01.mtx.hgr" $SEED 4 #Y
+
+# "pdb1HYS.mtx.hgr" $SEED 1 20 #Y # hedge sim is too short
+# "parabolic_fem.mtx.hgr" $SEED 4 1 #N 
+# "sat14_10pipe_q0_k.cnf.primal.hgr" $SEED 1 1 #Y
+# "sat14_E02F22.cnf.hgr" $SEED 3 1 #Y
+# "sat14_openstacks-p30_3.085-SAT.cnf.dual.hgr" $SEED 1 1 #Y
+# "webbase-1M.mtx.hgr" $SEED 1 1 #Y
+# "sat14_dated-10-17-u.cnf.dual.hgr" $SEED 4 1 #~
+# "ship_001.mtx.hgr" $SEED 1 30 #Y # hedge sim is too short
+
+folder = "../results/runtime/"
+experiment_name = "runtime"
+graph_name = "venkat01.mtx.hgr"
 # each element on the following arrays corresponds to an experiment run (collection of files)
-experiments = [experiment_name +  "_zoltan_" + graph_name + "_zoltan",experiment_name + "_default_" + graph_name + "_prawS",experiment_name + "_bandwidth_0_1_" + graph_name + "_prawS",experiment_name + "_bandwidth_proportional_" + graph_name + "_prawS"]
+experiments = [experiment_name +  "_zoltan_" + graph_name + "_zoltan",experiment_name + "_default_" + graph_name + "_prawS",experiment_name + "_bandwidth_" + graph_name + "_prawS",experiment_name + "_refinement_" + graph_name + "_prawSref"]
 colours = ["red","green","blue","orange"] # as many as the number of experiments included
-legend_labels = ['Zoltan','PRAW-no bandwidth','PRAW-bandwidth01','PRAW-bandwidthP']
+legend_labels = ['Zoltan','PRAW','PRAW-arc-aware','PRAW-refinement']
 
 # Each element on the following arrays corresponds to a column in columns_to_plot
-columns_to_plot = [1,2,4,3,5,8,9,10,11]
+columns_to_plot = [1,2,4,3,5]#,8,9,10,11]
 reference_values = [0,2,1,6,7,8,3,1,1] # used to take values on each column divided by these
 use_ref_values = False
-scale_plots = [1,1,1,1,1,1,1,1,1]
+scale_plots = [1,1,1,1,1e-3,1,1,1,1]
 plot_title = ["EdgeSim time","HedgeSim time","Edge cut","Hyperedge cut","SOED","Edge comm cost","Hedge comm cost","Messages sent (edge)","Messages sent (hedge)"]
 plot_xlabel = ["Number of processes","Number of processes","Number of processes","Number of processes","Number of processes","Number of processes","Number of processes","Number of processes","Number of processes"]
-plot_ylabel = ["Time(s)","Time(s)","Cut ratio","Cut ratio","SOED","Cost","Cost","Messages sent","Messages sent"]
+plot_ylabel = ["Time(s)","Time(s)","Cut ratio","Cut ratio","SOED (thousands)","Cost","Cost","Messages sent","Messages sent"]
 image_format = 'pdf'
 plot_name = ["a_" + str(x) for x in range(len(columns_to_plot))] #["a1","a2","a3","a4","a5","a6","a7"]
 
-bar_plot_size = 0.5 / len(experiments)
+bar_plot_size = 0.4 / len(experiments)
 
 # general plot settings
 plt.rcParams['figure.facecolor'] = 'white'
