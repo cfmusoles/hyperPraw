@@ -77,13 +77,20 @@ run_experiment() {
 for i in $(seq 1 $TEST_REPETITIONS)
 do
 	SEED=$RANDOM
-	run_experiment "sat14_E02F20.cnf.hgr" $SEED 7 1 #Y
-	run_experiment "sat14_itox_vc1130.cnf.dual.hgr" $SEED 2 3 #Y for esim
-	run_experiment "2cubes_sphere.mtx.hgr" $SEED 3 3 #Y for esim
-	run_experiment "ABACUS_shell_hd.mtx.hgr" $SEED 40 3 #Y
-	run_experiment "sparsine.mtx.hgr" $SEED 2 2
-	run_experiment "venkat01.mtx.hgr" $SEED 3 4 #Y
-
+	#144 processes
+	#run_experiment "sat14_E02F20.cnf.hgr" $SEED 7 1 #Y
+	#run_experiment "sat14_itox_vc1130.cnf.dual.hgr" $SEED 2 3 #Y for esim
+	#run_experiment "2cubes_sphere.mtx.hgr" $SEED 3 3 #Y for esim
+	#run_experiment "ABACUS_shell_hd.mtx.hgr" $SEED 40 3 #Y
+	#run_experiment "sparsine.mtx.hgr" $SEED 2 2
+	#run_experiment "venkat01.mtx.hgr" $SEED 3 4 #Y
+	#576 processes
+	run_experiment "sat14_E02F20.cnf.hgr" $SEED 2 1 #Y
+	run_experiment "sat14_itox_vc1130.cnf.dual.hgr" $SEED 1 3 #Y for esim
+	run_experiment "2cubes_sphere.mtx.hgr" $SEED 2 2 #Y for esim
+	run_experiment "ABACUS_shell_hd.mtx.hgr" $SEED 10 4 #Y
+	run_experiment "sparsine.mtx.hgr" $SEED 1 2
+	run_experiment "venkat01.mtx.hgr" $SEED 2 3 #Y
 done
 
 '''
