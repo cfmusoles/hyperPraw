@@ -35,7 +35,7 @@ as_bar_plot = True
 
 folder = "../results/runtime/"
 experiment_name = "runtime"
-graph_name = "venkat01.mtx.hgr"
+graph_name = "sat14_E02F20.cnf.hgr"
 # each element on the following arrays corresponds to an experiment run (collection of files)
 experiments = [experiment_name +  "_zoltan_" + graph_name + "_zoltan",experiment_name + "_default_" + graph_name + "_prawS",experiment_name + "_bandwidth_" + graph_name + "_prawS",experiment_name + "_refinement_" + graph_name + "_prawSref"]
 colours = ["red","green","blue","orange"] # as many as the number of experiments included
@@ -45,7 +45,7 @@ legend_labels = ['Zoltan','PRAW','PRAW-arc-aware','PRAW-refinement']
 columns_to_plot = [1,2,4,3,5]#,8,9,10,11]
 reference_values = [0,2,1,6,7,8,3,1,1] # used to take values on each column divided by these
 use_ref_values = False
-scale_plots = [1,1,1,1,1e-3,1,1,1,1]
+scale_plots = [1,1,1,1e-3,1,1,1,1]
 plot_title = ["EdgeSim time","HedgeSim time","Edge cut","Hyperedge cut","SOED","Edge comm cost","Hedge comm cost","Messages sent (edge)","Messages sent (hedge)"]
 plot_xlabel = ["Number of processes","Number of processes","Number of processes","Number of processes","Number of processes","Number of processes","Number of processes","Number of processes","Number of processes"]
 plot_ylabel = ["Time(s)","Time(s)","Cut ratio","Cut ratio","SOED (thousands)","Cost","Cost","Messages sent","Messages sent"]
