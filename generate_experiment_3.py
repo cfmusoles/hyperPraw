@@ -80,14 +80,14 @@ do
 	SEED=$RANDOM
 
 	#large graphs
-	run_experiment "pdb1HYS.mtx.hgr" $SEED 1 20 #Y # hedge sim is too short
-	run_experiment "parabolic_fem.mtx.hgr" $SEED 4 1 #N 
-	run_experiment "sat14_10pipe_q0_k.cnf.primal.hgr" $SEED 1 1 #Y
-	run_experiment "sat14_E02F22.cnf.hgr" $SEED 3 1 #Y
-	run_experiment "sat14_openstacks-p30_3.085-SAT.cnf.dual.hgr" $SEED 1 1 #Y
-	run_experiment "webbase-1M.mtx.hgr" $SEED 1 1 #Y
-	run_experiment "sat14_dated-10-17-u.cnf.dual.hgr" $SEED 4 1 #~
-	run_experiment "ship_001.mtx.hgr" $SEED 1 30 #Y # hedge sim is too short
+	run_experiment "pdb1HYS.mtx.hgr" $SEED 1 0 #Y 
+	run_experiment "parabolic_fem.mtx.hgr" $SEED 4 0 #N 
+	run_experiment "sat14_10pipe_q0_k.cnf.primal.hgr" $SEED 1 0 #Y
+	run_experiment "sat14_E02F22.cnf.hgr" $SEED 3 0 #Y
+	run_experiment "sat14_openstacks-p30_3.085-SAT.cnf.dual.hgr" $SEED 1 0 #Y
+	run_experiment "webbase-1M.mtx.hgr" $SEED 1 0 #Y
+	run_experiment "sat14_dated-10-17-u.cnf.dual.hgr" $SEED 4 0 #~
+	run_experiment "ship_001.mtx.hgr" $SEED 1 0 #Y 
 done
 
 
