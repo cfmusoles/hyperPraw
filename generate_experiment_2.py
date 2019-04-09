@@ -84,8 +84,6 @@ do
 	run_experiment "ABACUS_shell_hd.mtx.hgr" $SEED 40 0 #Y
 	run_experiment "sparsine.mtx.hgr" $SEED 2 0
 	run_experiment "venkat01.mtx.hgr" $SEED 3 0 #Y
-	fi
-	
 	
 done
 
