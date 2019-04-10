@@ -26,7 +26,7 @@ template_2 = '''
 template_3=''':bigmem='''
 template_4='''
 # walltime
-#PBS -l walltime=16:00:0
+#PBS -l walltime=5:00:0
 # budget code
 #PBS -A e582
 # bandwidth probing parameters
@@ -77,13 +77,20 @@ run_experiment() {
 for i in $(seq 1 $TEST_REPETITIONS)
 do
 	SEED=$RANDOM
-	#small scale experiment. 144 processes
-	run_experiment "sat14_E02F20.cnf.hgr" $SEED 7 0 #Y
-	run_experiment "sat14_itox_vc1130.cnf.dual.hgr" $SEED 2 0 #Y for esim
-	run_experiment "2cubes_sphere.mtx.hgr" $SEED 3 0 #Y for esim
-	run_experiment "ABACUS_shell_hd.mtx.hgr" $SEED 40 0 #Y
-	run_experiment "sparsine.mtx.hgr" $SEED 2 0
-	run_experiment "venkat01.mtx.hgr" $SEED 3 0 #Y
+	#small graphs
+	#run_experiment "sat14_itox_vc1130.cnf.dual.hgr" $SEED 2 0 #Y for esim
+	#run_experiment "2cubes_sphere.mtx.hgr" $SEED 3 0 #Y for esim
+	#run_experiment "ABACUS_shell_hd.mtx.hgr" $SEED 40 0 #Y
+	#run_experiment "sparsine.mtx.hgr" $SEED 2 0
+	
+	#large graphs
+	#run_experiment "pdb1HYS.mtx.hgr" $SEED 1 0 #Y 
+	run_experiment "sat14_9dlx_vliw_at_b_iq3.cnf.dual.hgr" $SEED 1 0 #N 
+	#run_experiment "sat14_10pipe_q0_k.cnf.primal.hgr" $SEED 1 0 #Y
+	#run_experiment "sat14_E02F22.cnf.hgr" $SEED 2 0 #Y
+	#run_experiment "webbase-1M.mtx.hgr" $SEED 1 0 #Y
+	run_experiment "ship_001.mtx.hgr" $SEED 1 0 #Y 
+
 	
 done
 

@@ -84,9 +84,7 @@ do
 	run_experiment "parabolic_fem.mtx.hgr" $SEED 3 0 #N 
 	run_experiment "sat14_10pipe_q0_k.cnf.primal.hgr" $SEED 1 0 #Y
 	run_experiment "sat14_E02F22.cnf.hgr" $SEED 2 0 #Y
-	run_experiment "sat14_openstacks-p30_3.085-SAT.cnf.dual.hgr" $SEED 1 0 #Y
 	run_experiment "webbase-1M.mtx.hgr" $SEED 1 0 #Y
-	run_experiment "sat14_dated-10-17-u.cnf.dual.hgr" $SEED 3 0 #~
 	run_experiment "ship_001.mtx.hgr" $SEED 1 0 #Y 
 done
 

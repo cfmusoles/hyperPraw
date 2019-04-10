@@ -8,7 +8,7 @@ from mpl_toolkits.mplot3d import Axes3D
 from matplotlib.ticker import LinearLocator, FormatStrFormatter
 from pylab import *
 
-num_processes = 144
+num_processes = 576
 plot_bandwidth = False			# plot network bandwidth data
 plot_sent_data = False			# plot application sent data
 plot_comm_cost = True			# plot combined comm cost
@@ -17,8 +17,8 @@ storeResults = True
 folder = "../results/runtime/"
 bandwidth_send_experiment_name = 'results_mpi_send_bandwidth_3_' + str(num_processes)
 graph_name = "sat14_itox_vc1130.cnf.dual.hgr"
-partitioning = 'prawS'
-test_name = 'runtime_default'
+partitioning = 'zoltan'
+test_name = 'runtime_zoltan'
 
 sim_sent_experiment = test_name + '_' + graph_name + '_' + partitioning + '_edgeSim_comm_cost__' + str(num_processes)
 
