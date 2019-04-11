@@ -2,9 +2,13 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 import numpy as np
 
-folder = '../resources/basic_hgraphs/'
-hgraphs = ['2cubes_sphere.mtx.hgr','sat14_E02F20.cnf.hgr','sparsine.mtx.hgr','ABACUS_shell_hd.mtx.hgr'] #sat14_E02F20.cnf.hgr #2D_54019_highK.mtx.hgr # sat14_11pipe_q0_k.cnf.hgr
+folder = '../resources/hgraphs/'
+hgraphs = ['sat14_itox_vc1130.cnf.dual.hgr','2cubes_sphere.mtx.hgr','ABACUS_shell_hd.mtx.hgr','sparsine.mtx.hgr',
+            'pdb1HYS.mtx.hgr','sat14_10pipe_q0_k.cnf.primal.hgr','sat14_E02F22.cnf.hgr','webbase-1M.mtx.hgr',
+            'ship_001.mtx.hgr','sat14_atco_enc1_opt1_05_21.cnf.dual.hgr']
 image_format = 'pdf'
+
+
 
 plot_graphs = False
 
