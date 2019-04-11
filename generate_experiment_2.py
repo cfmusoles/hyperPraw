@@ -64,9 +64,9 @@ run_experiment() {
 	SEED="$2"
 	E_SIM_STEPS="$3"
 	H_SIM_STEPS_MULT="$4"
-	aprun -n $PROCESSES hyperPraw -n $EXPERIMENT_NAME"_default" -h $HYPERGRAPH_FILE -i 100 -m 1100 -p prawS -t $E_SIM_STEPS -x $H_SIM_STEPS_MULT -s $SEED -k $MESSAGE_SIZE -o 2 -b $BM_FILE -r 950 -q 2
+	#aprun -n $PROCESSES hyperPraw -n $EXPERIMENT_NAME"_default" -h $HYPERGRAPH_FILE -i 100 -m 1100 -p prawS -t $E_SIM_STEPS -x $H_SIM_STEPS_MULT -s $SEED -k $MESSAGE_SIZE -o 2 -b $BM_FILE -r 950 -q 2
 	sleep 1
-	aprun -n $PROCESSES hyperPraw -n $EXPERIMENT_NAME"_bandwidth" -h $HYPERGRAPH_FILE -i 100 -m 1100 -p prawS -t $E_SIM_STEPS -x $H_SIM_STEPS_MULT -s $SEED -k $MESSAGE_SIZE -o 2 -b $BM_FILE -W -c 0 -r 950  -q 2
+	#aprun -n $PROCESSES hyperPraw -n $EXPERIMENT_NAME"_bandwidth" -h $HYPERGRAPH_FILE -i 100 -m 1100 -p prawS -t $E_SIM_STEPS -x $H_SIM_STEPS_MULT -s $SEED -k $MESSAGE_SIZE -o 2 -b $BM_FILE -W -c 0 -r 950  -q 2
 	sleep 1
 	aprun -n $PROCESSES hyperPraw -n $EXPERIMENT_NAME"_zoltan" -h $HYPERGRAPH_FILE -i 100 -m 1070 -p zoltan -t $E_SIM_STEPS -x $H_SIM_STEPS_MULT -s $SEED -k $MESSAGE_SIZE -b $BM_FILE  -q 2
 	sleep 1
@@ -85,12 +85,12 @@ do
 	
 	#large graphs
 	#run_experiment "pdb1HYS.mtx.hgr" $SEED 1 0 #Y 
-	run_experiment "sat14_9dlx_vliw_at_b_iq3.cnf.dual.hgr" $SEED 1 0 #N 
 	#run_experiment "sat14_10pipe_q0_k.cnf.primal.hgr" $SEED 1 0 #Y
 	#run_experiment "sat14_E02F22.cnf.hgr" $SEED 2 0 #Y
 	#run_experiment "webbase-1M.mtx.hgr" $SEED 1 0 #Y
 	run_experiment "ship_001.mtx.hgr" $SEED 1 0 #Y 
-
+	run_experiment "sat14_atco_enc1_opt1_05_21.cnf.dual.hgr" $SEED 1 0 #N 
+	
 	
 done
 
