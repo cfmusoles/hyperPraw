@@ -8,17 +8,18 @@ from mpl_toolkits.mplot3d import Axes3D
 from matplotlib.ticker import LinearLocator, FormatStrFormatter
 from pylab import *
 
-num_processes = 576
+num_processes = 144
 plot_bandwidth = False			# plot network bandwidth data
 plot_sent_data = False			# plot application sent data
 plot_comm_cost = True			# plot combined comm cost
-storeResults = True
+storeResults = False
+log_scale = True
 
 folder = "../results/runtime/"
 bandwidth_send_experiment_name = 'results_mpi_send_bandwidth_3_' + str(num_processes)
-graph_name = "sat14_itox_vc1130.cnf.dual.hgr"
-partitioning = 'zoltan'
-test_name = 'runtime_zoltan'
+graph_name = "sparsine.mtx.hgr"
+partitioning = 'prawS'
+test_name = 'runtime_bandwidth'
 
 sim_sent_experiment = test_name + '_' + graph_name + '_' + partitioning + '_edgeSim_comm_cost__' + str(num_processes)
 
@@ -95,25 +96,36 @@ if plot_comm_cost:
 	## Plot bandwidth and data sent separately in a double figure
 	bandwidth_data = get_data_from_csv(folder + bandwidth_send_experiment_name,'\t')
 	comm_data = get_data_from_csv(folder + sim_sent_experiment,' ')
+	#transform 0 values
+	bandwidth_data[bandwidth_data == 0] = np.max(bandwidth_data)
+	comm_data[comm_data == 0] = 0.1
+	# calculate cost of comm (theoretical)
 	cost_data = np.array([c/b for b, c in zip(bandwidth_data, comm_data)])
 	cost_data = np.nan_to_num(cost_data)
 	print('Total cost: ' + str(cost_data.sum()))
+	# transform to log scale
+	if log_scale:
+		bandwidth_data = np.log(bandwidth_data)
+		comm_data = np.log(comm_data)
 	# colour maps http://scipy-cookbook.readthedocs.io/items/Matplotlib_Show_colormaps.html
 	fig, axes = plt.subplots(1,2)
 	# plot bandwidth
-	c = axes[0].pcolor(bandwidth_data,cmap=get_cmap("binary"))
+	c = axes[0].pcolor(bandwidth_data,cmap=get_cmap("jet"))
 	axes[0].set_xlabel(xlabel)
 	axes[0].set_ylabel(ylabel)
 	axes[0].set_title("P2P Bandwidth")
-	fig.colorbar(c,ax=axes[0])
+	cbar = fig.colorbar(c,ax=axes[0])
+	cbar.ax.set_ylabel('MB/s (log) ', rotation=90)
 	# plot data sent
-	c = axes[1].pcolor(comm_data,cmap=get_cmap("binary"))
+	c = axes[1].pcolor(comm_data,cmap=get_cmap("jet"))
 	axes[1].set_xlabel(xlabel)
 	axes[1].set_ylabel(ylabel)
 	axes[1].set_title("Actual data sent")
-	fig.colorbar(c,ax=axes[1])
+	cbar = fig.colorbar(c,ax=axes[1])
+	cbar.ax.set_ylabel('Bytes sent (log)', rotation=90)
 
 	fig.tight_layout()
+	fig.set_size_inches(11, 5)
 	
 
 	if storeResults:
