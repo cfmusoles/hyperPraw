@@ -9,9 +9,9 @@ from matplotlib.ticker import LinearLocator, FormatStrFormatter
 from pylab import *
 
 num_processes = 144
-plot_bandwidth = False			# plot network bandwidth data
-plot_sent_data = False			# plot application sent data
-plot_comm_cost = True			# plot combined comm cost
+plot_bandwidth = True			# plot network bandwidth data
+plot_sent_data = True			# plot application sent data
+plot_comm_cost = False			# plot combined comm cost
 storeResults = False
 log_scale = True
 
@@ -76,20 +76,53 @@ def plot_3dgraph(data,title,zlabel,filename):
 		plt.savefig(filename + "." + image_format,format=image_format,dpi=300)
 	plt.show()
 
+def plot_2dgraph(data,title,label,fname):
+	#transform 0 values
+	data[data == 0] = np.max(data)
+	# transform to log scale
+	if log_scale:
+		data = np.log(data)
+	# colour maps http://scipy-cookbook.readthedocs.io/items/Matplotlib_Show_colormaps.html
+	fig, axes = plt.subplots(1,1)
+	# plot bandwidth
+	c = axes.pcolor(data,cmap=get_cmap("jet"))
+	axes.set_xlabel(xlabel)
+	axes.set_ylabel(ylabel)
+	axes.set_title(title)
+	cbar = fig.colorbar(c,ax=axes)
+	cbar.ax.set_ylabel(label, rotation=90)
+	
+	fig.tight_layout()
+	#fig.set_size_inches(11, 5)
+
+	if storeResults:
+		plt.savefig(fname + "." + image_format,format=image_format,dpi=300)
+	plt.show()
 
 
 ## creating figure for bandwidth estimation (send performance)
 if plot_bandwidth:
-	data = get_data_from_csv(folder + bandwidth_send_experiment_name,'\t')
-	plot_3dgraph(data,titles[0],zlabels[0],filenames[0])
+
+	#data = get_data_from_csv(folder + bandwidth_send_experiment_name,'\t')
+	#plot_3dgraph(data,titles[0],zlabels[0],filenames[0])
+
+	## Plot bandwidth and data sent separately in a double figure
+	bandwidth_data = get_data_from_csv(folder + bandwidth_send_experiment_name,'\t')
+	plot_2dgraph(bandwidth_data,"P2P Bandwidth",'log (MB/s)',filenames[1])
+
+	
 
 ## creating combined figure for cost of communication
 ## each value corresponds to a process-process pair: total data sent / bandwidth 
 if plot_sent_data:
 	## IN 3D##
-	data = get_data_from_csv(folder + sim_sent_experiment,' ')
-	plot_3dgraph(data,titles[1],zlabels[1],filenames[1])
+	#data = get_data_from_csv(folder + sim_sent_experiment,' ')
+	#plot_3dgraph(data,titles[1],zlabels[1],filenames[1])
 	####
+
+	## Plot bandwidth and data sent separately in a double figure
+	comm_data = get_data_from_csv(folder + sim_sent_experiment,' ')
+	plot_2dgraph(comm_data,"Actual data sent",'log (Bytes sent)',filenames[2])
 	
 
 if plot_comm_cost:
@@ -103,34 +136,7 @@ if plot_comm_cost:
 	cost_data = np.array([c/b for b, c in zip(bandwidth_data, comm_data)])
 	cost_data = np.nan_to_num(cost_data)
 	print('Total cost: ' + str(cost_data.sum()))
-	# transform to log scale
-	if log_scale:
-		bandwidth_data = np.log(bandwidth_data)
-		comm_data = np.log(comm_data)
-	# colour maps http://scipy-cookbook.readthedocs.io/items/Matplotlib_Show_colormaps.html
-	fig, axes = plt.subplots(1,2)
-	# plot bandwidth
-	c = axes[0].pcolor(bandwidth_data,cmap=get_cmap("jet"))
-	axes[0].set_xlabel(xlabel)
-	axes[0].set_ylabel(ylabel)
-	axes[0].set_title("P2P Bandwidth")
-	cbar = fig.colorbar(c,ax=axes[0])
-	cbar.ax.set_ylabel('MB/s (log) ', rotation=90)
-	# plot data sent
-	c = axes[1].pcolor(comm_data,cmap=get_cmap("jet"))
-	axes[1].set_xlabel(xlabel)
-	axes[1].set_ylabel(ylabel)
-	axes[1].set_title("Actual data sent")
-	cbar = fig.colorbar(c,ax=axes[1])
-	cbar.ax.set_ylabel('Bytes sent (log)', rotation=90)
-
-	fig.tight_layout()
-	fig.set_size_inches(11, 5)
 	
-
-	if storeResults:
-		plt.savefig(filenames[2] + "." + image_format,format=image_format,dpi=300)
-	plt.show()
 
 	## Compound graph##
 	#bandwidth_data = get_data_from_csv(folder + bandwidth_send_experiment_name,'\t')
