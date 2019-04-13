@@ -11,7 +11,7 @@ min_num_processes = 144
 max_num_processes = 288
 process_step = 32
 #for geometric scaling of processors
-num_experiments = 2
+num_experiments = 1
 geometric_step = 4
 
 show_error = True
@@ -31,16 +31,16 @@ as_bar_plot = True
 # "webbase-1M.mtx.hgr" $SEED 1 1 #Y
 # "ship_001.mtx.hgr" $SEED 1 30 #Y # hedge sim is too short
 
-folder = "../results/final/"
-experiment_name = "final"
-graph_name = "webbase-1M.mtx.hgr"
+folder = "../results/runtime/"
+experiment_name = "runtime"
+graph_name = "sat14_itox_vc1130.cnf.dual.hgr"
 # each element on the following arrays corresponds to an experiment run (collection of files)
-experiments = [experiment_name +  "_zoltan_" + graph_name + "_zoltan",experiment_name + "_bandwidth_" + graph_name + "_prawS"]#,experiment_name + "_bandwidth_" + graph_name + "_prawS",experiment_name + "_refinement_" + graph_name + "_prawSref"]
+experiments = [experiment_name +  "_zoltan_" + graph_name + "_zoltan",experiment_name + "_default_" + graph_name + "_prawS",experiment_name + "_bandwidth_" + graph_name + "_prawS",experiment_name + "_refinement_" + graph_name + "_prawSref"]
 colours = ["red","green","blue","orange"] # as many as the number of experiments included
 legend_labels = ['Zoltan','PRAW','PRAW-arc-aware','PRAW-refinement']
 
 # Each element on the following arrays corresponds to a column in columns_to_plot
-columns_to_plot = [1,4,3,5,8]#,9,10,11]
+columns_to_plot = [1]#,4,3,5,8]#,9,10,11]
 reference_values = [0,2,1,6,7,8,3,1,1] # used to take values on each column divided by these
 use_ref_values = False
 scale_plots = [1,1,1,1e-3,1,1,1,1]
@@ -86,7 +86,7 @@ def plot(x,y, error,title,xlabel,ylabel,name,colour,legend,show,global_counter):
 		else:
 			plt.errorbar(x, y,linewidth=1,color=colour,label=legend,marker='s',markersize=5)
 	if geometric_scaling:
-	#	plt.yscale("log",basey=10)
+		plt.yscale("log",basey=10)
 		plt.xscale("log",basex=10)
 	else:
 	#	plt.yscale("linear")

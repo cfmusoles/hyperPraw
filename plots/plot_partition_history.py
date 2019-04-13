@@ -8,23 +8,34 @@ import matplotlib.patches as mpatches
 num_processes = 144
 
 as_bar_plot = False
+show_title = False
+
+# "sat14_itox_vc1130.cnf.dual.hgr" $SEED 2 #Y for esim
+# "2cubes_sphere.mtx.hgr" $SEED 3 #Y for esim
+# "ABACUS_shell_hd.mtx.hgr" $SEED 40 #Y
+# "sparsine.mtx.hgr" $SEED 2 
+
 
 folder = "../results/stop_cnd/"
-experiments = ["stop_cnd_refine_1700","stop_cnd_refine_1000","stop_cnd_refine_950","stop_cnd_hard"] 
+experiments = ["stop_cnd_refine_1000","stop_cnd_refine_950","stop_cnd_hard"] 
 graph_name = "sat14_itox_vc1130.cnf.dual.hgr"
 # each element on the following arrays corresponds to an experiment run (collection of files)
-colours = ["green","orange","blue","red"] # as many as the number of experiments included
-legend_labels = ['Refinement 1.7','Refinement 1.0','Refinement 0.95','Imbalance reached']
+colours = ["red","blue","black"] # as many as the number of experiments included
+linestyles = ["--",":","-"]
+legend_labels = ['Refinement 1.0','Refinement 0.95','Imbalance reached']
 
 # Each element on the following arrays corresponds to a column in columns_to_plot
-columns_to_plot = [1,2,5]#,0]
-plot_title = ["Hedge cut","Edge cut","Communication cost","Workload imbalance"]
+columns_to_plot = [5]#,1,2,0]
+scale = [1e3,1,1,1]
+plot_title = ["Communication cost","Hedge cut","Edge cut","Workload imbalance"]
 plot_xlabel = ["Iteration","Iteration","Iteration","Iteration"]
-plot_ylabel = ["Hyperedgecut ratio","Edgecut ratio","Edge comm cost","Imbalance"]
+plot_ylabel = ["Edge comm cost","Hyperedgecut ratio","Edgecut ratio","Imbalance"]
 image_format = 'pdf'
 plot_name = ["a_" + str(x) for x in range(len(columns_to_plot))] #["a1","a2","a3","a4","a5","a6","a7"]
 
 bar_plot_size = 0.5 / len(experiments)
+
+max_x_value = 0
 
 # general plot settings
 plt.rcParams['figure.facecolor'] = 'white'
@@ -33,7 +44,7 @@ fig_settings = {
         'axes.linewidth': 0.5,
         'axes.labelsize': 'small',
         'legend.fontsize': 'small',
-        'font.size': 14,
+        'font.size': 12,
         'savefig.dpi': 200,
 }
 plt.rcParams.update(fig_settings)
@@ -42,20 +53,25 @@ def get_data_from_csv(filename):
 	data = np.genfromtxt(filename,skip_header=1,delimiter=",")
 	return data
 
-def plot(x,y, title,xlabel,ylabel,name,colour,legend,show,global_counter):
+def plot(x,y, title,xlabel,ylabel,name,colour,linestyle,legend,show,global_counter):
+	global max_x_value
 	if as_bar_plot:
 		rx = x + global_counter * bar_plot_size*np.array(x)
 		plt.bar(rx,y,width=bar_plot_size*np.array(x),color=colour,label=legend)
 	else:	
-		plt.errorbar(x, y,linestyle="-",linewidth=1,color=colour,label=legend,marker='s',markersize=2)
+		plt.errorbar(x, y,linestyle=linestyle,linewidth=1,color=colour,label=legend,marker='s',markersize=2)
 
 	#plt.yscale("linear")
 	#plt.xscale("linear")
 	plt.xlabel(xlabel)
 	plt.ylabel(ylabel)
-	plt.title(title)
+	if show_title:
+		plt.title(title)
 	plt.tick_params(axis='x',which='minor',bottom=False,labelbottom=False)
-	plt.xticks(x,x)
+	if len(x) > max_x_value:
+		max_x_value = len(x)
+		xtick = [n if n % 10 == 0 else '' for n in x]
+		plt.xticks(x,xtick)
 	#plt.tight_layout()
 	plt.gcf().subplots_adjust(left=0.17)
 	if len(experiments) > 1:
@@ -74,9 +90,9 @@ for i in range(len(columns_to_plot)):
 		data = get_data_from_csv(folder + file_name)
 		y = data[:,columns_to_plot[i]]
 		x = range(1,len(y)+1)
-		
+		y = y/scale[i]
 		#plot each column separately
-		plot(x,y,plot_title[i],plot_xlabel[i],plot_ylabel[i],plot_name[i],colours[j],legend_labels[j], j == (len(experiments)-1),j)	
+		plot(x,y,plot_title[i],plot_xlabel[i],plot_ylabel[i],plot_name[i],colours[j],linestyles[j],legend_labels[j], j == (len(experiments)-1),j)	
 
 
     

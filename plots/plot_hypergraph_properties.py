@@ -23,6 +23,8 @@ for hgraph_file in hgraphs:
         hedge_sizes = [len(x) for x in hedges]
         print('Total NNZ')
         print(np.sum(hedge_sizes))
+        print('Average cardinality')
+        print(np.mean(hedge_sizes))
         hedges = [int(vid.replace("\n","")) for hedge in hedges for vid in hedge] #np.array([int(x.replace("\n","")) for x in hedges]).flatten()
         unique, vertex_counts = np.unique(hedges,return_counts=True)
 

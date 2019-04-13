@@ -12,8 +12,9 @@ num_processes = 144
 plot_bandwidth = True			# plot network bandwidth data
 plot_sent_data = True			# plot application sent data
 plot_comm_cost = False			# plot combined comm cost
-storeResults = False
+storeResults = True
 log_scale = True
+show_title = False
 
 folder = "../results/runtime/"
 bandwidth_send_experiment_name = 'results_mpi_send_bandwidth_3_' + str(num_processes)
@@ -71,14 +72,15 @@ def plot_3dgraph(data,title,zlabel,filename):
 	ax.set_ylabel(ylabel)
 	ax.set_zlabel(zlabel)
 	
-	plt.title(title)
+	if show_title:
+		plt.title(title)
 	if storeResults:
 		plt.savefig(filename + "." + image_format,format=image_format,dpi=300)
 	plt.show()
 
 def plot_2dgraph(data,title,label,fname):
 	#transform 0 values
-	data[data == 0] = np.max(data)
+	data[data == 0] = 2
 	# transform to log scale
 	if log_scale:
 		data = np.log(data)
@@ -88,7 +90,8 @@ def plot_2dgraph(data,title,label,fname):
 	c = axes.pcolor(data,cmap=get_cmap("jet"))
 	axes.set_xlabel(xlabel)
 	axes.set_ylabel(ylabel)
-	axes.set_title(title)
+	if show_title:
+		axes.set_title(title)
 	cbar = fig.colorbar(c,ax=axes)
 	cbar.ax.set_ylabel(label, rotation=90)
 	
