@@ -18,18 +18,18 @@ show_title = False
 
 folder = "../results/stop_cnd/"
 experiments = ["stop_cnd_refine_1000","stop_cnd_refine_950","stop_cnd_hard"] 
-graph_name = "sat14_itox_vc1130.cnf.dual.hgr"
+graph_name = "sparsine.mtx.hgr"
 # each element on the following arrays corresponds to an experiment run (collection of files)
 colours = ["red","blue","black"] # as many as the number of experiments included
 linestyles = ["--",":","-"]
-legend_labels = ['Refinement 1.0','Refinement 0.95','Imbalance reached']
+legend_labels = ['Refinement 1.0','Refinement 0.95','No refinement']
 
 # Each element on the following arrays corresponds to a column in columns_to_plot
 columns_to_plot = [5]#,1,2,0]
-scale = [1e3,1,1,1]
-plot_title = ["Communication cost","Hedge cut","Edge cut","Workload imbalance"]
+scale = [1e6,1,1,1]
+plot_title = ["Partitioning comm cost","Hedge cut","Edge cut","Workload imbalance"]
 plot_xlabel = ["Iteration","Iteration","Iteration","Iteration"]
-plot_ylabel = ["Edge comm cost","Hyperedgecut ratio","Edgecut ratio","Imbalance"]
+plot_ylabel = ["Partitioning comm cost (millions)","Hyperedgecut ratio","Edgecut ratio","Imbalance"]
 image_format = 'pdf'
 plot_name = ["a_" + str(x) for x in range(len(columns_to_plot))] #["a1","a2","a3","a4","a5","a6","a7"]
 
@@ -42,9 +42,9 @@ plt.rcParams['figure.facecolor'] = 'white'
 fig_settings = {  
         'lines.linewidth': 0.5,
         'axes.linewidth': 0.5,
-        'axes.labelsize': 'small',
-        'legend.fontsize': 'small',
-        'font.size': 12,
+        'axes.labelsize': 'medium',
+        'legend.fontsize': 'medium',
+        'font.size': 16,
         'savefig.dpi': 200,
 }
 plt.rcParams.update(fig_settings)
@@ -73,11 +73,11 @@ def plot(x,y, title,xlabel,ylabel,name,colour,linestyle,legend,show,global_count
 		xtick = [n if n % 10 == 0 else '' for n in x]
 		plt.xticks(x,xtick)
 	#plt.tight_layout()
-	plt.gcf().subplots_adjust(left=0.17)
+	plt.gcf().subplots_adjust(left=0.17,bottom=0.15)
 	if len(experiments) > 1:
 		plt.legend(loc='best')
 	if show:
-		plt.savefig(name + "." + image_format,format=image_format,dpi=1000)
+		plt.savefig(name + "." + image_format,format=image_format,dpi=200)
 		plt.show()
 
 

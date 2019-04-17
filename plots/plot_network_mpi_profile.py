@@ -16,11 +16,23 @@ storeResults = True
 log_scale = True
 show_title = False
 
+# "sat14_itox_vc1130.cnf.dual.hgr" $SEED 2 #Y for esim
+# "2cubes_sphere.mtx.hgr" $SEED 3 #Y for esim
+# "ABACUS_shell_hd.mtx.hgr" $SEED 40 #Y
+# "sparsine.mtx.hgr" $SEED 2 
+
+# "pdb1HYS.mtx.hgr" $SEED 1 20 #Y # hedge sim is too short
+# "sat14_atco_enc1_opt1_05_21.cnf.dual.hgr" $SEED 4 1 #N 
+# "sat14_10pipe_q0_k.cnf.primal.hgr" $SEED 1 1 #Y
+# "sat14_E02F22.cnf.hgr" $SEED 3 1 #Y
+# "webbase-1M.mtx.hgr" $SEED 1 1 #Y
+# "ship_001.mtx.hgr" $SEED 1 30 #Y # hedge sim is too short
+
 folder = "../results/runtime/"
 bandwidth_send_experiment_name = 'results_mpi_send_bandwidth_3_' + str(num_processes)
 graph_name = "sparsine.mtx.hgr"
-partitioning = 'prawS'
-test_name = 'runtime_bandwidth'
+partitioning = 'zoltan'
+test_name = 'runtime_zoltan'
 
 sim_sent_experiment = test_name + '_' + graph_name + '_' + partitioning + '_edgeSim_comm_cost__' + str(num_processes)
 
@@ -36,8 +48,8 @@ plt.rcParams['figure.facecolor'] = 'white'
 fig_settings = {  
         'lines.linewidth': 0.5,
         'axes.linewidth': 0.5,
-        'axes.labelsize': 'small',
-        'legend.fontsize': 'small',
+        'axes.labelsize': 'medium',
+        'legend.fontsize': 'medium',
         'font.size': 14,
         'savefig.dpi': 200,
 }
@@ -75,19 +87,19 @@ def plot_3dgraph(data,title,zlabel,filename):
 	if show_title:
 		plt.title(title)
 	if storeResults:
-		plt.savefig(filename + "." + image_format,format=image_format,dpi=300)
+		plt.savefig(filename + "." + image_format,format=image_format)
 	plt.show()
 
 def plot_2dgraph(data,title,label,fname):
 	#transform 0 values
-	data[data == 0] = 2
+	data[data == 0] = np.min(data[np.nonzero(data)])
 	# transform to log scale
 	if log_scale:
 		data = np.log(data)
 	# colour maps http://scipy-cookbook.readthedocs.io/items/Matplotlib_Show_colormaps.html
 	fig, axes = plt.subplots(1,1)
 	# plot bandwidth
-	c = axes.pcolor(data,cmap=get_cmap("jet"))
+	c = axes.pcolor(data,cmap=get_cmap("binary"),rasterized=True)
 	axes.set_xlabel(xlabel)
 	axes.set_ylabel(ylabel)
 	if show_title:
@@ -99,7 +111,7 @@ def plot_2dgraph(data,title,label,fname):
 	#fig.set_size_inches(11, 5)
 
 	if storeResults:
-		plt.savefig(fname + "." + image_format,format=image_format,dpi=300)
+		plt.savefig(fname + "." + image_format,format=image_format)
 	plt.show()
 
 
