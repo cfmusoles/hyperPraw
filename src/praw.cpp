@@ -161,12 +161,7 @@ int main(int argc, char** argv) {
 		partition = new ZoltanPartitioning(graph_file,imbalance_tolerance);
 	} else if(strcmp(part_method,"prawP") == 0) {  
 		PRINTF("%i: Partitioning: parallel hyperPRAW\n",process_id);
-        //Partitioning* p1 = new ZoltanPartitioning(graph_file,imbalance_tolerance);
-        //Partitioning* p1 = new HyperPRAWPartitioning(graph_file,imbalance_tolerance,iterations,NULL,true,false,false);
-        //p1->perform_partitioning(num_processes,process_id);
-		partition = new HyperPRAWPartitioning(experiment_name,graph_file,imbalance_tolerance,ta_refinement,iterations,bandwidth_file,true,use_bandwidth_in_partitioning,false,stopping_condition,proportional_comm_cost,save_partitioning_history);
-        //memcpy(partition->partitioning,p1->partitioning,partition->num_vertices * sizeof(idx_t));
-        //free(p1);
+        partition = new HyperPRAWPartitioning(experiment_name,graph_file,imbalance_tolerance,ta_refinement,iterations,bandwidth_file,true,use_bandwidth_in_partitioning,true,stopping_condition,proportional_comm_cost,save_partitioning_history);
     } else if(strcmp(part_method,"prawSref") == 0) {  
 		PRINTF("%i: Partitioning: sequential refinement hyperPRAW\n",process_id);
         Partitioning* p1 = new ZoltanPartitioning(graph_file,imbalance_tolerance);

@@ -56,7 +56,7 @@ public:
             for(int outer_iter=0; outer_iter < max_outer_iters; outer_iter++) {
                 //PRAW::ParallelIndependentRestreamingPartitioning(partitioning, comm_cost_matrix, hgraph_name, vtx_wgt, max_iterations, imbalance_tolerance, outer_iter == 0);
             }
-            PRAW::ParallelIndependentRestreamingPartitioning(experiment_name,partitioning, comm_cost_matrix, hgraph_name, vtx_wgt, max_iterations, imbalance_tolerance, reset_partitioning,save_partitioning_history);
+            PRAW::ParallelIndependentRestreamingPartitioning(experiment_name,partitioning, comm_cost_matrix, hgraph_name, vtx_wgt, max_iterations, imbalance_tolerance, reset_partitioning,stopping_condition,save_partitioning_history);
         } else {
             if(process_id == 0) {
                 PRAW::SequentialStreamingPartitioning(experiment_name,partitioning, num_processes, comm_cost_matrix, hgraph_name, vtx_wgt, max_iterations, imbalance_tolerance,ta_refinement,reset_partitioning,stopping_condition,save_partitioning_history);
