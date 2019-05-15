@@ -986,8 +986,8 @@ namespace PRAW {
                     local_stream_partitioning[vid] = best_partition;
                 } else {
                     // keep a record of speculative load update (does not need to be propagated later)
-                    part_load_speculative_update[partitioning[vid]] -= vtx_wgt[vid];
-                    part_load_speculative_update[best_partition] += vtx_wgt[vid];                
+                    //part_load_speculative_update[partitioning[vid]] -= vtx_wgt[vid];
+                    //part_load_speculative_update[best_partition] += vtx_wgt[vid];                
                 }
                 
             }
