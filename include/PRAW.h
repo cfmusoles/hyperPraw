@@ -783,7 +783,7 @@ namespace PRAW {
         return 0;
     }
 
-    int ParallelIndependentRestreamingPartitioning(char* experiment_name, idx_t* partitioning, double** comm_cost_matrix, std::string hypergraph_filename, int* vtx_wgt, int iterations, float imbalance_tolerance, bool reset_partitioning, int stopping_condition, bool save_partitioning_history) {
+    int ParallelIndependentRestreamingPartitioning(char* experiment_name, idx_t* partitioning, double** comm_cost_matrix, std::string hypergraph_filename, int* vtx_wgt, int iterations, float imbalance_tolerance, float ta_refine, bool reset_partitioning, int stopping_condition, bool save_partitioning_history) {
         
         int process_id;
         MPI_Comm_rank(MPI_COMM_WORLD,&process_id);
@@ -802,7 +802,6 @@ namespace PRAW {
         double a = sqrt(num_processes) * num_hyperedges / pow(num_vertices,g); // same as FENNEL Tsourakakis 2012
         // ta is the update rate of parameter a; was 1.7
         double ta_start = 1.7; // used when imbalance is far from imbalance_tolerance
-        double ta_refine = 1.3; // used when imbalance is close to imbalance_tolerance
         // after how many vertices checked in the stream the partitio load is sync across processes
         int part_load_update_after_vertices = 4000;//sqrt(num_processes) * 300; // in the paper it is 4096
         // minimum number of iterations run (not checking imbalance threshold)
@@ -872,9 +871,9 @@ namespace PRAW {
         for(int iter=0; iter < iterations; iter++) {
             //timing = 0;
             memset(local_stream_partitioning,0,num_vertices * sizeof(idx_t));
-            memset(part_load,0,num_processes * sizeof(long int));
             memset(part_load_update,0,num_processes * sizeof(long int));
             memset(part_load_speculative_update,0,num_processes * sizeof(long int));
+            memset(part_load,0,num_processes * sizeof(long int));
             double total_workload = 0;
             for(int ii=0; ii < num_vertices; ii++) {
                 part_load[partitioning[ii]] += vtx_wgt[ii]; // workload for vertex
@@ -905,8 +904,6 @@ namespace PRAW {
 
                 bool isLocal = hedge_ptr[vid].size() > 0;
 
-                int total_neighbours = 1;
-                double max_comm_cost = 0;
                 // if local vertex, calculate full heuristic (cost of communication...)
                 // if non local vertex, speculatively place it based on current partitioning load balance
                 // this alleviates the problems of parallel streams maintaining workload balance when 
@@ -925,7 +922,6 @@ namespace PRAW {
                         for(int vt = 0; vt < hyperedges[he_id].size(); vt++) {
                             int dest_vertex = hyperedges[he_id][vt];
                             if(dest_vertex == vid) continue;
-                            total_neighbours++;
                             int dest_part = partitioning[dest_vertex];
                             current_neighbours_in_partition[dest_part] += 1;
                         }
@@ -933,7 +929,6 @@ namespace PRAW {
                     //timing += MPI_Wtime() - ttt;
                 } 
 
-                if(max_comm_cost < std::numeric_limits<double>::epsilon()) max_comm_cost = 1;
                 
                 // allocate vertex (for local heuristically, for non local speculatively)
                 double max_value = std::numeric_limits<double>::lowest();
@@ -969,9 +964,7 @@ namespace PRAW {
                         best_partition = pp;
                     }
                 }
-                
-                //best_partition = best_parts[(int)(best_parts.size() * (double)rand() / (double)RAND_MAX)];
-                
+                                
                 
                 // update intermediate workload and assignment values
                 part_load[best_partition] += vtx_wgt[vid];
@@ -986,8 +979,8 @@ namespace PRAW {
                     local_stream_partitioning[vid] = best_partition;
                 } else {
                     // keep a record of speculative load update (does not need to be propagated later)
-                    //part_load_speculative_update[partitioning[vid]] -= vtx_wgt[vid];
-                    //part_load_speculative_update[best_partition] += vtx_wgt[vid];                
+                    part_load_speculative_update[partitioning[vid]] -= vtx_wgt[vid];
+                    part_load_speculative_update[best_partition] += vtx_wgt[vid];                
                 }
                 
             }
