@@ -803,7 +803,7 @@ namespace PRAW {
         // ta is the update rate of parameter a; was 1.7
         double ta_start = 1.7; // used when imbalance is far from imbalance_tolerance
         // after how many vertices checked in the stream the partitio load is sync across processes
-        int part_load_update_after_vertices = 4000;//sqrt(num_processes) * 300; // in the paper it is 4096
+        int part_load_update_after_vertices = num_vertices / num_processes;//sqrt(num_processes) * 300; // in the paper it is 4096
         // minimum number of iterations run (not checking imbalance threshold)
         // removed whilst we are using hyperPraw as refinement algorithm
         //      hence, if balanced is kept after first iteration, that's good enough
