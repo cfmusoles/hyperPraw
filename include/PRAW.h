@@ -814,8 +814,18 @@ namespace PRAW {
         // 1 - Distributed vertices over partitions (partition = vertex_id % num_partitions)
         // needs to load num_vertices from file
         if (reset_partitioning) {
+            int expected_vertices = num_vertices / num_processes;
+            int current_assignment = 0;
+            int count = 0;
             for (int vid=0; vid < num_vertices; vid++) {
-                partitioning[vid] = vid % num_processes;
+                //partitioning[vid] = vid % num_processes;
+                //partitioning[vid] = (double)rand() / (double)RAND_MAX * num_processes;
+                partitioning[vid] = current_assignment;
+                count++;
+                if(count >= expected_vertices && current_assignment < num_processes-1) {
+                    current_assignment++;
+                    count = 0;
+                }
             }
             //frozen_iters = ceil(0.1f * iterations);
         }
@@ -856,7 +866,6 @@ namespace PRAW {
 
         long int* part_load = (long int*)calloc(num_processes,sizeof(long int));
         idx_t* local_stream_partitioning = (idx_t*)malloc(num_vertices*sizeof(idx_t));
-        double* comm_cost_per_partition = (double*)malloc(num_processes*sizeof(double));
         int* current_neighbours_in_partition = (int*)malloc(num_processes*sizeof(int));
         long int* part_load_update = (long int*)calloc(num_processes,sizeof(long int));
         long int* part_load_speculative_update = (long int*)calloc(num_processes,sizeof(long int));
@@ -900,9 +909,8 @@ namespace PRAW {
                     memset(part_load_speculative_update,0,num_processes * sizeof(long int));
                 }
                 memset(current_neighbours_in_partition,0,num_processes * sizeof(int));
-                memset(comm_cost_per_partition,0,num_processes * sizeof(double));
 
-                bool isLocal = hedge_ptr[vid].size() > 0;
+                bool isLocal = hedge_ptr[vid].size() > 0; // always go through the same list of vertices per process
 
                 // if local vertex, calculate full heuristic (cost of communication...)
                 // if non local vertex, speculatively place it based on current partitioning load balance
@@ -980,7 +988,7 @@ namespace PRAW {
                 } else {
                     // keep a record of speculative load update (does not need to be propagated later)
                     part_load_speculative_update[partitioning[vid]] -= vtx_wgt[vid];
-                    part_load_speculative_update[best_partition] += vtx_wgt[vid];                
+                    part_load_speculative_update[best_partition] += vtx_wgt[vid]; 
                 }
                 
             }
@@ -1132,7 +1140,6 @@ namespace PRAW {
         // clean up
         free(local_stream_partitioning);
         free(part_load);
-        free(comm_cost_per_partition);
         free(current_neighbours_in_partition);
         free(part_load_update);
         free(part_load_speculative_update);

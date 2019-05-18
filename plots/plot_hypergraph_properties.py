@@ -27,6 +27,8 @@ for hgraph_file in hgraphs:
         print(np.mean(hedge_sizes))
         hedges = [int(vid.replace("\n","")) for hedge in hedges for vid in hedge] #np.array([int(x.replace("\n","")) for x in hedges]).flatten()
         unique, vertex_counts = np.unique(hedges,return_counts=True)
+        print('Number of non-zero-neighbour vertices')
+        print(len(unique))
 
     if plot_graphs:
         # plotting size of hyperedges histogram
