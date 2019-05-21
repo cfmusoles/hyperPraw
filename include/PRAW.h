@@ -19,6 +19,7 @@
 #include <numeric>
 #include <unistd.h>
 #include <libgen.h>
+#include <unordered_map>
 
 #ifdef VERBOSE
 #define PRINTF(...) printf(__VA_ARGS__)
@@ -1147,6 +1148,12 @@ namespace PRAW {
         return 0;
     }
 
+    // data structure used by the HDFR algorithm
+    struct vertex_data {
+        int partial_degree; // how many times has the vertex appeared in the stream so far
+        std::vector<int> A;  // in what partitions it has been replicated so far
+    };
+
     int ParallelHyperedgePartitioning(char* experiment_name, idx_t* partitioning, double** comm_cost_matrix, std::string hypergraph_filename, int* vtx_wgt, int num_partitions, float imbalance_tolerance, bool save_partitioning_history) {
         // Parallel Hyperedge Partitioning based algorithm
         // The goal is to assign hyperedges to partitions   
@@ -1220,11 +1227,12 @@ namespace PRAW {
         // create an object Vertex that contains two variables
         //      int partial_degree --> store the current partial degree
         //      std::vector<int> A --> store the list of partitions that have a replica of the vertex
-        // store the Vertex in an array of Vertex* of length num_vertices (vertex id is given by the index) TOO MUCH MEMORY!!
-
+        // store the Vertex in a std::unordered_map (hashmap) of Vertex* of length num_vertices (vertex id is given by the index)
+        std::unordered_map<int,vertex_data> seen_vertices;
 
         // read reminder of file (one line per hyperedge)
-        int he_id = 0;
+        int he_id = 0; // current hyperedge
+        std::vector<std::vector<int> > he_batch; // list of hyperedges and vertices seen in the current batch (between parallel syncs)
         while(std::getline(istream,line)) {
             std::istringstream buf(line);
             std::istream_iterator<int> beg(buf), end;
@@ -1235,12 +1243,26 @@ namespace PRAW {
                     int vertex_id = vertices[ii]-1;
                     
                 }
+            } else {
+                // not a local hyperedge
+
             }
-            
             he_id++;
+            
+            // synchronise data
+            if(he_id % num_processes == 0 || he_id == num_hyperedges-1) {
+                // each process sends the partition allocation for its local hyperedge
+                // each process receives the partition allocation for all other hyperedges
+                // update partitioning array (may only be required for process_id 0)
+                // update part_load and seen_vertices
+                he_batch.clear();
+            }
             
         }
         istream.close();
+
+        // clean up
+        free(part_load);
 
 
     }
