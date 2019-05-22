@@ -12,10 +12,208 @@
 #include "RandomPartitioning.h"
 #include "ZoltanPartitioning.h"
 #include "HyperPRAWPartitioning.h"
+#include "HyperedgePartitioning.h"
 #include <iterator>
 #include <numeric>
+#include "VertexCentricSimulation.h"
+#include "EdgeCentricSimulation.h"
+
 
 void storeSimCommunication(int* sent_communication,int process_id, int num_processes, int mode, char* experiment_name, char* graph_file, char* part_method) {
+    // gather all results in node 0
+    if(process_id == 0) {
+        int** comm = (int**)malloc(num_processes * sizeof(int*));
+        for(int ii=0; ii < num_processes; ii++) {
+            comm[ii] = (int*)calloc(num_processes,sizeof(int));
+        }
+        memcpy(comm[0],sent_communication,sizeof(int) * num_processes);
+        for(int ii=1; ii < num_processes; ii++) {
+            MPI_Recv(comm[ii],num_processes,MPI_INT,ii,0,MPI_COMM_WORLD,MPI_STATUS_IGNORE);
+        }
+        // store matrix in a file
+        std::string filename = experiment_name;
+        filename += "_";
+        std::string graph_string = graph_file;
+        filename += PRAW::getFileName(graph_string);
+        filename += "_";
+        filename += part_method;
+        if(mode == 0) {
+            filename += "_edgeSim";
+        } else if (mode == 1) {
+            filename += "_hedgeSim";
+        }
+        filename += "_comm_cost";
+        char str_int[16];
+        sprintf(str_int,"%i",num_processes);
+        filename += "__";
+        filename +=  str_int;
+        bool fileexists = access(filename.c_str(), F_OK) != -1;
+        FILE *fp = fopen(filename.c_str(), "w");
+        if(fp == NULL) {
+            printf("Error when storing comm cost into file\n");
+        } else {
+            for(int jj=0; jj < num_processes; jj++) {
+                for(int ii=0; ii < num_processes; ii++) {
+                    fprintf(fp,"%i ",comm[jj][ii]);
+                }
+                fprintf(fp,"\n");
+            }
+        }
+        fclose(fp);
+    } else {
+        MPI_Send(sent_communication,num_processes,MPI_INT,0,0,MPI_COMM_WORLD);
+    }
+    
+    
+}
+
+
+int main(int argc, char** argv) {
+
+    // initialise MPI
+    MPI_Init(&argc,&argv);
+    int process_id;
+    int num_processes;
+    MPI_Comm_rank(MPI_COMM_WORLD,&process_id);
+    MPI_Comm_size(MPI_COMM_WORLD,&num_processes);
+
+    // DEFAULT PARAMETERS
+    char* experiment_name = NULL;
+    char* graph_file = NULL;
+    int iterations = 1;
+    float imbalance_tolerance = 1.05f;
+    char* bandwidth_file = NULL;
+    bool use_bandwidth_in_partitioning = false;
+    int rand_seed = time(NULL);
+    char* part_method = NULL;
+    int sim_steps  = 100;
+    int message_size = 1;
+    int stopping_condition = 0;
+    bool proportional_comm_cost = false;
+    float ta_refinement = 1.0f;
+    bool save_partitioning_history = false;
+    int simulation_iterations = 1;
+    int hedge_sim_steps_multiplier = 1;
+
+    // getting command line parameters
+    extern char *optarg;
+	extern int optind, opterr, optopt;
+	int c;
+	while( (c = getopt(argc,argv,"n:h:i:m:b:Ws:p:t:k:o:c:r:Hq:x:")) != -1 ) {
+		switch(c) {
+			case 'n': // test name
+				experiment_name = optarg;
+				break;
+            case 'h': // hypergraph filename
+				graph_file = optarg;
+				break;
+			case 'i': // max iterations
+				iterations = atoi(optarg);
+				break;
+            case 's': // random seed
+				rand_seed = atoi(optarg);
+				break;
+            case 'm': // max imbalance (in thousands)
+				imbalance_tolerance = atoi(optarg) * 0.001f;
+				break;
+			case 'b': // network bandwidth file
+				bandwidth_file = optarg;
+				break;
+			case 'W': // use bandwith file in partitioning
+				use_bandwidth_in_partitioning = true;
+				break;
+            case 'p': // partitioning method
+				part_method = optarg;
+				break;
+            case 't': // simulated steps
+				sim_steps = atoi(optarg);
+				break;
+            case 'k': // message size during simulation
+				message_size = atoi(optarg);
+				break;
+            case 'o': // type of stopping condition
+				stopping_condition = atoi(optarg);
+				break;
+            case 'c': // type of comm cost mapping
+				proportional_comm_cost = atoi(optarg) == 1;
+				break;
+            case 'r': // tempering alpha when within imbalance tolerance
+				ta_refinement = atoi(optarg) * 0.001f;
+				break;
+			case 'H': // save streaming partitioning history
+				save_partitioning_history = true;
+				break;
+            case 'q': // simulation iterations
+				simulation_iterations = atoi(optarg);
+				break;
+            case 'x': // simulated steps multiplier for hedge sims
+				hedge_sim_steps_multiplier = atoi(optarg);
+				break;
+		}
+	}
+
+    // set and propagate random seed
+    MPI_Bcast(&rand_seed, 1, MPI_INT, 0, MPI_COMM_WORLD);
+    srand(rand_seed);
+
+    double partition_timer = MPI_Wtime();
+
+    bool isVertexCentric = true;
+    // Create partition object to hold connections and partitioning information across processes
+	Partitioning* partition;
+	if(strcmp(part_method,"zoltan") == 0) {
+		PRINTF("%i: Partitioning: zoltan\n",process_id);
+		partition = new ZoltanPartitioning(graph_file,imbalance_tolerance);
+        isVertexCentric = true;
+	} else if(strcmp(part_method,"prawP") == 0) {  
+		PRINTF("%i: Partitioning: parallel hyperPRAW\n",process_id);
+        partition = new HyperPRAWPartitioning(experiment_name,graph_file,imbalance_tolerance,ta_refinement,iterations,bandwidth_file,true,use_bandwidth_in_partitioning,true,stopping_condition,proportional_comm_cost,save_partitioning_history);
+        isVertexCentric = true;
+	} else if(strcmp(part_method,"prawSref") == 0) {  
+		PRINTF("%i: Partitioning: sequential refinement hyperPRAW\n",process_id);
+        Partitioning* p1 = new ZoltanPartitioning(graph_file,imbalance_tolerance);
+        p1->perform_partitioning(num_processes,process_id);
+		partition = new HyperPRAWPartitioning(experiment_name,graph_file,imbalance_tolerance,ta_refinement,iterations,bandwidth_file,false,use_bandwidth_in_partitioning,false,stopping_condition,proportional_comm_cost,save_partitioning_history);
+        memcpy(partition->partitioning,p1->partitioning,partition->num_vertices * sizeof(idx_t));
+        free(p1);
+        isVertexCentric = true;
+	} else if(strcmp(part_method,"prawS") == 0) {  
+		PRINTF("%i: Partitioning: sequential hyperPRAW\n",process_id);
+		partition = new HyperPRAWPartitioning(experiment_name,graph_file,imbalance_tolerance,ta_refinement,iterations,bandwidth_file,false,use_bandwidth_in_partitioning,true,stopping_condition,proportional_comm_cost,save_partitioning_history);
+	    isVertexCentric = true;
+	} else if(strcmp(part_method,"hyperedgeP") == 0) {  
+		PRINTF("%i: Partitioning: parallel hyperedge partitioning\n",process_id);
+		partition = new HyperedgePartitioning(experiment_name,graph_file,imbalance_tolerance,bandwidth_file,use_bandwidth_in_partitioning,true,save_partitioning_history);
+	    isVertexCentric = false;
+	} else { // default is random
+		PRINTF("%i: Partitioning: random\n",process_id);
+		partition = new RandomPartitioning(graph_file,imbalance_tolerance);
+        isVertexCentric = true;
+	}
+    srand(rand_seed);
+	partition->perform_partitioning(num_processes,process_id);
+
+    partition_timer = MPI_Wtime() - partition_timer;
+
+    if(isVertexCentric) {
+        VertexCentricSimulation::runSimulation(experiment_name, graph_file, part_method, bandwidth_file, partition->partitioning, partition_timer, partition->num_vertices, simulation_iterations, sim_steps, hedge_sim_steps_multiplier, message_size, proportional_comm_cost);
+    } else {
+        EdgeCentricSimulation::runSimulation(experiment_name, graph_file, part_method, bandwidth_file, partition->partitioning, partition_timer, partition->num_vertices, simulation_iterations, sim_steps, hedge_sim_steps_multiplier, message_size, proportional_comm_cost);
+    }
+    
+
+    free(partition);
+
+    // finalise MPI and application
+    MPI_Finalize();
+    return 0;
+}
+
+
+
+
+
+/*void storeSimCommunication(int* sent_communication,int process_id, int num_processes, int mode, char* experiment_name, char* graph_file, char* part_method) {
     // gather all results in node 0
     if(process_id == 0) {
         int** comm = (int**)malloc(num_processes * sizeof(int*));
@@ -172,6 +370,9 @@ int main(int argc, char** argv) {
     } else if(strcmp(part_method,"prawS") == 0) {  
 		PRINTF("%i: Partitioning: sequential hyperPRAW\n",process_id);
 		partition = new HyperPRAWPartitioning(experiment_name,graph_file,imbalance_tolerance,ta_refinement,iterations,bandwidth_file,false,use_bandwidth_in_partitioning,true,stopping_condition,proportional_comm_cost,save_partitioning_history);
+	} else if(strcmp(part_method,"hyperedgeP") == 0) {  
+		PRINTF("%i: Partitioning: parallel hyperedge partitioning\n",process_id);
+		partition = new HyperedgePartitioning(experiment_name,graph_file,imbalance_tolerance,bandwidth_file,use_bandwidth_in_partitioning,true,save_partitioning_history);
 	} else { // default is random
 		PRINTF("%i: Partitioning: random\n",process_id);
 		partition = new RandomPartitioning(graph_file,imbalance_tolerance);
@@ -356,10 +557,6 @@ int main(int argc, char** argv) {
             double total_edge_comm_cost;
             double total_hedge_comm_cost;
             
-            /*hyperedges.clear();
-            hyperedges.swap(hyperedges);
-            hedge_ptr.clear();
-            hedge_ptr.swap(hedge_ptr);*/
             std::string filename = graph_file;
             
             PRAW::getPartitionStatsFromFile(partition->partitioning, num_processes, partition->num_vertices, filename, NULL,comm_cost_matrix,
@@ -412,3 +609,4 @@ int main(int argc, char** argv) {
     MPI_Finalize();
     return 0;
 }
+*/

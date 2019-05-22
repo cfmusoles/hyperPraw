@@ -12,15 +12,21 @@ public:
 	idx_t* partitioning;
 	char* hgraph_name = NULL;
 	int num_vertices;
-	
-	Partitioning(char* graph_name, float imbalance) {
+	int num_hyperedges;
+
+	Partitioning(char* graph_name, float imbalance, bool isVertexCentric = true) {
 		hgraph_name = graph_name;
 		imbalance_tolerance = imbalance;
 
-		int hedges;
-		PRAW::get_hypergraph_file_header(hgraph_name,&num_vertices,&hedges);
+		PRAW::get_hypergraph_file_header(hgraph_name,&num_vertices,&num_hyperedges);
 
-		partitioning = (idx_t*)calloc(num_vertices,sizeof(idx_t));
+		if(!isVertexCentric) {
+			// hyperedge partitioning
+			partitioning = (idx_t*)calloc(num_hyperedges,sizeof(idx_t));
+		} else {
+			// vertex partitioning
+			partitioning = (idx_t*)calloc(num_vertices,sizeof(idx_t));
+		}
 	}
 	virtual ~Partitioning() {
 		free(partitioning);
