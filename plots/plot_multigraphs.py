@@ -9,8 +9,9 @@ num_processes = 576
 
 show_error = True
 as_bar_plot = True
-log_scale = False
+log_scale = True
 show_title = False
+show_annotations = False
 
 # "sat14_itox_vc1130.cnf.dual.hgr" $SEED 2 #Y for esim
 # "2cubes_sphere.mtx.hgr" $SEED 3 #Y for esim
@@ -46,6 +47,8 @@ plot_ylabel = ["Time(s)","Cut ratio","Cut ratio","SOED (thousands)","Partitionin
 image_format = 'pdf'
 plot_name = ["a_" + str(x) for x in range(len(columns_to_plot))] #["a1","a2","a3","a4","a5","a6","a7"]
 
+
+annotations = ['8.1x',  '2x','1.4x','1.2x','1.7x','14x','1.4x','3.1x','4.3x','1.5x']
 bar_plot_size = 0.7 / len(experiments_name)
 
 # general plot settings
@@ -96,6 +99,10 @@ def plot(x,y, error,title,ylabel,name,colour,pattern,legend,show,global_counter)
 	plt.xticks(x,graph_names,rotation=25)
 	plt.tight_layout()
 	plt.gcf().subplots_adjust(bottom=0.25)
+	if global_counter == 2 and show_annotations:
+		for xi, yi, a in zip(*[rx,y,annotations]):
+			plt.annotate(a,(xi,yi),textcoords='offset points',xytext=(10,10),ha='center')
+
 	if len(graphs) > 1:
 		plt.legend(loc='upper center', bbox_to_anchor=(0.5, 1.15),
           ncol=len(experiments_name), fancybox=True)
