@@ -99,7 +99,7 @@ def plot_2dgraph(data,title,label,fname):
 	# colour maps http://scipy-cookbook.readthedocs.io/items/Matplotlib_Show_colormaps.html
 	fig, axes = plt.subplots(1,1)
 	# plot bandwidth
-	c = axes.pcolor(data,cmap=get_cmap("binary"),rasterized=True)
+	c = axes.pcolor(data,cmap=get_cmap("jet"),rasterized=True)
 	axes.set_xlabel(xlabel)
 	axes.set_ylabel(ylabel)
 	if show_title:
