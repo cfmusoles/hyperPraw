@@ -197,6 +197,7 @@ int main(int argc, char** argv) {
 
     if(isVertexCentric) {
         VertexCentricSimulation::runSimulation(experiment_name, graph_file, part_method, bandwidth_file, partition->partitioning, partition_timer, partition->num_vertices, simulation_iterations, sim_steps, hedge_sim_steps_multiplier, message_size, proportional_comm_cost);
+        
     } else {
         EdgeCentricSimulation::runSimulation(experiment_name, graph_file, part_method, bandwidth_file, partition->partitioning, partition_timer, partition->num_vertices, simulation_iterations, sim_steps, hedge_sim_steps_multiplier, message_size, proportional_comm_cost);
     }
