@@ -924,7 +924,7 @@ namespace PRAW {
         // g and a determine load balance importance in cost function; was 1.5
         double g = 1.5; // same as FENNEL Tsourakakis 2012
         // battaglino's initial alpha, was sqrt(2) * num_hyperedges / pow(num_vertices,g);
-        double a = sqrt(num_processes) * num_hyperedges / pow(num_vertices,g); // same as FENNEL Tsourakakis 2012
+        double a = 0.01f;//sqrt(num_processes) * num_hyperedges / pow(num_vertices,g); // same as FENNEL Tsourakakis 2012
         // ta is the update rate of parameter a; was 1.7
         double ta_start = 1.7; // used when imbalance is far from imbalance_tolerance
         // minimum number of iterations run (not checking imbalance threshold)
@@ -1036,27 +1036,41 @@ namespace PRAW {
                     // allocate vertex (for local heuristically, for non local speculatively)
                     double max_value = std::numeric_limits<double>::lowest();
                     best_partition = partitioning[vid];
-                    //std::vector<int> best_parts;
+                    long int* total_comm_cost = (long int*)calloc(num_processes,sizeof(long int));
+                    long int maxcost = 0;
+                    long int mincost = std::numeric_limits<int>::max();
                     for(int pp=0; pp < num_processes; pp++) {
                         // total cost of communication (edgecuts * number of participating partitions)
-                        long int total_comm_cost = 0;
+                        //long int total_comm_cost = 0;
                         int neighbouring_partitions = 0;
                         
                         for(int jj=0; jj < num_processes; jj++) {
                             if(pp != jj) {
-                                total_comm_cost += current_neighbours_in_partition[jj] * comm_cost_matrix[pp][jj];
+                                total_comm_cost[pp] += current_neighbours_in_partition[jj] * comm_cost_matrix[pp][jj];
                                 neighbouring_partitions += current_neighbours_in_partition[jj] > 0 ? 1 : 0;
                             }
                         } 
+                        if(total_comm_cost[pp] > maxcost) maxcost = total_comm_cost[pp];
+                        if(total_comm_cost[pp] < mincost) mincost = total_comm_cost[pp];
 
                         //double current_value =  -(double)neighbouring_partitions/(double)num_processes * total_comm_cost - a * (part_load[pp]/expected_workload);
-                        double current_value =  -(double)neighbouring_partitions/(double)num_processes * total_comm_cost + a * (maxload - part_load[pp]) / (maxload - minload);
+                        /*double current_value =  -(double)neighbouring_partitions/(double)num_processes * total_comm_cost + a * (maxload - part_load[pp]) / (maxload - minload);
+                        
+                        if(current_value > max_value) {
+                            max_value = current_value;
+                            best_partition = pp;
+                        }*/
+                    }
+
+                    for(int pp=0; pp < num_processes; pp++) {
+                        double current_value =  (1-a) * (maxcost - total_comm_cost[pp]) / (maxcost - mincost + 1) + a * (maxload - part_load[pp]) / (maxload - minload + 1);
                         
                         if(current_value > max_value) {
                             max_value = current_value;
                             best_partition = pp;
                         }
                     }
+                    free(total_comm_cost);
                 }
 
                 last_partition_update++;
@@ -1190,14 +1204,16 @@ namespace PRAW {
 
             // update parameters
             if(imbalance > imbalance_tolerance) {
-                if(imbalance > ta_start) {
+                if(a < 1.0) a += 0.02;
+                /*if(imbalance > ta_start) {
                     a *= imbalance;
                 } else {
                     a *= ta_start;
-                }
+                }*/
                 
             } else {
-                a *= ta_refine;
+                //a *= ta_refine;
+                if(a > 0) a -= 0.01;
             }
             last_imbalance = imbalance;
         }

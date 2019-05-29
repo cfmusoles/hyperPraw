@@ -67,7 +67,7 @@ run_experiment() {
 	SEED="$2"
 	E_SIM_STEPS="$3"
 	H_SIM_STEPS_MULT="$4"
-	aprun -n $PROCESSES hyperPraw -n $EXPERIMENT_NAME"_sequential" -h $HYPERGRAPH_FILE -i 100 -m 1100 -p prawS -t $E_SIM_STEPS -x $H_SIM_STEPS_MULT -s $SEED -k $MESSAGE_SIZE -o 2 -b $BM_FILE -W -c 0 -r 950  -H
+	#aprun -n $PROCESSES hyperPraw -n $EXPERIMENT_NAME"_sequential" -h $HYPERGRAPH_FILE -i 100 -m 1100 -p prawS -t $E_SIM_STEPS -x $H_SIM_STEPS_MULT -s $SEED -k $MESSAGE_SIZE -o 2 -b $BM_FILE -W -c 0 -r 950  -H
 	sleep 1
 	aprun -n $PROCESSES hyperPraw -n $EXPERIMENT_NAME"_parallel" -h $HYPERGRAPH_FILE -i 100 -m 1100 -p prawP -t $E_SIM_STEPS -x $H_SIM_STEPS_MULT -s $SEED -k $MESSAGE_SIZE -o 2 -b $BM_FILE -W -c 0 -r 950 -H
 	sleep 1
