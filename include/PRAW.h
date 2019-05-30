@@ -1203,17 +1203,19 @@ namespace PRAW {
             }
 
             // update parameters
-            if(imbalance > imbalance_tolerance) {
-                if(a < 1.0) a += 0.02;
-                /*if(imbalance > ta_start) {
-                    a *= imbalance;
+            if(iter % 5 == 0) {
+                if(imbalance > imbalance_tolerance) {
+                    if(a < 1.0) a += 0.03;
+                    /*if(imbalance > ta_start) {
+                        a *= imbalance;
+                    } else {
+                        a *= ta_start;
+                    }*/
+                    
                 } else {
-                    a *= ta_start;
-                }*/
-                
-            } else {
-                //a *= ta_refine;
-                if(a > 0) a -= 0.01;
+                    //a *= ta_refine;
+                    if(a > 0) a -= 0.01;
+                }
             }
             last_imbalance = imbalance;
         }

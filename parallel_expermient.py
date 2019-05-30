@@ -29,7 +29,7 @@ template_2 = '''
 template_3=''':bigmem='''
 template_4='''
 # walltime
-#PBS -l walltime=6:00:0
+#PBS -l walltime=2:00:0
 # budget code
 #PBS -A e582
 # bandwidth probing parameters
@@ -67,9 +67,9 @@ run_experiment() {
 	SEED="$2"
 	E_SIM_STEPS="$3"
 	H_SIM_STEPS_MULT="$4"
-	#aprun -n $PROCESSES hyperPraw -n $EXPERIMENT_NAME"_sequential" -h $HYPERGRAPH_FILE -i 100 -m 1100 -p prawS -t $E_SIM_STEPS -x $H_SIM_STEPS_MULT -s $SEED -k $MESSAGE_SIZE -o 2 -b $BM_FILE -W -c 0 -r 950  -H
+	#aprun -n $PROCESSES hyperPraw -n $EXPERIMENT_NAME"_sequential" -h $HYPERGRAPH_FILE -i 200 -m 1100 -p prawS -t $E_SIM_STEPS -x $H_SIM_STEPS_MULT -s $SEED -k $MESSAGE_SIZE -o 2 -b $BM_FILE -W -c 0 -r 950  -H
 	sleep 1
-	aprun -n $PROCESSES hyperPraw -n $EXPERIMENT_NAME"_parallel" -h $HYPERGRAPH_FILE -i 100 -m 1100 -p prawP -t $E_SIM_STEPS -x $H_SIM_STEPS_MULT -s $SEED -k $MESSAGE_SIZE -o 2 -b $BM_FILE -W -c 0 -r 950 -H
+	aprun -n $PROCESSES hyperPraw -n $EXPERIMENT_NAME"_parallel" -h $HYPERGRAPH_FILE -i 200 -m 1100 -p prawP -t $E_SIM_STEPS -x $H_SIM_STEPS_MULT -s $SEED -k $MESSAGE_SIZE -o 2 -b $BM_FILE -W -c 0 -r 950 -H
 	sleep 1
 }
 
@@ -79,7 +79,7 @@ do
 
 	#small graphs
 	run_experiment "sat14_itox_vc1130.cnf.dual.hgr" $SEED 0 0 
-	run_experiment "2cubes_sphere.mtx.hgr" $SEED 0 0 
+	#run_experiment "2cubes_sphere.mtx.hgr" $SEED 0 0 
 	run_experiment "ABACUS_shell_hd.mtx.hgr" $SEED 0 0 
 	run_experiment "sparsine.mtx.hgr" $SEED 0 0
 	
