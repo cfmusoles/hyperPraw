@@ -992,8 +992,8 @@ namespace PRAW {
             total_workload += vtx_wgt[ii];
             
         }
-        int maxload = part_load[0];
-        int minload = part_load[0];
+        double maxload = part_load[0];
+        double minload = part_load[0];
         for(int ll=0; ll < num_processes; ll++) {
             if(part_load[ll] > maxload) maxload = part_load[ll];
             if(part_load[ll] < minload) minload = part_load[ll];
@@ -1037,8 +1037,8 @@ namespace PRAW {
                     double max_value = std::numeric_limits<double>::lowest();
                     best_partition = partitioning[vid];
                     long int* total_comm_cost = (long int*)calloc(num_processes,sizeof(long int));
-                    long int maxcost = 0;
-                    long int mincost = std::numeric_limits<int>::max();
+                    double maxcost = 0;
+                    double mincost = std::numeric_limits<int>::max();
                     for(int pp=0; pp < num_processes; pp++) {
                         // total cost of communication (edgecuts * number of participating partitions)
                         //long int total_comm_cost = 0;
@@ -1063,7 +1063,9 @@ namespace PRAW {
                     }
 
                     for(int pp=0; pp < num_processes; pp++) {
-                        double current_value =  (1-a) * (maxcost - total_comm_cost[pp]) / (maxcost - mincost + 1) + a * (maxload - part_load[pp]) / (maxload - minload + 1);
+                        double comm_cost = (maxcost - total_comm_cost[pp]) / (maxcost - mincost + 1);
+                        double bal_cost = (maxload - part_load[pp]) / (maxload - minload + 1);
+                        double current_value =  (1-a) * comm_cost + a * bal_cost;
                         
                         if(current_value > max_value) {
                             max_value = current_value;
