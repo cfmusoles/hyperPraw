@@ -948,6 +948,16 @@ namespace PRAW {
         std::vector<std::vector<int> > hyperedges;
         std::vector<std::vector<int> > hedge_ptr;
         load_hypergraph_from_file_dist_CSR(hypergraph_filename, &hyperedges, &hedge_ptr, process_id, partitioning);
+
+        // Check balance guarantee 
+        // The parallel algorithm is guaranteed to reach load imbalance tolerance if the hypergraphs safisfies:
+        //      (num_processes * 2 - 1) / imbalance_tolerance <= num_vertices / num_processes
+        if((num_processes * 2 - 1) / imbalance_tolerance > num_vertices / num_processes) {
+            int max_processes_for_guarantee = floor(0.25f * (1 + sqrt(8 * num_vertices * imbalance_tolerance + 1)));
+            int min_hgraph_size = pow(num_processes,2) * 2 - num_processes / imbalance_tolerance;
+            printf("Current run is not guaranteed to reach load imbalance tolerance. Decrease the number of processes to %i.\nWith %i processes, %i vertices are required for guarantee\n",
+                            max_processes_for_guarantee,num_processes,min_hgraph_size);
+        }
         
 
         // each process must read from file only the info relevant to its data
@@ -1004,7 +1014,7 @@ namespace PRAW {
             
             int best_partition = 0;
             int last_partition_update = 0;
-            
+
             // go through own vertex list and reassign
             for(int vid=0; vid < num_vertices; vid++) {
                 
@@ -1063,9 +1073,9 @@ namespace PRAW {
                     }
 
                     for(int pp=0; pp < num_processes; pp++) {
-                        double comm_cost = (maxcost - total_comm_cost[pp]) / (maxcost - mincost + 1);
-                        double bal_cost = (maxload - part_load[pp]) / (maxload - minload + 1);
-                        double current_value =  (1-a) * comm_cost + a * bal_cost;
+                        double comm_cost = (maxcost - total_comm_cost[pp]) / (maxcost - mincost + 1.0f);
+                        double bal_cost = (maxload - part_load[pp]) / (maxload - minload + 1.0f);
+                        double current_value =  (1.0f-a) * comm_cost + a * bal_cost;
                         
                         if(current_value > max_value) {
                             max_value = current_value;
@@ -1205,19 +1215,17 @@ namespace PRAW {
             }
 
             // update parameters
-            if(iter % 5 == 0) {
-                if(imbalance > imbalance_tolerance) {
-                    if(a < 1.0) a += 0.03;
-                    /*if(imbalance > ta_start) {
-                        a *= imbalance;
-                    } else {
-                        a *= ta_start;
-                    }*/
-                    
+            if(imbalance > imbalance_tolerance) {
+                if(a < 1.0) a += 0.02;
+                /*if(imbalance > ta_start) {
+                    a *= imbalance;
                 } else {
-                    //a *= ta_refine;
-                    if(a > 0) a -= 0.01;
-                }
+                    a *= ta_start;
+                }*/
+                
+            } else {
+                //a *= ta_refine;
+                if(a > 0) a -= 0.01;
             }
             last_imbalance = imbalance;
         }
