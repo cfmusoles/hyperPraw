@@ -79,7 +79,7 @@ do
 
 	#small graphs
 	run_experiment "sat14_itox_vc1130.cnf.dual.hgr" $SEED 0 0 
-	#run_experiment "2cubes_sphere.mtx.hgr" $SEED 0 0 
+	run_experiment "2cubes_sphere.mtx.hgr" $SEED 0 0 
 	run_experiment "ABACUS_shell_hd.mtx.hgr" $SEED 0 0 
 	run_experiment "sparsine.mtx.hgr" $SEED 0 0
 	
