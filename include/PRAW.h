@@ -1046,7 +1046,7 @@ namespace PRAW {
                     // allocate vertex (for local heuristically, for non local speculatively)
                     double max_value = std::numeric_limits<double>::lowest();
                     best_partition = partitioning[vid];
-                    long int* total_comm_cost = (long int*)calloc(num_processes,sizeof(long int));
+                    //long int* total_comm_cost = (long int*)calloc(num_processes,sizeof(long int));
                     double maxcost = 0;
                     double mincost = std::numeric_limits<int>::max();
                     for(int pp=0; pp < num_processes; pp++) {
