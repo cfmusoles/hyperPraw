@@ -951,10 +951,10 @@ namespace PRAW {
 
         // Check balance guarantee 
         // The parallel algorithm is guaranteed to reach load imbalance tolerance if the hypergraphs safisfies:
-        //      (num_processes * 2 - 1) / imbalance_tolerance <= num_vertices / num_processes
-        if((num_processes * 2 - 1) / imbalance_tolerance > num_vertices / num_processes) {
+        //      (num_processes * 2 - 1)  <= imbalance_tolerance * num_vertices / num_processes
+        if((num_processes * 2 - 1) > imbalance_tolerance * num_vertices / num_processes) {
             int max_processes_for_guarantee = floor(0.25f * (1 + sqrt(8 * num_vertices * imbalance_tolerance + 1)));
-            int min_hgraph_size = (pow(num_processes,2) * 2 - num_processes) / imbalance_tolerance;
+            int min_hgraph_size = ceil((pow(192,2) * 2 - 192) / imbalance_tolerance);
             printf("Current run is not guaranteed to reach load imbalance tolerance. Decrease the number of processes to %i.\nWith %i processes, %i vertices are required for guarantee\n",
                             max_processes_for_guarantee,num_processes,min_hgraph_size);
         }
