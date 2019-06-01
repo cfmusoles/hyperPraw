@@ -954,7 +954,7 @@ namespace PRAW {
         //      (num_processes * 2 - 1) / imbalance_tolerance <= num_vertices / num_processes
         if((num_processes * 2 - 1) / imbalance_tolerance > num_vertices / num_processes) {
             int max_processes_for_guarantee = floor(0.25f * (1 + sqrt(8 * num_vertices * imbalance_tolerance + 1)));
-            int min_hgraph_size = pow(num_processes,2) * 2 - num_processes / imbalance_tolerance;
+            int min_hgraph_size = (pow(num_processes,2) * 2 - num_processes) / imbalance_tolerance;
             printf("Current run is not guaranteed to reach load imbalance tolerance. Decrease the number of processes to %i.\nWith %i processes, %i vertices are required for guarantee\n",
                             max_processes_for_guarantee,num_processes,min_hgraph_size);
         }
@@ -1046,7 +1046,6 @@ namespace PRAW {
                     // allocate vertex (for local heuristically, for non local speculatively)
                     double max_value = std::numeric_limits<double>::lowest();
                     best_partition = partitioning[vid];
-                    //long int* total_comm_cost = (long int*)calloc(num_processes,sizeof(long int));
                     double maxcost = 0;
                     double mincost = std::numeric_limits<int>::max();
                     for(int pp=0; pp < num_processes; pp++) {
@@ -1057,33 +1056,18 @@ namespace PRAW {
                         for(int jj=0; jj < num_processes; jj++) {
                             if(pp != jj) {
                                 total_comm_cost += current_neighbours_in_partition[jj] * comm_cost_matrix[pp][jj];
-                                //total_comm_cost[pp] += current_neighbours_in_partition[jj] * comm_cost_matrix[pp][jj];
                                 neighbouring_partitions += current_neighbours_in_partition[jj] > 0 ? 1 : 0;
                             }
                         } 
-                        //if(total_comm_cost[pp] > maxcost) maxcost = total_comm_cost[pp];
-                        //if(total_comm_cost[pp] < mincost) mincost = total_comm_cost[pp];
 
-                        double current_value =  -(double)neighbouring_partitions/(double)num_processes * total_comm_cost - a * (part_load[pp]/expected_workload);
-                        //double current_value =  -(double)neighbouring_partitions/(double)num_processes * total_comm_cost + a * (maxload - part_load[pp]) / (maxload - minload);
+                        //double current_value =  -(double)neighbouring_partitions/(double)num_processes * total_comm_cost - a * (part_load[pp]/expected_workload);
+                        double current_value =  -(double)neighbouring_partitions/(double)num_processes * total_comm_cost + a * (maxload - part_load[pp]) / (maxload - minload);
                         
                         if(current_value > max_value) {
                             max_value = current_value;
                             best_partition = pp;
                         }
                     }
-
-                    /*for(int pp=0; pp < num_processes; pp++) {
-                        double comm_cost = (maxcost - total_comm_cost[pp]) / (maxcost - mincost + 1.0f);
-                        double bal_cost = (maxload - part_load[pp]) / (maxload - minload + 1.0f);
-                        double current_value =  (1.0f-a) * comm_cost + a * bal_cost;
-                        
-                        if(current_value > max_value) {
-                            max_value = current_value;
-                            best_partition = pp;
-                        }
-                    }
-                    free(total_comm_cost);*/
                 }
 
                 last_partition_update++;
