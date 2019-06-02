@@ -244,9 +244,19 @@ namespace PRAW {
         // read reminder of file (one line per hyperedge)
         int counter = 0;
         while(std::getline(istream,line)) {
-            std::istringstream buf(line);
+            /*std::istringstream buf(line);
             std::istream_iterator<int> beg(buf), end;
-            std::vector<int> tokens(beg, end);
+            std::vector<int> tokens(beg, end);*/
+
+            char str[line.length() + 1]; 
+            strcpy(str, line.c_str()); 
+            char* token = strtok(str, " "); 
+            std::vector<int> tokens;
+            while (token != NULL) { 
+                tokens.push_back(atoi(token)); 
+                token = strtok(NULL, " "); 
+            } 
+
             for(int ii=0; ii < tokens.size(); ii++) {
                 int vertex_id = tokens[ii]-1;
                 hedge_ptr->at(vertex_id).push_back(counter);
@@ -287,9 +297,19 @@ namespace PRAW {
         int counter = 0;
         int nonlocal = 0;
         while(std::getline(istream,line)) {
-            std::istringstream buf(line);
+            /*std::istringstream buf(line);
             std::istream_iterator<int> beg(buf), end;
-            std::vector<int> tokens(beg, end);
+            std::vector<int> tokens(beg, end);*/
+
+            char str[line.length() + 1]; 
+            strcpy(str, line.c_str()); 
+            char* token = strtok(str, " "); 
+            std::vector<int> tokens;
+            while (token != NULL) { 
+                tokens.push_back(atoi(token)); 
+                token = strtok(NULL, " "); 
+            } 
+
             // check if any vertex is local
             bool local = false;
             for(int ii=0; ii < tokens.size(); ii++) {
@@ -365,9 +385,18 @@ namespace PRAW {
         // read reminder of file (one line per hyperedge)
         while(std::getline(istream,line)) {
             // each line corresponds to a hyperedge
-            std::istringstream buf(line);
+            /*std::istringstream buf(line);
             std::istream_iterator<int> beg(buf), end;
-            std::vector<int> tokens(beg, end);
+            std::vector<int> tokens(beg, end);*/
+
+            char str[line.length() + 1]; 
+            strcpy(str, line.c_str()); 
+            char* token = strtok(str, " "); 
+            std::vector<int> tokens;
+            while (token != NULL) { 
+                tokens.push_back(atoi(token)); 
+                token = strtok(NULL, " "); 
+            } 
 
             std::set<int> connectivity;
             memset(vertices_in_partition,0,sizeof(int) * num_processes);
@@ -455,9 +484,18 @@ namespace PRAW {
         // read reminder of file (one line per hyperedge)
         while(std::getline(istream,line)) {
             // each line corresponds to a hyperedge
-            std::istringstream buf(line);
+            /*std::istringstream buf(line);
             std::istream_iterator<int> beg(buf), end;
-            std::vector<int> tokens(beg, end);
+            std::vector<int> tokens(beg, end);*/
+
+            char str[line.length() + 1]; 
+            strcpy(str, line.c_str()); 
+            char* token = strtok(str, " "); 
+            std::vector<int> tokens;
+            while (token != NULL) { 
+                tokens.push_back(atoi(token)); 
+                token = strtok(NULL, " "); 
+            } 
 
             for(int ff=0; ff < tokens.size(); ff++) {
                 // each vertex in the hyperedge
@@ -522,9 +560,19 @@ namespace PRAW {
         int he_id = 0;
         while(std::getline(istream,line)) {
             // each line corresponds to a hyperedge
-            std::istringstream buf(line);
+            /*std::istringstream buf(line);
             std::istream_iterator<int> beg(buf), end;
-            std::vector<int> tokens(beg, end);
+            std::vector<int> tokens(beg, end);*/
+
+            char str[line.length() + 1]; 
+            strcpy(str, line.c_str()); 
+            char* token = strtok(str, " "); 
+            std::vector<int> tokens;
+            while (token != NULL) { 
+                tokens.push_back(atoi(token)); 
+                token = strtok(NULL, " "); 
+            } 
+
             int dest_partition = partitioning[he_id];
             // add all vertices (replicas) to partition
             for(int ii=0; ii < tokens.size(); ii++) {
@@ -951,14 +999,16 @@ namespace PRAW {
 
         // Check balance guarantee 
         // The parallel algorithm is guaranteed to reach load imbalance tolerance if the hypergraphs safisfies:
-        //      (num_processes * 2 - 1)  <= imbalance_tolerance * num_vertices / num_processes
-        if((num_processes * 2 - 1) > imbalance_tolerance * num_vertices / num_processes) {
-            int max_processes_for_guarantee = floor(0.25f * (1 + sqrt(8 * num_vertices * imbalance_tolerance + 1)));
-            int min_hgraph_size = ceil((pow(192,2) * 2 - 192) / imbalance_tolerance);
-            printf("Current run is not guaranteed to reach load imbalance tolerance. Decrease the number of processes to %i.\nWith %i processes, %i vertices are required for guarantee\n",
-                            max_processes_for_guarantee,num_processes,min_hgraph_size);
-        }
-        
+        //      num_processes <= floor(sqrt(imbalance_tolerance * num_vertices - num_vertices))
+        if(num_processes > floor(sqrt(imbalance_tolerance * num_vertices - num_vertices))) {
+            int p = num_processes;
+            int v = num_vertices;
+            float i = imbalance_tolerance;
+            int max_processes_for_guarantee = floor(sqrt(v * i - v));
+            int min_hgraph_size = pow(p,2) / (i - 1);
+            printf("WARNING: Current run is not guaranteed to reach load imbalance tolerance. Decrease the number of processes to %i.\nWith %i processes, %i vertices are required for guarantee\n",
+                            max_processes_for_guarantee,p,min_hgraph_size);
+        }        
 
         // each process must read from file only the info relevant to its data
         // 3 - Initiate N number of iterations on each process:
@@ -1002,12 +1052,12 @@ namespace PRAW {
             total_workload += vtx_wgt[ii];
             
         }
-        double maxload = part_load[0];
+        /*double maxload = part_load[0];
         double minload = part_load[0];
         for(int ll=0; ll < num_processes; ll++) {
             if(part_load[ll] > maxload) maxload = part_load[ll];
             if(part_load[ll] < minload) minload = part_load[ll];
-        }
+        }*/
         double expected_workload = total_workload / num_processes;
         
         for(int iter=0; iter < iterations; iter++) {
@@ -1085,8 +1135,8 @@ namespace PRAW {
                         if(partitioning[id] != dest_partition) {
                             part_load[partitioning[id]] -= 1;
                             part_load[dest_partition] += 1;
-                            if(part_load[dest_partition] > maxload) maxload = part_load[dest_partition];
-                            if(part_load[partitioning[id]] < minload) minload = part_load[partitioning[id]];
+                            //if(part_load[dest_partition] > maxload) maxload = part_load[dest_partition];
+                            //if(part_load[partitioning[id]] < minload) minload = part_load[partitioning[id]];
                             partitioning[id] = dest_partition;
                         }
                     }
@@ -1651,7 +1701,7 @@ namespace PRAW {
         // create shared data structures (partitions workload, list of replica destinations for each vertex, partial degree for each vertex)
         long int* part_load = (long int*)calloc(num_processes, sizeof(long int));
         int* he_mappings = (int*)malloc(num_processes * sizeof(int));
-                    
+
         int iterations = 5;
         for(int iter=0; iter < iterations; iter++) {
 
@@ -1701,16 +1751,21 @@ namespace PRAW {
             double remote_sync = 0;
             double current_timer;
             while(std::getline(istream,line)) {
-                current_timer = MPI_Wtime();
-                std::istringstream buf(line);
-                std::istream_iterator<int> beg(buf), end;
-                std::vector<int> vertices(beg, end);
-                remote_sync += MPI_Wtime() - current_timer;
+                char str[line.length() + 1]; 
+                strcpy(str, line.c_str()); 
+                char* token = strtok(str, " "); 
+                std::vector<int> vertices;
+                while (token != NULL) { 
+                    vertices.push_back(atoi(token)); 
+                    token = strtok(NULL, " "); 
+                } 
+
                 he_batch.push_back(vertices);
                 if(he_id % num_processes == process_id) {
                     // local hyperedge, process and assign it
                     // calculate norm_part_degree for each vertex
-                    std::vector<double> normalised_part_degrees(vertices.size());
+                    //std::vector<double> normalised_part_degrees(vertices.size());
+                    double normalised_part_degrees[vertices.size()];
                     long int total_degrees = 0;
                     for(int ii=0; ii < vertices.size(); ii++) {
                         int vertex_id = vertices[ii]-1;
@@ -1756,10 +1811,11 @@ namespace PRAW {
                 
                 // synchronise data
                 if(he_id % num_processes == 0 || he_id == num_hyperedges) {
-                    // TODO if doing last batch (when he_id == num_hyperedges is true) need to ensure we are not indexing outside arrays
                     // each process sends the partition allocation for its local hyperedge
                     // each process receives the partition allocation for all other hyperedges
+                    //current_timer = MPI_Wtime();
                     MPI_Allgather(&he_mapping,1,MPI_INT,he_mappings,1,MPI_INT,MPI_COMM_WORLD);
+                    //remote_sync += MPI_Wtime() - current_timer;
                     // update local datastructures
                     for(int ii=0; ii < he_batch.size(); ii++) {
                         int dest_partition = he_mappings[ii];
@@ -1816,7 +1872,6 @@ namespace PRAW {
         // clean up
         free(part_load);
         free(he_mappings);
-
 
     }
     
