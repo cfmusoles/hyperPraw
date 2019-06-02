@@ -14,12 +14,13 @@
 class HyperedgePartitioning : public Partitioning {
 public:
 	
-	HyperedgePartitioning(char* experimentName, char* graph_file, float imbalance_tolerance, char* comm_bandwidth_file, bool parallel, bool useBandwidth, bool saveHistory) : Partitioning(graph_file,imbalance_tolerance,false) {
+	HyperedgePartitioning(char* experimentName, char* graph_file, int iterations, float imbalance_tolerance, char* comm_bandwidth_file, bool parallel, bool useBandwidth, bool saveHistory) : Partitioning(graph_file,imbalance_tolerance,false) {
 		experiment_name = experimentName;
         comm_bandwidth_filename = comm_bandwidth_file;
         isParallel = parallel;
         use_bandwidth_file = useBandwidth;
         save_partitioning_history = saveHistory;
+        max_iterations = iterations;
 	}
 	virtual ~HyperedgePartitioning() {}
 	
@@ -46,7 +47,7 @@ public:
             vtx_wgt[ii] = 1;
         }
 
-        PRAW::ParallelHyperedgePartitioning(experiment_name,partitioning, comm_cost_matrix, hgraph_name, vtx_wgt, num_hyperedges, imbalance_tolerance, save_partitioning_history);
+        PRAW::ParallelHyperedgePartitioning(experiment_name,partitioning, comm_cost_matrix, hgraph_name, vtx_wgt, num_hyperedges, max_iterations, imbalance_tolerance, save_partitioning_history);
         
         // clean up operations
         for(int ii=0; ii < num_processes; ii++) {
@@ -64,6 +65,7 @@ private:
     bool isParallel = false;
     bool use_bandwidth_file = false;
     bool save_partitioning_history; 
+    int max_iterations;
 };
 
 

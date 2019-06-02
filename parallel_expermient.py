@@ -69,9 +69,14 @@ run_experiment() {
 	H_SIM_STEPS_MULT="$4"
 	#aprun -n $PROCESSES hyperPraw -n $EXPERIMENT_NAME"_sequential" -h $HYPERGRAPH_FILE -i 100 -m 1200 -p prawS -t $E_SIM_STEPS -x $H_SIM_STEPS_MULT -s $SEED -k $MESSAGE_SIZE -o 2 -b $BM_FILE -W -c 0 -r 950
 	#sleep 1
-	aprun -n $PROCESSES hyperPraw -n $EXPERIMENT_NAME"_parallel" -h $HYPERGRAPH_FILE -i 100 -m 1200 -p prawP -t $E_SIM_STEPS -x $H_SIM_STEPS_MULT -s $SEED -k $MESSAGE_SIZE -o 2 -b $BM_FILE -W -c 0 -r 950
+	#aprun -n $PROCESSES hyperPraw -n $EXPERIMENT_NAME"_parallel" -h $HYPERGRAPH_FILE -i 100 -m 1200 -p prawP -t $E_SIM_STEPS -x $H_SIM_STEPS_MULT -s $SEED -k $MESSAGE_SIZE -o 2 -b $BM_FILE -W -c 0 -r 950
+	#sleep 1
+	#aprun -n $PROCESSES hyperPraw -n $EXPERIMENT_NAME"_zoltan" -h $HYPERGRAPH_FILE -i 100 -m 1200 -p zoltan -t $E_SIM_STEPS -x $H_SIM_STEPS_MULT -s $SEED -k $MESSAGE_SIZE -b $BM_FILE
+	#sleep 1
+
+	aprun -n 24 hyperPraw -n $EXPERIMENT_NAME"_parallel" -h $HYPERGRAPH_FILE -i 100 -m 1200 -p hyperedgeP -t $E_SIM_STEPS -x $H_SIM_STEPS_MULT -s $SEED -k $MESSAGE_SIZE 
 	sleep 1
-	aprun -n $PROCESSES hyperPraw -n $EXPERIMENT_NAME"_zoltan" -h $HYPERGRAPH_FILE -i 100 -m 1200 -p zoltan -t $E_SIM_STEPS -x $H_SIM_STEPS_MULT -s $SEED -k $MESSAGE_SIZE -b $BM_FILE -c 0
+	aprun -n 12 hyperPraw -n $EXPERIMENT_NAME"_parallel" -h $HYPERGRAPH_FILE -i 100 -m 1200 -p hyperedgeP -t $E_SIM_STEPS -x $H_SIM_STEPS_MULT -s $SEED -k $MESSAGE_SIZE
 	sleep 1
 }
 
@@ -81,20 +86,20 @@ do
 
 	#small graphs
 	#run_experiment "sat14_itox_vc1130.cnf.dual.hgr" $SEED 0 0 
-	#run_experiment "2cubes_sphere.mtx.hgr" $SEED 0 0 
-	#run_experiment "ABACUS_shell_hd.mtx.hgr" $SEED 0 0 
+	run_experiment "2cubes_sphere.mtx.hgr" $SEED 0 0 
+	run_experiment "ABACUS_shell_hd.mtx.hgr" $SEED 0 0 
 	#run_experiment "sparsine.mtx.hgr" $SEED 0 0
 	
 	#large graphs
-	run_experiment "webbase-1M.mtx.hgr" $SEED 1 0
-	run_experiment "sat14_10pipe_q0_k.cnf.dual.hgr" $SEED 1 0
-	run_experiment "sat14_11pipe_q0_k.cnf.hgr" $SEED 1 0
-	run_experiment "IMDB.mtx.hgr" $SEED 1 0
-	run_experiment "sat14_ACG-20-10p1.cnf.hgr" $SEED 1 0
-	run_experiment "tmt_unsym.mtx.hgr" $SEED 1 0
-	run_experiment "xenon2.mtx.hgr" $SEED 1 0
-	run_experiment "BenElechi1.mtx.hgr" $SEED 1 0
-	run_experiment "msdoor.mtx.hgr" $SEED 1 0
+	#run_experiment "webbase-1M.mtx.hgr" $SEED 0 0
+	#run_experiment "sat14_10pipe_q0_k.cnf.dual.hgr" $SEED 0 0 # fails with zoltan?
+	#run_experiment "sat14_11pipe_q0_k.cnf.hgr" $SEED 0 0
+	#run_experiment "IMDB.mtx.hgr" $SEED 0 0
+	#run_experiment "sat14_ACG-20-10p1.cnf.hgr" $SEED 0 0
+	#run_experiment "tmt_unsym.mtx.hgr" $SEED 0 0
+	#run_experiment "xenon2.mtx.hgr" $SEED 0 0
+	#run_experiment "BenElechi1.mtx.hgr" $SEED 0 0
+	#run_experiment "msdoor.mtx.hgr" $SEED 0 0
 
 done
 

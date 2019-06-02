@@ -1645,7 +1645,7 @@ namespace PRAW {
         std::set<int> A;  // in what partitions it has been replicated so far
     };
 
-    int ParallelHyperedgePartitioning(char* experiment_name, idx_t* partitioning, double** comm_cost_matrix, std::string hypergraph_filename, int* vtx_wgt, int num_partitions, float imbalance_tolerance, bool save_partitioning_history) {
+    int ParallelHyperedgePartitioning(char* experiment_name, idx_t* partitioning, double** comm_cost_matrix, std::string hypergraph_filename, int* vtx_wgt, int num_partitions, int max_iterations, float imbalance_tolerance, bool save_partitioning_history) {
         // Parallel Hyperedge Partitioning based algorithm
         // The goal is to assign hyperedges to partitions   
         // Minimisation goal: 
@@ -1702,8 +1702,7 @@ namespace PRAW {
         long int* part_load = (long int*)calloc(num_processes, sizeof(long int));
         int* he_mappings = (int*)malloc(num_processes * sizeof(int));
 
-        int iterations = 5;
-        for(int iter=0; iter < iterations; iter++) {
+        for(int iter=0; iter < max_iterations; iter++) {
 
             // Open stream
             std::ifstream istream(hypergraph_filename.c_str());
@@ -1813,9 +1812,9 @@ namespace PRAW {
                 if(he_id % num_processes == 0 || he_id == num_hyperedges) {
                     // each process sends the partition allocation for its local hyperedge
                     // each process receives the partition allocation for all other hyperedges
-                    //current_timer = MPI_Wtime();
+                    current_timer = MPI_Wtime();
                     MPI_Allgather(&he_mapping,1,MPI_INT,he_mappings,1,MPI_INT,MPI_COMM_WORLD);
-                    //remote_sync += MPI_Wtime() - current_timer;
+                    remote_sync += MPI_Wtime() - current_timer;
                     // update local datastructures
                     for(int ii=0; ii < he_batch.size(); ii++) {
                         int dest_partition = he_mappings[ii];
