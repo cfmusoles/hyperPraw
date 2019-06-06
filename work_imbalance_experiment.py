@@ -25,7 +25,7 @@ template_2 = '''
 template_3=''':bigmem='''
 template_4='''
 # walltime
-#PBS -l walltime=10:00:0
+#PBS -l walltime=4:00:0
 # budget code
 #PBS -A e582
 # bandwidth probing parameters
@@ -74,10 +74,10 @@ for i in $(seq 1 $TEST_REPETITIONS)
 do
 	# average computation
 	MEAN=1000
-	for IMBALANCE in $(1100 100 1800)
+	for IMBALANCE in $(1100 150 1550)
 	do
 		SEED=$RANDOM
-		for STD in $(seq 0 100 1000)
+		for STD in $(seq 0 200 1000)
 		do
 			#run_experiment "sat14_itox_vc1130.cnf.dual.hgr" $SEED 2 $IMBALANCE $MEAN $STD 
 			run_experiment "2cubes_sphere.mtx.hgr" $SEED 3 $IMBALANCE $MEAN $STD 
