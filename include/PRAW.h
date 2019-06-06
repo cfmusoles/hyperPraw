@@ -27,11 +27,13 @@
 #define PRINTF(...) 
 #endif
 
-const int MASTER_NODE = 0;
 
 typedef int64_t idx_t; // needs to probably match the type in METIS
 
 namespace PRAW {
+
+    const int MASTER_NODE = 0;
+
     std::string getFileName(std::string filePath)
     {
         int n = filePath.length();  

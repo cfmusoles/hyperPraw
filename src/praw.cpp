@@ -94,12 +94,14 @@ int main(int argc, char** argv) {
     bool save_partitioning_history = false;
     int simulation_iterations = 1;
     int hedge_sim_steps_multiplier = 1;
+    int fake_compute_time = 0;
+    int fake_compute_std = 0;
 
     // getting command line parameters
     extern char *optarg;
 	extern int optind, opterr, optopt;
 	int c;
-	while( (c = getopt(argc,argv,"n:h:i:m:b:Ws:p:t:k:o:c:r:Hq:x:")) != -1 ) {
+	while( (c = getopt(argc,argv,"n:h:i:m:b:Ws:p:t:k:o:c:r:Hq:x:f:u:")) != -1 ) {
 		switch(c) {
 			case 'n': // test name
 				experiment_name = optarg;
@@ -149,6 +151,12 @@ int main(int argc, char** argv) {
             case 'x': // simulated steps multiplier for hedge sims
 				hedge_sim_steps_multiplier = atoi(optarg);
 				break;
+            case 'f': // variation in fake computing time
+				fake_compute_time = atoi(optarg);
+				break;
+            case 'u': // variation in fake computing time
+				fake_compute_std = atoi(optarg);
+				break; 
 		}
 	}
 
@@ -196,7 +204,7 @@ int main(int argc, char** argv) {
     partition_timer = MPI_Wtime() - partition_timer;
 
     if(isVertexCentric) {
-        VertexCentricSimulation::runSimulation(experiment_name, graph_file, part_method, bandwidth_file, partition->partitioning, partition_timer, partition->num_vertices, simulation_iterations, sim_steps, hedge_sim_steps_multiplier, message_size, proportional_comm_cost);
+        VertexCentricSimulation::runSimulation(experiment_name, graph_file, part_method, bandwidth_file, partition->partitioning, partition_timer, partition->num_vertices, simulation_iterations, sim_steps, hedge_sim_steps_multiplier, fake_compute_time, fake_compute_std, message_size, proportional_comm_cost);
         
     } else {
         EdgeCentricSimulation::runSimulation(experiment_name, graph_file, part_method, bandwidth_file, partition->partitioning, partition_timer, partition->num_vertices, simulation_iterations, sim_steps, hedge_sim_steps_multiplier, message_size, proportional_comm_cost);

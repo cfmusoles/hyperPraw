@@ -9,6 +9,8 @@
 #include <cstdio>
 #include <stdlib.h>
 #include <vector>
+#include <chrono>
+#include <thread>
 #include <set>
 #include "PRAW.h"
 #include <iterator>
@@ -18,7 +20,7 @@
 namespace VertexCentricSimulation {
 
     
-    void runSimulation(char* experiment_name, char* graph_file, char* part_method, char* bandwidth_file,  idx_t* partitioning, float partition_timer, int num_vertices, int simulation_iterations, int sim_steps, int hedge_sim_steps_multiplier, int message_size, bool proportional_comm_cost) {
+    void runSimulation(char* experiment_name, char* graph_file, char* part_method, char* bandwidth_file,  idx_t* partitioning, float partition_timer, int num_vertices, int simulation_iterations, int sim_steps, int hedge_sim_steps_multiplier, int fake_compute_time, float fake_compute_std, int message_size, bool proportional_comm_cost) {
 
         int process_id;
         int num_processes;
@@ -56,6 +58,21 @@ namespace VertexCentricSimulation {
         #endif   
             
             for(int tt = 0; tt < sim_steps; tt++) {
+                // random generator used for fake computation
+                std::default_random_engine generator;
+                std::normal_distribution<double> distribution(fake_compute_time,fake_compute_std);
+
+                // fake compute based on stochastic time sleep
+                if(fake_compute_time > 0) {
+                    // do compute for every local vertex
+                    for(int vid=0; vid < num_vertices; vid++) {
+                        if(partitioning[vid] == process_id) {
+                            int t = distribution(generator);
+                            std::this_thread::sleep_for(std::chrono::microseconds(t));
+                        }
+                    }
+                }
+
                 // for each local hyperedge
                 //      if any vertex is not local, add destination to target list
                 //      send messages all to all for processes in target list plus local
@@ -87,8 +104,9 @@ namespace VertexCentricSimulation {
                     }
 
                     // why is this needed?
-                    MPI_Barrier(MPI_COMM_WORLD);
+                    //MPI_Barrier(MPI_COMM_WORLD);
                 }
+
             }
             // wait for all processes to finish
             MPI_Barrier(MPI_COMM_WORLD);
