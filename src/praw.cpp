@@ -93,7 +93,7 @@ int main(int argc, char** argv) {
     float ta_refinement = 1.0f;
     bool save_partitioning_history = false;
     int simulation_iterations = 1;
-    int hedge_sim_steps_multiplier = 1;
+    int hedge_sim_steps_multiplier = 0;
     int fake_compute_time = 0;
     int fake_compute_std = 0;
 
@@ -151,7 +151,7 @@ int main(int argc, char** argv) {
             case 'x': // simulated steps multiplier for hedge sims
 				hedge_sim_steps_multiplier = atoi(optarg);
 				break;
-            case 'f': // variation in fake computing time
+            case 'f': // mean in fake computing time
 				fake_compute_time = atoi(optarg);
 				break;
             case 'u': // variation in fake computing time

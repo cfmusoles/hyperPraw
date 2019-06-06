@@ -1,12 +1,11 @@
 # Create ARCHER job files based on parameters passed
 
-# parallel: This experiment compares praw sequential and parallel implementations. Should be able to compare quality of partitions and runtime impact
+# imbalance: This experiment demonstrates the impact of imbalance tolerance factors over runtime to show the tradeoff between imbalance tolerance and runtime improvement
 # Strategies compared:
-	# prawS: serial architecture aware
-	# prawP: parallel architecture aware
-	# zoltan: multilevel partitioning benchmark
+	# prawP with different levels of imbalance
+	# prawP with different amounts of fake compute time and std
 # stable parameters
-	# imbalance tolerance 1.2 (zoltan has 1.070 since streaming tends to reduce the imbalance significantly under the tolerance)
+	# imbalance tolerance 1.1 (zoltan has 1.070 since streaming tends to reduce the imbalance significantly under the tolerance)
 	# 100 max iterations
 	# total edge cost communication as stopping condition
 	# 0.95 tempering  refinement
@@ -63,40 +62,39 @@ run_experiment() {
 	HYPERGRAPH_FILE="$1"
 	SEED="$2"
 	E_SIM_STEPS="$3"
-	H_SIM_STEPS_MULT="$4"
-	#aprun -n $PROCESSES hyperPraw -n $EXPERIMENT_NAME"_sequential" -h $HYPERGRAPH_FILE -i 100 -m 1200 -p prawS -t $E_SIM_STEPS -x $H_SIM_STEPS_MULT -s $SEED -k $MESSAGE_SIZE -o 2 -b $BM_FILE -W -c 0 -r 950
-	#sleep 1
-	#aprun -n $PROCESSES hyperPraw -n $EXPERIMENT_NAME"_parallel" -h $HYPERGRAPH_FILE -i 100 -m 1200 -p prawP -t $E_SIM_STEPS -x $H_SIM_STEPS_MULT -s $SEED -k $MESSAGE_SIZE -o 2 -b $BM_FILE -W -c 0 -r 950
-	#sleep 1
-	#aprun -n $PROCESSES hyperPraw -n $EXPERIMENT_NAME"_zoltan" -h $HYPERGRAPH_FILE -i 100 -m 1200 -p zoltan -t $E_SIM_STEPS -x $H_SIM_STEPS_MULT -s $SEED -k $MESSAGE_SIZE -b $BM_FILE
-	#sleep 1
-
-	aprun -n 24 hyperPraw -n $EXPERIMENT_NAME"_parallel" -h $HYPERGRAPH_FILE -i 100 -m 1200 -p hyperedgeP -t $E_SIM_STEPS -x $H_SIM_STEPS_MULT -s $SEED -k $MESSAGE_SIZE 
-	sleep 1
-	aprun -n 12 hyperPraw -n $EXPERIMENT_NAME"_parallel" -h $HYPERGRAPH_FILE -i 100 -m 1200 -p hyperedgeP -t $E_SIM_STEPS -x $H_SIM_STEPS_MULT -s $SEED -k $MESSAGE_SIZE
+	IMBALANCE_TOLERANCE="$4"
+	MEAN_WORKLOAD="$5"
+	STD_WORKLOAD="$6"
+	NAME=$EXPERIMENT_NAME"_imbalance_"$IMBALANCE_TOLERANCE"_std_"$STD
+	aprun -n $PROCESSES hyperPraw -n $NAME -h $HYPERGRAPH_FILE -i 100 -m $IMBALANCE_TOLERANCE -p prawP -t $E_SIM_STEPS -s $SEED -k $MESSAGE_SIZE -o 2 -b $BM_FILE -W -r 950 -f $MEAN_WORKLOAD -u $STD_WORKLOAD
 	sleep 1
 }
 
 for i in $(seq 1 $TEST_REPETITIONS)
 do
-	SEED=$RANDOM
+	# average computation
+	MEAN=1000
+	for IMBALANCE in $(1100 100 1800)
+	do
+		SEED=$RANDOM
+		for STD in $(seq 0 100 1000)
+		do
+			#run_experiment "sat14_itox_vc1130.cnf.dual.hgr" $SEED 2 $IMBALANCE $MEAN $STD 
+			run_experiment "2cubes_sphere.mtx.hgr" $SEED 3 $IMBALANCE $MEAN $STD 
+			#run_experiment "ABACUS_shell_hd.mtx.hgr" $SEED 40 $IMBALANCE $MEAN $STD 
+			#run_experiment "sparsine.mtx.hgr" $SEED 2 $IMBALANCE $MEAN $STD
 
-	#small graphs
-	#run_experiment "sat14_itox_vc1130.cnf.dual.hgr" $SEED 0 0 
-	run_experiment "2cubes_sphere.mtx.hgr" $SEED 0 0 
-	run_experiment "ABACUS_shell_hd.mtx.hgr" $SEED 0 0 
-	#run_experiment "sparsine.mtx.hgr" $SEED 0 0
+			#large graphs
+			#run_experiment "pdb1HYS.mtx.hgr" $SEED 1 $IMBALANCE $MEAN $STD
+			#run_experiment "sat14_10pipe_q0_k.cnf.primal.hgr" $SEED 1 $IMBALANCE $MEAN $STD 
+			#run_experiment "sat14_E02F22.cnf.hgr" $SEED 2 $IMBALANCE $MEAN $STD 
+			#run_experiment "webbase-1M.mtx.hgr" $SEED 1 $IMBALANCE $MEAN $STD
+			#run_experiment "ship_001.mtx.hgr" $SEED 1 $IMBALANCE $MEAN $STD 
+			#run_experiment "sat14_atco_enc1_opt1_05_21.cnf.dual.hgr" $SEED 1 $IMBALANCE $MEAN $STD
+		done
+
+	done
 	
-	#large graphs
-	#run_experiment "webbase-1M.mtx.hgr" $SEED 0 0
-	#run_experiment "sat14_10pipe_q0_k.cnf.dual.hgr" $SEED 0 0 # fails with zoltan?
-	#run_experiment "sat14_11pipe_q0_k.cnf.hgr" $SEED 0 0
-	#run_experiment "IMDB.mtx.hgr" $SEED 0 0
-	#run_experiment "sat14_ACG-20-10p1.cnf.hgr" $SEED 0 0
-	#run_experiment "tmt_unsym.mtx.hgr" $SEED 0 0
-	#run_experiment "xenon2.mtx.hgr" $SEED 0 0
-	#run_experiment "BenElechi1.mtx.hgr" $SEED 0 0
-	#run_experiment "msdoor.mtx.hgr" $SEED 0 0
 
 done
 

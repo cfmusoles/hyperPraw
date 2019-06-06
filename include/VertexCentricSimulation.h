@@ -12,6 +12,7 @@
 #include <chrono>
 #include <thread>
 #include <set>
+#include <random>
 #include "PRAW.h"
 #include <iterator>
 #include <numeric>
@@ -56,18 +57,20 @@ namespace VertexCentricSimulation {
         #ifdef SAVE_COMM_COST
             int* sent_communication = (int*)calloc(num_processes,sizeof(int));
         #endif   
+
+            // random generator used for fake computation
+            std::default_random_engine generator;
+            std::normal_distribution<double> distribution(fake_compute_time,fake_compute_std);
             
             for(int tt = 0; tt < sim_steps; tt++) {
-                // random generator used for fake computation
-                std::default_random_engine generator;
-                std::normal_distribution<double> distribution(fake_compute_time,fake_compute_std);
-
+                
                 // fake compute based on stochastic time sleep
                 if(fake_compute_time > 0) {
                     // do compute for every local vertex
                     for(int vid=0; vid < num_vertices; vid++) {
                         if(partitioning[vid] == process_id) {
                             int t = distribution(generator);
+                            t = std::max(0,t);
                             std::this_thread::sleep_for(std::chrono::microseconds(t));
                         }
                     }
