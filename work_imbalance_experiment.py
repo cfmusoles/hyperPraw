@@ -74,7 +74,7 @@ for i in $(seq 1 $TEST_REPETITIONS)
 do
 	# average computation
 	MEAN=1000
-	for IMBALANCE in $(1100 150 1550)
+	for IMBALANCE in $(seq 1100 150 1550)
 	do
 		SEED=$RANDOM
 		for STD in $(seq 0 200 1000)
