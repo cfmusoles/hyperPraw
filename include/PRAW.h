@@ -387,9 +387,6 @@ namespace PRAW {
         // read reminder of file (one line per hyperedge)
         while(std::getline(istream,line)) {
             // each line corresponds to a hyperedge
-            /*std::istringstream buf(line);
-            std::istream_iterator<int> beg(buf), end;
-            std::vector<int> tokens(beg, end);*/
 
             char str[line.length() + 1]; 
             strcpy(str, line.c_str()); 
@@ -459,13 +456,26 @@ namespace PRAW {
         free(vertices_in_partition);
     }
 
-    // Get total edge comm cost for a vertex centric partitioning
-    void getVertexCentricEdgeCommCostFromFile(idx_t* partitioning, int num_processes, std::string hgraph_filename,double** comm_cost_matrix, // input
-                                                double* total_edge_comm_cost) { // output
+    // parallel version of the stats getter
+    void getVertexCentricPartitionStatsFromFile_parallel(idx_t* partitioning, int num_processes, int process_id, std::string hgraph_filename, int* vtx_wgt,double** comm_cost_matrix, // input
+                            float* hyperedges_cut_ratio, float* edges_cut_ratio, int* soed, float* absorption, float* max_imbalance, double* total_edge_comm_cost, double* total_hedge_comm_cost) { // output
 
         // take partitioning statistics directly from reading a graph file
         // loading the entire graph on a process should be avoided for scalability
+        *hyperedges_cut_ratio=0;
+        *edges_cut_ratio=0;
+        *soed=0;
+        *absorption=0;
+        *max_imbalance=0;
         *total_edge_comm_cost=0;
+        if(total_hedge_comm_cost != NULL) *total_hedge_comm_cost=0;
+        
+        //int* workload = (int*)calloc(num_processes,sizeof(int));
+        int total_workload = 0;
+        long int edgecut = 0;
+        int hyperedges_cut = 0;
+        long int total_edges = 0;
+        int* vertices_in_partition = (int*)calloc(num_processes,sizeof(int)); // used for absorption
         
         // get header info
         int total_vertices;
@@ -481,14 +491,137 @@ namespace PRAW {
         }
         std::string line;
 
+        // compute workload for all vertices and partitions
+        *max_imbalance = calculateImbalance(partitioning, num_processes, total_vertices, vtx_wgt);
+
         // skip header
         std::getline(istream,line);
         // read reminder of file (one line per hyperedge)
+        int current_line = 1;
         while(std::getline(istream,line)) {
             // each line corresponds to a hyperedge
-            /*std::istringstream buf(line);
-            std::istream_iterator<int> beg(buf), end;
-            std::vector<int> tokens(beg, end);*/
+            current_line++;
+            if(current_line % num_processes != process_id) continue;
+
+            char str[line.length() + 1]; 
+            strcpy(str, line.c_str()); 
+            char* token = strtok(str, " "); 
+            std::vector<int> tokens;
+            while (token != NULL) { 
+                tokens.push_back(atoi(token)); 
+                token = strtok(NULL, " "); 
+            } 
+
+            std::set<int> connectivity;
+            memset(vertices_in_partition,0,sizeof(int) * num_processes);
+            for(int ff=0; ff < tokens.size(); ff++) {
+                // each vertex in the hyperedge
+                int from = tokens[ff]-1;
+                connectivity.insert(partitioning[from]);
+                vertices_in_partition[partitioning[from]]++;
+                for(int tt=0; tt < tokens.size(); tt++) {
+                    if(tt==ff) continue;
+                    int to = tokens[tt]-1;
+                    total_edges++;
+                    int to_part = partitioning[to];
+                    //vertices_in_partition[to_part]++;
+                    if(to_part != partitioning[from]) {
+                        edgecut++;
+                        connectivity.insert(to_part);
+                    }
+                    // this cost measures mainly edge cut
+                    if(comm_cost_matrix != NULL) {
+                        *total_edge_comm_cost += comm_cost_matrix[partitioning[from]][to_part];
+                    }
+                }
+            }
+            // metrics per hyperedge
+            if(connectivity.size() > 1) {
+                *soed += connectivity.size(); // counts as 1 external degree per partition participating
+                hyperedges_cut++;
+                if(total_hedge_comm_cost != NULL) {
+                // communication cost based on hyperedge cut
+                    for (std::set<int>::iterator sender=connectivity.begin(); sender!=connectivity.end(); ++sender) {
+                        int sender_id = *sender;
+                        for (std::set<int>::iterator receiver=connectivity.begin(); receiver!=connectivity.end(); ++receiver) {
+                            int receiver_id = *receiver;    
+                            if (sender_id != receiver_id)
+                                *total_hedge_comm_cost += comm_cost_matrix[sender_id][receiver_id];
+                        }
+                    }
+                }
+            }
+            if(tokens.size() > 1) {
+                for(int pp = 0; pp < num_processes; pp++) {
+                    if(vertices_in_partition[pp] == 0) continue;
+                    *absorption += (float)(vertices_in_partition[pp]-1) / (float)(tokens.size()-1);
+                } 
+            }
+            
+        }
+        istream.close();
+
+        // gather parallel results
+        int32_t total_hedgecut = 0;
+        MPI_Allreduce(&hyperedges_cut,&total_hedgecut,1,MPI_INT,MPI_SUM,MPI_COMM_WORLD);
+        hyperedges_cut = total_hedgecut;
+        long int total_edgecut = 0;
+        MPI_Allreduce(&edgecut,&total_edgecut,1,MPI_LONG,MPI_SUM,MPI_COMM_WORLD);
+        edgecut = total_edgecut;
+        long int sum_edges = 0;
+        MPI_Allreduce(&total_edges,&sum_edges,1,MPI_LONG,MPI_SUM,MPI_COMM_WORLD);
+        total_edges = sum_edges;
+        int total_soed = 0;
+        MPI_Allreduce(soed,&total_soed,1,MPI_INT,MPI_SUM,MPI_COMM_WORLD);
+        *soed = total_soed;
+        float total_absorption = 0;
+        MPI_Allreduce(absorption,&total_absorption,1,MPI_FLOAT,MPI_SUM,MPI_COMM_WORLD);
+        *absorption = total_absorption;
+        double total_edgecost = 0;
+        MPI_Allreduce(total_edge_comm_cost,&total_edgecost,1,MPI_DOUBLE,MPI_SUM,MPI_COMM_WORLD);
+        *total_edge_comm_cost = total_edgecost;
+        if(total_hedge_comm_cost != NULL) {
+            double total_hedgecost = 0;
+            MPI_Allreduce(total_hedge_comm_cost,&total_hedgecost,1,MPI_DOUBLE,MPI_SUM,MPI_COMM_WORLD);
+            *total_hedge_comm_cost = total_hedgecost;
+        }
+
+
+        *hyperedges_cut_ratio=(float)hyperedges_cut/total_hyperedges;
+        *edges_cut_ratio=(float)edgecut/total_edges;
+        
+
+        if(process_id == MASTER_NODE)
+            PRINTF("Quality: %i (hedgecut, %.3f total) %.3f (cut net), %i (SOED), %.1f (absorption) %.3f (max imbalance), %f (edge comm cost),, %f (hedge comm cost)\n",hyperedges_cut,*hyperedges_cut_ratio,*edges_cut_ratio,*soed,*absorption,*max_imbalance,*total_edge_comm_cost,total_hedge_comm_cost == NULL ? 0 : *total_hedge_comm_cost);
+        
+        // clean up
+        free(vertices_in_partition);
+    }
+
+    // Get total edge comm cost for a vertex centric partitioning
+    void getVertexCentricEdgeCommCostFromFile(idx_t* partitioning, int num_processes, int process_id, std::string hgraph_filename,double** comm_cost_matrix, // input
+                                                double* total_edge_comm_cost) { // output
+
+        // take partitioning statistics directly from reading a graph file
+        // loading the entire graph on a process should be avoided for scalability
+        *total_edge_comm_cost=0;
+        
+        std::ifstream istream(hgraph_filename.c_str());
+
+        if(!istream) {
+            printf("Error while opening hMETIS file %s\n",hgraph_filename.c_str());
+            return;
+        }
+        std::string line;
+
+        // skip header
+        std::getline(istream,line);
+        // read reminder of file (one line per hyperedge)
+        int current_line = 0;
+        while(std::getline(istream,line)) {
+            current_line++;
+            if(current_line % num_processes != process_id) continue;
+            // each line corresponds to a hyperedge
 
             char str[line.length() + 1]; 
             strcpy(str, line.c_str()); 
@@ -514,6 +647,11 @@ namespace PRAW {
             }            
         }
         istream.close();
+        
+        // gather all parallel counts
+        double total_cost = 0;
+        MPI_Allreduce(total_edge_comm_cost,&total_cost,1,MPI_DOUBLE,MPI_SUM,MPI_COMM_WORLD);
+        *total_edge_comm_cost = total_cost;
         
     }
 
@@ -888,13 +1026,10 @@ namespace PRAW {
                         // get cut metric
                         if(!save_partitioning_history) {
                             // getting all metrics (way too expensive)
-                            PRAW::getVertexCentricPartitionStatsFromFile(partitioning, num_processes, hypergraph_filename, NULL,comm_cost_matrix,
+                            PRAW::getVertexCentricPartitionStatsFromFile(partitioning, num_processes,hypergraph_filename, NULL,comm_cost_matrix,
                                         &hyperedges_cut_ratio, &edges_cut_ratio, &soed, &absorption, &max_imbalance, 
                                         &total_edge_comm_cost,
                                         stopping_condition == 3 ? &total_hedge_comm_cost : NULL); // only check hedge cost if it's going to be used
-                            /*// getting only the stats that are being monitored (cut metric)
-                                PRAW::getVertexCentricEdgeCommCostFromFile(partitioning, num_processes, hypergraph_filename,comm_cost_matrix,
-                                                                    &total_edge_comm_cost);*/
                         }
                         double cut_metric;
                         if(stopping_condition == 1) cut_metric = hyperedges_cut_ratio + edges_cut_ratio;//hyperedges_cut_ratio + edges_cut_ratio;
@@ -1098,15 +1233,17 @@ namespace PRAW {
                     // where are neighbours located
                     // new communication cost incurred
                     
-                    // does not double count vertices that are present in multiple hyperedges
-                    // communication cost should be based on hedge cut?
+                    // does double count vertices that are present in multiple hyperedges
                     for(int he = 0; he < hedge_ptr[vid].size(); he++) {
                         int he_id = hedge_ptr[vid][he];
-                        for(int vt = 0; vt < hyperedges[he_id].size(); vt++) {
-                            int dest_vertex = hyperedges[he_id][vt];
+                        int cardinality = hyperedges[he_id].size();
+                        for(int vt = 0; vt < cardinality; vt++) {
+                            /*int dest_vertex = hyperedges[he_id][vt];
                             if(dest_vertex == vid) continue;
                             int dest_part = partitioning[dest_vertex];
-                            current_neighbours_in_partition[dest_part] += 1;
+                            current_neighbours_in_partition[dest_part] += 1;*/
+                            if(hyperedges[he_id][vt] == vid) continue;
+                            current_neighbours_in_partition[partitioning[hyperedges[he_id][vt]]] += 1;
                         }
                     }
                 
@@ -1177,21 +1314,22 @@ namespace PRAW {
             float max_imbalance;
             double total_edge_comm_cost;
             double total_hedge_comm_cost;
-            if(save_partitioning_history && process_id == MASTER_NODE) {
-                PRAW::getVertexCentricPartitionStatsFromFile(partitioning, num_processes, hypergraph_filename, NULL,comm_cost_matrix,
+            if(save_partitioning_history) {
+                PRAW::getVertexCentricPartitionStatsFromFile_parallel(partitioning, num_processes,process_id,hypergraph_filename, NULL,comm_cost_matrix,
                             &hyperedges_cut_ratio, &edges_cut_ratio, &soed, &absorption, &max_imbalance, 
                             &total_edge_comm_cost,
                             stopping_condition == 3 ? &total_hedge_comm_cost : NULL); // only check hedge cost if it's going to be used
-                FILE *fp = fopen(history_file.c_str(), "ab+");
-                if(fp == NULL) {
-                    printf("Error when storing partitioning history into file\n");
-                } else {
-                    fprintf(fp,"%.3f,%.3f,%.3f,%i,%.3f,%.3f,%.3f\n",imbalance,hyperedges_cut_ratio,edges_cut_ratio,soed,absorption,total_edge_comm_cost,total_hedge_comm_cost);
+                if(process_id == MASTER_NODE) {
+                    FILE *fp = fopen(history_file.c_str(), "ab+");
+                    if(fp == NULL) {
+                        printf("Error when storing partitioning history into file\n");
+                    } else {
+                        fprintf(fp,"%.3f,%.3f,%.3f,%i,%.3f,%.3f,%.3f\n",imbalance,hyperedges_cut_ratio,edges_cut_ratio,soed,absorption,total_edge_comm_cost,total_hedge_comm_cost);
+                    }
+                    fclose(fp);
                 }
-                fclose(fp);
             }
 
-            
             // stop the process in the following conditions
             //  1. imbalance tolerance has been reached
             //      record current cut metric and partitioning and do one more iteration
@@ -1206,17 +1344,17 @@ namespace PRAW {
                     }
                 } else {
                     if (imbalance < imbalance_tolerance) {
+                        // checking the quality of partitioning in parallel is faster than leaving it to the master node alone
+                        if(!save_partitioning_history) {
+                            PRAW::getVertexCentricEdgeCommCostFromFile(partitioning, num_processes, process_id, hypergraph_filename,comm_cost_matrix,
+                                                                   &total_edge_comm_cost);
+                            /*PRAW::getVertexCentricPartitionStatsFromFile_parallel(partitioning, num_processes,process_id,hypergraph_filename, NULL,comm_cost_matrix,
+                                                    &hyperedges_cut_ratio, &edges_cut_ratio, &soed, &absorption, &max_imbalance, 
+                                                    &total_edge_comm_cost,
+                                                    stopping_condition == 3 ? &total_hedge_comm_cost : NULL); // only check hedge cost if it's going to be used
+                            */
+                        }
                         if(process_id == MASTER_NODE) {
-                            // get cut metric
-                            if(!save_partitioning_history) {
-                                // getting all metrics (way too expensive)
-                                /*PRAW::getVertexCentricPartitionStatsFromFile(partitioning, num_processes, hypergraph_filename, NULL,comm_cost_matrix,
-                                            &hyperedges_cut_ratio, &edges_cut_ratio, &soed, &absorption, &max_imbalance, 
-                                            &total_edge_comm_cost,NULL);*/
-                                // getting only the stats that are being monitored (cut metric)
-                                PRAW::getVertexCentricEdgeCommCostFromFile(partitioning, num_processes, hypergraph_filename,comm_cost_matrix,
-                                                                    &total_edge_comm_cost);
-                            }
                             double cut_metric = ceil(total_edge_comm_cost);//hyperedges_cut_ratio;
 
                             if(!check_overfit) {
