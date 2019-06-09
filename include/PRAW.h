@@ -1196,7 +1196,7 @@ namespace PRAW {
         float last_cut_metric;
         bool rollback = false;
         float last_imbalance = num_processes;
-
+        
         memset(part_load,0,num_processes * sizeof(long int));
         double total_workload = 0;
         for(int ii=0; ii < num_vertices; ii++) {
@@ -1287,8 +1287,8 @@ namespace PRAW {
                         int id = vid + 1 - last_partition_update + ii;
                         int dest_partition = v_mappings[ii];
                         if(partitioning[id] != dest_partition) {
-                            part_load[partitioning[id]] -= 1;
-                            part_load[dest_partition] += 1;
+                            part_load[partitioning[id]] -= vtx_wgt[id];
+                            part_load[dest_partition] += vtx_wgt[id];
                             //if(part_load[dest_partition] > maxload) maxload = part_load[dest_partition];
                             //if(part_load[partitioning[id]] < minload) minload = part_load[partitioning[id]];
                             partitioning[id] = dest_partition;
@@ -1406,7 +1406,6 @@ namespace PRAW {
 
             // update parameters
             if(imbalance > imbalance_tolerance) {
-                //if(a < 1.0) a += 0.02;
                 if(imbalance > ta_start) {
                     a *= imbalance;
                 } else {
@@ -1415,7 +1414,6 @@ namespace PRAW {
                 
             } else {
                 a *= ta_refine;
-                //if(a > 0) a -= 0.01;
             }
             last_imbalance = imbalance;
         }
