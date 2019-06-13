@@ -1204,13 +1204,13 @@ namespace PRAW {
             total_workload += vtx_wgt[ii];
             
         }
+        double expected_workload = total_workload / num_processes;
         /*double maxload = part_load[0];
         double minload = part_load[0];
         for(int ll=0; ll < num_processes; ll++) {
             if(part_load[ll] > maxload) maxload = part_load[ll];
             if(part_load[ll] < minload) minload = part_load[ll];
         }*/
-        double expected_workload = total_workload / num_processes;
         
         for(int iter=0; iter < iterations; iter++) {
             
@@ -1250,8 +1250,6 @@ namespace PRAW {
                     // allocate vertex (for local heuristically, for non local speculatively)
                     double max_value = std::numeric_limits<double>::lowest();
                     best_partition = partitioning[vid];
-                    double maxcost = 0;
-                    double mincost = std::numeric_limits<int>::max();
                     for(int pp=0; pp < num_processes; pp++) {
                         // total cost of communication (edgecuts * number of participating partitions)
                         long int total_comm_cost = 0;
@@ -1844,9 +1842,9 @@ namespace PRAW {
         //      Partial degree? (experiment with and without)
 
         // Parameters (from HDRF, Petroni 2015)
-        float lambda = 1.15f;
+        float lambda = 0.5f;
         // own parameters
-        float lambda_update = 0.5f;
+        float lambda_update = 0.1f;
 
         int process_id;
         MPI_Comm_rank(MPI_COMM_WORLD,&process_id);
@@ -1856,6 +1854,16 @@ namespace PRAW {
         // create shared data structures (partitions workload, list of replica destinations for each vertex, partial degree for each vertex)
         long int* part_load = (long int*)calloc(num_processes, sizeof(long int));
         int* he_mappings = (int*)malloc(num_processes * sizeof(int));
+        double max_comm_cost = 0;
+        for(int ff=0; ff < num_processes; ff++) {
+            double current_max_cost = 0;
+            for(int tt=0; tt < num_processes; tt++) {
+                current_max_cost += comm_cost_matrix[ff][tt];
+            }
+            if(current_max_cost > max_comm_cost) {
+                max_comm_cost = current_max_cost;
+            }
+        }
 
         for(int iter=0; iter < max_iterations; iter++) {
 
@@ -1926,11 +1934,11 @@ namespace PRAW {
                     long int total_degrees = 0;
                     for(int ii=0; ii < vertices.size(); ii++) {
                         int vertex_id = vertices[ii]-1;
-                        normalised_part_degrees[ii] = seen_vertices[vertex_id].partial_degree;
+                        normalised_part_degrees[ii] = std::max(seen_vertices[vertex_id].partial_degree,1); // if vertex is newly seen, it will be counted in the next sync. But count it here too
                         total_degrees += normalised_part_degrees[ii];
                     }
                     for(int ii=0; ii < vertices.size(); ii++) {
-                        normalised_part_degrees[ii] /= total_degrees;
+                        normalised_part_degrees[ii] /= total_degrees;                
                     }
                     // calculate C_rep(he) per partition per vertex
                     //      sum 1 + (1-norm_part_degree(v)) if p exists in A(v)
@@ -1942,17 +1950,31 @@ namespace PRAW {
                     int best_partition = 0;
                     for(int pp=0; pp < num_processes; pp++) {
                         double c_rep = 0;
+                        double c_comm = 0;
                         for(int vv=0; vv < vertices.size(); vv++) {
                             int vertex_id = vertices[vv]-1;
-                            bool present_in_partition = seen_vertices[vertex_id].A.find(pp) != seen_vertices[vertex_id].A.end();
+                            bool present_in_partition = false;
+                            std::set<int>::iterator it;
+                            for (it = seen_vertices[vertex_id].A.begin(); it != seen_vertices[vertex_id].A.end(); ++it)
+                            {
+                                int part = *it;
+                                present_in_partition |= part == pp;
+                                // communication should be proportional to the duplication of vertices
+                                // if a vertex is duplicated in two partitions, then communication will happen across those partitions
+                                c_comm += comm_cost_matrix[pp][part];
+                            }
                             c_rep += present_in_partition ? 1 + (1 - normalised_part_degrees[vv]) : 0;
                         }
+                        // c_rep and c_comm must be normalised to avoid them dominating the final equation
+                        c_comm = 1 - c_comm/(max_comm_cost * vertices.size());
+                        c_rep = c_rep/(vertices.size()*2);
+
                         double c_bal = lambda * (maxsize - part_load[pp]) / (0.1 + maxsize - minsize);
-
-                        // MISSING: Add comm cost into the equation (C_comm)
-
+                        //printf("%f, %f, %f\n",c_rep,c_bal,c_comm);
+                        
+                        
                         // assign to partition that maximises C_rep + C_bal
-                        double current_value = c_rep + c_bal;
+                        double current_value = c_rep + c_bal + c_comm;
                         if(current_value > max_value) {
                             max_value = current_value;
                             best_partition = pp;

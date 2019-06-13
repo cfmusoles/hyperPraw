@@ -24,6 +24,43 @@ namespace EdgeCentricSimulation {
         MPI_Comm_rank(MPI_COMM_WORLD,&process_id);
         MPI_Comm_size(MPI_COMM_WORLD,&num_processes);
 
+        // load graph and get vertex replicas
+        std::ifstream istream(graph_file);
+            
+        if(!istream) {
+            printf("Error while opening hMETIS file %s\n",graph_file);
+        }
+        std::string line;
+        // process header
+        std::getline(istream,line);
+        char str[line.length() + 1]; 
+        strcpy(str, line.c_str()); 
+        char* token = strtok(str, " "); 
+        std::vector<int> tokens;
+        while (token != NULL) { 
+            tokens.push_back(atoi(token)); 
+            token = strtok(NULL, " "); 
+        } 
+        num_vertices = tokens[1];
+        int num_hyperedges = tokens[0];
+
+        std::vector<std::set<int> > vertex_replicas(num_vertices);
+        int current_hyperedge = 0;
+
+        while(std::getline(istream,line)) {
+            char str[line.length() + 1]; 
+            strcpy(str, line.c_str()); 
+            char* token = strtok(str, " "); 
+            std::vector<int> vertices;
+            while (token != NULL) { 
+                int vid = atoi(token) - 1;
+                vertex_replicas[vid].insert(partitioning[current_hyperedge]);
+                token = strtok(NULL, " "); 
+            } 
+            current_hyperedge++;
+        }
+
+
         ////////////////////////////////////////////////////////
         // repeat simulation with same partitioning distribution
         ////////////////////////////////////////////////////////
@@ -45,8 +82,38 @@ namespace EdgeCentricSimulation {
         #endif   
             
             ////////////////////////
-            // TODO SIMULATION CODE
+            // SIMULATION CODE
             ////////////////////////
+            for(int tt = 0; tt < sim_steps; tt++) {
+                for(int vid=0; vid < num_vertices; vid++) {
+                    std::set<int>::iterator sit;
+                    for(sit =vertex_replicas[vid].begin(); sit != vertex_replicas[vid].end(); sit++) {
+                        int sender_id = *sit;
+                        if(sender_id == process_id) {
+                            // send data
+                            std::set<int>::iterator dit;
+                            for(dit =vertex_replicas[vid].begin(); dit != vertex_replicas[vid].end(); dit++) {
+                                int dest_part = *dit;
+                                if(dest_part == sender_id) continue;
+                                messages_sent++;
+        #ifdef SAVE_COMM_COST
+                                sent_communication[dest_part] += 1;
+        #endif
+                                MPI_Send(buffer,message_size,MPI_INT,dest_part,vid,MPI_COMM_WORLD);
+                            }
+                        } else {
+                            // receive data if on the list
+                            std::set<int>::iterator rit;
+                            for(rit =vertex_replicas[vid].begin(); rit != vertex_replicas[vid].end(); rit++) {
+                                int receiver_id = *rit;
+                                if(receiver_id == process_id && receiver_id != sender_id) {
+                                    MPI_Recv(buffer,message_size,MPI_INT,sender_id,vid,MPI_COMM_WORLD,MPI_STATUS_IGNORE);
+                                }
+                            }
+                        }
+                    }
+                }
+            }
 
             // wait for all processes to finish
             MPI_Barrier(MPI_COMM_WORLD);

@@ -71,9 +71,7 @@ run_experiment() {
 	#aprun -n $PROCESSES hyperPraw -n $EXPERIMENT_NAME"_zoltan" -h $HYPERGRAPH_FILE -i 100 -m 1200 -p zoltan -t $E_SIM_STEPS -x $H_SIM_STEPS_MULT -s $SEED -k $MESSAGE_SIZE -b $BM_FILE
 	#sleep 1
 
-	aprun -n 24 hyperPraw -n $EXPERIMENT_NAME"_parallel" -h $HYPERGRAPH_FILE -i 100 -m 1200 -p hyperedgeP -t $E_SIM_STEPS -x $H_SIM_STEPS_MULT -s $SEED -k $MESSAGE_SIZE 
-	sleep 1
-	aprun -n 12 hyperPraw -n $EXPERIMENT_NAME"_parallel" -h $HYPERGRAPH_FILE -i 100 -m 1200 -p hyperedgeP -t $E_SIM_STEPS -x $H_SIM_STEPS_MULT -s $SEED -k $MESSAGE_SIZE
+	aprun -n $PROCESSES hyperPraw -n $EXPERIMENT_NAME"_parallel" -h $HYPERGRAPH_FILE -i 100 -m 1200 -p hyperedgeP -t $E_SIM_STEPS -x $H_SIM_STEPS_MULT -s $SEED -k $MESSAGE_SIZE 
 	sleep 1
 }
 
@@ -88,7 +86,7 @@ do
 	#run_experiment "sparsine.mtx.hgr" $SEED 0 0
 	
 	#large graphs
-	#run_experiment "webbase-1M.mtx.hgr" $SEED 0 0
+	run_experiment "webbase-1M.mtx.hgr" $SEED 0 0
 	#run_experiment "sat14_10pipe_q0_k.cnf.dual.hgr" $SEED 0 0 # fails with zoltan?
 	#run_experiment "sat14_11pipe_q0_k.cnf.hgr" $SEED 0 0
 	#run_experiment "IMDB.mtx.hgr" $SEED 0 0

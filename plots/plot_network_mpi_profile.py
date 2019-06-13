@@ -35,6 +35,7 @@ partitioning = 'zoltan'
 test_name = 'runtime_zoltan'
 
 sim_sent_experiment = test_name + '_' + graph_name + '_' + partitioning + '_edgeSim_comm_cost__' + str(num_processes)
+#sim_sent_experiment = test_name + '_' + partitioning + '_comm_matrix_' + str(num_processes)
 
 xlabel = "Process"
 ylabel = "Process"
