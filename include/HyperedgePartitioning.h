@@ -42,12 +42,12 @@ public:
             PRAW::get_comm_cost_matrix_from_bandwidth(NULL,comm_cost_matrix,num_processes,false);
         
         // initialise vertex weight values
-        int* vtx_wgt = (int*)calloc(num_vertices,sizeof(int));
-        for(int ii =0; ii < num_vertices; ii++) {
-            vtx_wgt[ii] = 1;
+        int* he_wgt = (int*)calloc(num_hyperedges,sizeof(int));
+        for(int ii =0; ii < num_hyperedges; ii++) {
+            he_wgt[ii] = 1;
         }
 
-        PRAW::ParallelHyperedgePartitioning(experiment_name,partitioning, comm_cost_matrix, hgraph_name, vtx_wgt, num_hyperedges, max_iterations, imbalance_tolerance, save_partitioning_history);
+        PRAW::ParallelHyperedgePartitioning(experiment_name,partitioning, comm_cost_matrix, hgraph_name, he_wgt, max_iterations, imbalance_tolerance, save_partitioning_history);
         
         // clean up operations
         for(int ii=0; ii < num_processes; ii++) {
@@ -56,7 +56,7 @@ public:
         free(comm_cost_matrix);
 
         // clean up operations
-        free(vtx_wgt);
+        free(he_wgt);
 	}
 
 private:

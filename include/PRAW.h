@@ -1796,7 +1796,7 @@ namespace PRAW {
         std::set<int> A;  // in what partitions it has been replicated so far
     };
 
-    int ParallelHyperedgePartitioning(char* experiment_name, idx_t* partitioning, double** comm_cost_matrix, std::string hypergraph_filename, int* vtx_wgt, int num_partitions, int max_iterations, float imbalance_tolerance, bool save_partitioning_history) {
+    int ParallelHyperedgePartitioning(char* experiment_name, idx_t* partitioning, double** comm_cost_matrix, std::string hypergraph_filename, int* he_wgt, int max_iterations, float imbalance_tolerance, bool save_partitioning_history) {
         // Parallel Hyperedge Partitioning based algorithm
         // The goal is to assign hyperedges to partitions   
         // Minimisation goal: 
@@ -1998,10 +1998,10 @@ namespace PRAW {
                         int dest_partition = he_mappings[ii];
                         int he = he_id - he_since_last_update + ii;
                         // assign hyperedge to partition (may only be required for process_id 0)
-                        // update workload (TODO: not on hyperedge length, but on vertex replicas in partition)
+                        // update workload (not on hyperedge length, but on weighted hyperedge, with he_wgt)
                         if(partitioning[he] != dest_partition) {
-                            part_load[partitioning[he]] -= 1;
-                            part_load[dest_partition] += 1;
+                            part_load[partitioning[he]] -= he_wgt[he];
+                            part_load[dest_partition] += he_wgt[he];
                         }
                         partitioning[he] = dest_partition;
                         // update vertex info
