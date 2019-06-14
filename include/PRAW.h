@@ -1842,14 +1842,14 @@ namespace PRAW {
         //      Partial degree? (experiment with and without)
 
         // Parameters (from HDRF, Petroni 2015)
-        float lambda = 0.5f;
+        float lambda = 0.0f;
         // own parameters
-        float lambda_update = 0.1f;
+        float lambda_update = 0.01f;
 
         int process_id;
         MPI_Comm_rank(MPI_COMM_WORLD,&process_id);
         int num_processes;
-        MPI_Comm_size(MPI_COMM_WORLD,&num_processes);
+        MPI_Comm_size(MPI_COMM_WORLD,&num_processes); 
 
         // create shared data structures (partitions workload, list of replica destinations for each vertex, partial degree for each vertex)
         long int* part_load = (long int*)calloc(num_processes, sizeof(long int));
@@ -1890,18 +1890,38 @@ namespace PRAW {
             PRINTF("Found in file: Vertices: %i; hyperedges %i:\n",num_vertices,num_hyperedges);
 
             // initialise workload and partitioning
+            long int total_workload = 0;
             memset(part_load,0,num_processes * sizeof(long int));
             for(int ii=0; ii < num_hyperedges; ii++) {
                 int dest_partition = ii % num_processes;
-                part_load[dest_partition] += 1;
+                part_load[dest_partition] += he_wgt[ii];
                 partitioning[ii] = dest_partition;
+                total_workload += he_wgt[ii];
             }
+            
             long int maxsize = part_load[0]; // used for c_bal
             long int minsize = part_load[0]; // used for c_bal
             for(int pp=1; pp < num_processes; pp++) {
                 if(part_load[pp] > maxsize) maxsize = part_load[pp];
                 if(part_load[pp] < minsize) minsize = part_load[pp];
             }
+
+            // Check balance guarantee 
+            // The parallel algorithm is guaranteed to reach load imbalance tolerance if the hypergraphs safisfies:
+            //      total_workload * imbalance_tolerance > total_workload +  average_cardinality * p
+            //      that translates to:
+            //      num_hyperedges * (average_cardinality / num_processes) * imbalance_tolerance > num_hyperedges * average_cardinality / num_processes + average_cardinality * num_processes
+            //      which simplifies to, when solved for num_processes to: (average_cardinality is cancelled out)
+            //      num_processes < floor(sqrt(num_hyperedges * imbalance_tolerance - num_hyperedges))
+            if(num_processes >= floor(sqrt(num_hyperedges * imbalance_tolerance - num_hyperedges))) {
+                int p = num_processes;
+                float h = num_hyperedges;
+                float i = imbalance_tolerance;
+                int max_processes_for_guarantee = floor(sqrt(h * i - h));
+                int min_graph_size = pow(p,2) / (i - 1);
+                printf("WARNING: Current run is not guaranteed to reach load imbalance tolerance. Decrease the number of processes to %i.\nWith %i processes, %i hyperedges are required for guarantee\n",
+                                max_processes_for_guarantee,p,min_graph_size);
+            }      
 
             // HOW DO WE STORE AND COORDINATE THE DATASTRUCTURES? Balance between memory and communication
             // create an object Vertex that contains two variables
@@ -1969,8 +1989,7 @@ namespace PRAW {
                         c_comm = 1 - c_comm/(max_comm_cost * vertices.size());
                         c_rep = c_rep/(vertices.size()*2);
 
-                        double c_bal = lambda * (maxsize - part_load[pp]) / (0.1 + maxsize - minsize);
-                        //printf("%f, %f, %f\n",c_rep,c_bal,c_comm);
+                        double c_bal = lambda * (maxsize - part_load[pp]) / (0.0 + maxsize - minsize);
                         
                         
                         // assign to partition that maximises C_rep + C_bal
@@ -1978,6 +1997,7 @@ namespace PRAW {
                         if(current_value > max_value) {
                             max_value = current_value;
                             best_partition = pp;
+                            //printf("%f, %f, %f\n",c_rep,c_bal,c_comm);
                         }
                     }
                     he_mapping = best_partition;
@@ -2010,7 +2030,6 @@ namespace PRAW {
                             seen_vertices[vertex_id].partial_degree += 1;
                             seen_vertices[vertex_id].A.insert(dest_partition);                        
                         }
-                        
                     }
                     // update workload
                     long int max = part_load[0];
@@ -2031,7 +2050,7 @@ namespace PRAW {
             istream.close();
 
             // check for termination condition (tolerance imbalance reached)   
-            float max_imbalance = ((float)maxsize) / ((float)num_hyperedges/num_processes);
+            float max_imbalance = ((float)maxsize) / ((float)total_workload/num_processes);
             PRINTF("***Hedge imbalance: %.3f\n",max_imbalance);
 
             if(max_imbalance <= imbalance_tolerance) break;
