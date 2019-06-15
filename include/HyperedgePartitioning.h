@@ -47,7 +47,57 @@ public:
             he_wgt[ii] = 1;
         }
 
-        PRAW::ParallelHyperedgePartitioning(experiment_name,partitioning, comm_cost_matrix, hgraph_name, he_wgt, max_iterations, imbalance_tolerance, save_partitioning_history);
+        // divide original hMetis file into as many streams as processes
+        std::string hgraph_file = hgraph_name;
+        hgraph_file += "_";
+        char str_int[16];
+        sprintf(str_int,"%i",num_processes);
+        hgraph_file += str_int;
+        hgraph_file += "_";
+        sprintf(str_int,"%i",process_id);
+        hgraph_file += str_int;
+        hgraph_file += ".hgr";
+
+        PRINTF("%i: Storing model in file %s\n",process_id,hgraph_file.c_str());
+        FILE *fp = fopen(hgraph_file.c_str(), "w+");
+        
+        // load and parse full graph
+        std::ifstream istream(hgraph_name);
+        
+        if(!istream) {
+            printf("Error while opening hMETIS file %s\n",hgraph_name);
+            return;
+        }
+
+        std::string line;
+        // ignore header
+        std::getline(istream,line);
+        // write header: NUM_HYPEREDGES NUM_VERTICES
+        //  num hyperedges == number of vertices, since each hyperedge represents a presynaptic neuron and all its connecting post synaptic neighbours
+        fprintf(fp,"%i %i",num_hyperedges,num_vertices);
+        fprintf(fp,"\n");
+
+        // read reminder of file (one line per hyperedge)
+        int counter = 0;
+        while(std::getline(istream,line)) {
+            if(counter % num_processes == process_id) {
+                char str[line.length() + 1]; 
+                strcpy(str, line.c_str()); 
+                char* token = strtok(str, " "); 
+                while (token != NULL) { 
+                    fprintf(fp,"%i ",atoi(token));
+                    token = strtok(NULL, " "); 
+                }
+                fprintf(fp,"\n");
+            }
+            counter++;
+            
+        }
+        istream.close();
+        fclose(fp);
+
+
+        PRAW::ParallelHyperedgePartitioning(experiment_name,partitioning, comm_cost_matrix, hgraph_file, he_wgt, max_iterations, imbalance_tolerance, save_partitioning_history);
 
         /*std::vector<std::vector<int> > hyperedges;
         std::vector<std::vector<int> > hedge_ptr;
@@ -56,6 +106,10 @@ public:
 
         PRAW::ParallelHyperedgePartitioning(experiment_name,partitioning, comm_cost_matrix, hedge_ptr.size(), hyperedges.size(), &hyperedges, he_wgt, max_iterations, imbalance_tolerance, save_partitioning_history);
         */
+
+        // remove graph file
+        if( remove(hgraph_file.c_str()) != 0 )
+            printf( "Error deleting temporary hgraph file %s\n",hgraph_file.c_str() );
         
         // clean up operations
         for(int ii=0; ii < num_processes; ii++) {

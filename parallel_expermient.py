@@ -66,12 +66,12 @@ run_experiment() {
 	H_SIM_STEPS_MULT="$4"
 	#aprun -n $PROCESSES hyperPraw -n $EXPERIMENT_NAME"_sequential" -h $HYPERGRAPH_FILE -i 100 -m 1200 -p prawS -t $E_SIM_STEPS -x $H_SIM_STEPS_MULT -s $SEED -k $MESSAGE_SIZE -o 2 -b $BM_FILE -W -c 0 -r 950
 	#sleep 1
-	#aprun -n $PROCESSES hyperPraw -n $EXPERIMENT_NAME"_parallel" -h $HYPERGRAPH_FILE -i 100 -m 1200 -p prawP -t $E_SIM_STEPS -x $H_SIM_STEPS_MULT -s $SEED -k $MESSAGE_SIZE -o 2 -b $BM_FILE -W -c 0 -r 950
+	#aprun -n $PROCESSES hyperPraw -n $EXPERIMENT_NAME"_parallel" -h $HYPERGRAPH_FILE -i 100 -m 1200 -p prawE -t $E_SIM_STEPS -x $H_SIM_STEPS_MULT -s $SEED -k $MESSAGE_SIZE -o 2 -b $BM_FILE -W -c 0 -r 950
 	#sleep 1
 	#aprun -n $PROCESSES hyperPraw -n $EXPERIMENT_NAME"_zoltan" -h $HYPERGRAPH_FILE -i 100 -m 1200 -p zoltan -t $E_SIM_STEPS -x $H_SIM_STEPS_MULT -s $SEED -k $MESSAGE_SIZE -b $BM_FILE
 	#sleep 1
 
-	aprun -n $PROCESSES hyperPraw -n $EXPERIMENT_NAME"_parallel" -h $HYPERGRAPH_FILE -i 100 -m 1200 -p hyperedgeP -t $E_SIM_STEPS -x $H_SIM_STEPS_MULT -s $SEED -k $MESSAGE_SIZE 
+	aprun -n $PROCESSES hyperPraw -n $EXPERIMENT_NAME"_parallel" -h $HYPERGRAPH_FILE -i 100 -m 1200 -p prawV -t $E_SIM_STEPS -x $H_SIM_STEPS_MULT -s $SEED -k $MESSAGE_SIZE 
 	sleep 1
 }
 
