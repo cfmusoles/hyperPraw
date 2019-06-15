@@ -48,6 +48,14 @@ public:
         }
 
         PRAW::ParallelHyperedgePartitioning(experiment_name,partitioning, comm_cost_matrix, hgraph_name, he_wgt, max_iterations, imbalance_tolerance, save_partitioning_history);
+
+        /*std::vector<std::vector<int> > hyperedges;
+        std::vector<std::vector<int> > hedge_ptr;
+        std::string filename = hgraph_name;
+        PRAW::load_hypergraph_from_file(filename, &hyperedges, &hedge_ptr);
+
+        PRAW::ParallelHyperedgePartitioning(experiment_name,partitioning, comm_cost_matrix, hedge_ptr.size(), hyperedges.size(), &hyperedges, he_wgt, max_iterations, imbalance_tolerance, save_partitioning_history);
+        */
         
         // clean up operations
         for(int ii=0; ii < num_processes; ii++) {

@@ -173,7 +173,7 @@ int main(int argc, char** argv) {
 		PRINTF("%i: Partitioning: zoltan\n",process_id);
 		partition = new ZoltanPartitioning(graph_file,imbalance_tolerance);
         isVertexCentric = true;
-	} else if(strcmp(part_method,"prawP") == 0) {  
+	} else if(strcmp(part_method,"prawE") == 0) {  
 		PRINTF("%i: Partitioning: parallel hyperPRAW\n",process_id);
         partition = new HyperPRAWPartitioning(experiment_name,graph_file,imbalance_tolerance,ta_refinement,iterations,bandwidth_file,true,use_bandwidth_in_partitioning,true,stopping_condition,proportional_comm_cost,save_partitioning_history);
         isVertexCentric = true;
@@ -189,7 +189,7 @@ int main(int argc, char** argv) {
 		PRINTF("%i: Partitioning: sequential hyperPRAW\n",process_id);
 		partition = new HyperPRAWPartitioning(experiment_name,graph_file,imbalance_tolerance,ta_refinement,iterations,bandwidth_file,false,use_bandwidth_in_partitioning,true,stopping_condition,proportional_comm_cost,save_partitioning_history);
 	    isVertexCentric = true;
-	} else if(strcmp(part_method,"hyperedgeP") == 0) {  
+	} else if(strcmp(part_method,"prawV") == 0) {  
 		PRINTF("%i: Partitioning: parallel hyperedge partitioning\n",process_id);
 		partition = new HyperedgePartitioning(experiment_name,graph_file,iterations,imbalance_tolerance,bandwidth_file,use_bandwidth_in_partitioning,true,save_partitioning_history);
 	    isVertexCentric = false;
