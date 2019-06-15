@@ -659,8 +659,8 @@ namespace PRAW {
     // vertex replica factor
     // sim comm cost
     // imbalance
-    void getEdgeCentricPartitionStatsFromFile(idx_t* partitioning, int num_processes, std::string hgraph_filename, int* vtx_wgt,double** comm_cost_matrix, // input
-                            float* vertex_replication_factor, float* max_vertex_imbalance, float* max_hedge_imbalance, double* total_sim_comm_cost) { // output
+    void getEdgeCentricPartitionStatsFromFile(idx_t* partitioning, int num_processes, std::string hgraph_filename, int* he_wgt,double** comm_cost_matrix, // input
+                            float* vertex_replication_factor, float* max_hedge_imbalance, double* total_sim_comm_cost) { // output
 
         ////////
         // TODO
@@ -669,13 +669,10 @@ namespace PRAW {
         // take partitioning statistics directly from reading a graph file
         // loading the entire graph on a process should be avoided for scalability
         *vertex_replication_factor=0;
-        *max_vertex_imbalance=0;
         *max_hedge_imbalance=0;
         *total_sim_comm_cost=0;
         
-        int* workload = (int*)calloc(num_processes,sizeof(int));
-        int total_vertex_workload = 0;
-        int total_hedge_workload = 0;
+        long int total_workload = 0;
         
         // get header info
         int total_vertices;
@@ -701,10 +698,6 @@ namespace PRAW {
         int he_id = 0;
         while(std::getline(istream,line)) {
             // each line corresponds to a hyperedge
-            /*std::istringstream buf(line);
-            std::istream_iterator<int> beg(buf), end;
-            std::vector<int> tokens(beg, end);*/
-
             char str[line.length() + 1]; 
             strcpy(str, line.c_str()); 
             char* token = strtok(str, " "); 
@@ -720,7 +713,9 @@ namespace PRAW {
             // It depends on the modelled application
             // If the computation is proportional to number of hedges, then count number of hedges
             // Counting number of hedges:
-            hedges_size[dest_partition] += 1;
+            hedges_size[dest_partition] += he_wgt[he_id];
+            total_workload += he_wgt[he_id];
+
             // add all vertices (replicas) to partition
             for(int ii=0; ii < tokens.size(); ii++) {
                 int vertex_id = tokens[ii] - 1;
@@ -731,29 +726,20 @@ namespace PRAW {
         }
         istream.close();
 
-        // workload is proportional to number of vertex replicas in the partition
-        // total vertex replica factor is the sum of all vertex lists (of each partition) minus number vertices
+        // total vertex replica factor is the sum of all vertex lists (of each partition) over the number vertices
         for(int ii=0; ii < num_processes; ii++) {
             *vertex_replication_factor += vertex_list[ii].size();
-            total_vertex_workload += vertex_list[ii].size();
-            if(vertex_list[ii].size() > *max_vertex_imbalance) {
-                *max_vertex_imbalance = vertex_list[ii].size(); 
-            }
             if(hedges_size[ii] > *max_hedge_imbalance) {
                 *max_hedge_imbalance = hedges_size[ii];
             }
             
         }        
-        float expected_vertex_work = (float)total_vertex_workload / num_processes;
-        *max_vertex_imbalance = *max_vertex_imbalance / expected_vertex_work;
-        *max_hedge_imbalance = *max_hedge_imbalance / ((float)total_hyperedges / num_processes);
-
+        *max_hedge_imbalance = *max_hedge_imbalance / ((float)total_workload / num_processes);
         *vertex_replication_factor = *vertex_replication_factor / total_vertices;
 
-        PRINTF("Vertex replication factor: %.3f , %.3f (vertex imbalance), %.3f (hedge imbalance), %f (sim comm cost),\n",*vertex_replication_factor,*max_vertex_imbalance,*max_hedge_imbalance,*total_sim_comm_cost);
+        PRINTF("Vertex replication factor: %.3f, %.3f (hedge imbalance), %f (sim comm cost),\n",*vertex_replication_factor,*max_hedge_imbalance,*total_sim_comm_cost);
         
         // clean up
-        free(workload);
         free(hedges_size);
         
     }
@@ -1842,9 +1828,9 @@ namespace PRAW {
         //      Partial degree? (experiment with and without)
 
         // Parameters (from HDRF, Petroni 2015)
-        float lambda = 0.0f;
+        float lambda = 0.1f;
         // own parameters
-        float lambda_update = 0.01f;
+        float lambda_update = 0.1f;
 
         int process_id;
         MPI_Comm_rank(MPI_COMM_WORLD,&process_id);
@@ -1889,22 +1875,13 @@ namespace PRAW {
             
             PRINTF("Found in file: Vertices: %i; hyperedges %i:\n",num_vertices,num_hyperedges);
 
-            // initialise workload and partitioning
+            // initialise workload
+            // workload starts empty across all partitions
             long int total_workload = 0;
             memset(part_load,0,num_processes * sizeof(long int));
-            for(int ii=0; ii < num_hyperedges; ii++) {
-                int dest_partition = ii % num_processes;
-                part_load[dest_partition] += he_wgt[ii];
-                partitioning[ii] = dest_partition;
-                total_workload += he_wgt[ii];
-            }
             
             long int maxsize = part_load[0]; // used for c_bal
             long int minsize = part_load[0]; // used for c_bal
-            for(int pp=1; pp < num_processes; pp++) {
-                if(part_load[pp] > maxsize) maxsize = part_load[pp];
-                if(part_load[pp] < minsize) minsize = part_load[pp];
-            }
 
             // Check balance guarantee 
             // The parallel algorithm is guaranteed to reach load imbalance tolerance if the hypergraphs safisfies:
@@ -1965,7 +1942,7 @@ namespace PRAW {
                     // calculate C_bal(he) per partition
                     //      lambda * (maxsize - |p|) / (e + maxsize - minsize)
                     //      lambda --> > 1
-                    //      e --> not sure...
+                    //      e --> required to avoid dividing by 0 if maxsize == minsize
                     double max_value = 0;
                     int best_partition = 0;
                     for(int pp=0; pp < num_processes; pp++) {
@@ -1989,7 +1966,7 @@ namespace PRAW {
                         c_comm = 1 - c_comm/(max_comm_cost * vertices.size());
                         c_rep = c_rep/(vertices.size()*2);
 
-                        double c_bal = lambda * (maxsize - part_load[pp]) / (0.0 + maxsize - minsize);
+                        double c_bal = lambda * (maxsize - part_load[pp]) / (0.1 + maxsize - minsize);
                         
                         
                         // assign to partition that maximises C_rep + C_bal
@@ -2017,12 +1994,9 @@ namespace PRAW {
                     for(int ii=0; ii < he_batch.size(); ii++) {
                         int dest_partition = he_mappings[ii];
                         int he = he_id - he_since_last_update + ii;
-                        // assign hyperedge to partition (may only be required for process_id 0)
                         // update workload (not on hyperedge length, but on weighted hyperedge, with he_wgt)
-                        if(partitioning[he] != dest_partition) {
-                            part_load[partitioning[he]] -= he_wgt[he];
-                            part_load[dest_partition] += he_wgt[he];
-                        }
+                        part_load[dest_partition] += he_wgt[he];
+                        total_workload += he_wgt[he];
                         partitioning[he] = dest_partition;
                         // update vertex info
                         for(int vv=0; vv < he_batch[ii].size(); vv++) {
