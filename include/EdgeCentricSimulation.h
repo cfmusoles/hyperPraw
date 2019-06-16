@@ -149,7 +149,7 @@ namespace EdgeCentricSimulation {
                 // calculate partitioning stats
                 float vertex_replication_factor;
                 float max_hedge_imbalance;
-                double total_sim_comm_cost;
+                float hedgecut;
                 
                 std::string filename = graph_file;
 
@@ -159,9 +159,9 @@ namespace EdgeCentricSimulation {
                 }
                 
                 PRAW::getEdgeCentricPartitionStatsFromFile(partitioning, num_processes, filename, he_wgt,comm_cost_matrix,
-                                        &vertex_replication_factor, &max_hedge_imbalance, &total_sim_comm_cost);
+                                        &vertex_replication_factor, &max_hedge_imbalance, &hedgecut);
                 
-                printf("Partition time %.2fs\nVertex replication factor %.3f, %.3f (hedge imbalance), %.0f (sim comm cost), \nMessages sent %li\n",partition_timer,vertex_replication_factor,max_hedge_imbalance,total_sim_comm_cost,total_edge_messages_sent);
+                printf("Partition time %.2fs\nVertex replication factor %.3f, %.3f (hedge imbalance), %.3f (hyperedge cut)\nMessages sent %li\n",partition_timer,vertex_replication_factor,max_hedge_imbalance,hedgecut,total_edge_messages_sent);
                 
                 // store stats in file
                 filename = experiment_name;
@@ -180,8 +180,8 @@ namespace EdgeCentricSimulation {
                     printf("Error when storing results into file\n");
                 } else {
                     if(!fileexists) // file does not exist, add header
-                        fprintf(fp,"%s,%s,%s,%s,%s,%s\n","Partition time","Sim time","Vertex replication factor","Hedge imbalance","Sim Comm cost","Sim Messages sent");
-                    fprintf(fp,"%.3f,%.3f,%.3f,%.3f,%.0f,%li\n",partition_timer,total_edge_sim_time,vertex_replication_factor,max_hedge_imbalance,total_sim_comm_cost,total_edge_messages_sent);
+                        fprintf(fp,"%s,%s,%s,%s,%s,%s\n","Partition time","Sim time","Vertex replication factor","Hedge imbalance","Hedgecut","Sim Messages sent");
+                    fprintf(fp,"%.3f,%.3f,%.3f,%.3f,%.0f,%li\n",partition_timer,total_edge_sim_time,vertex_replication_factor,max_hedge_imbalance,hedgecut,total_edge_messages_sent);
                 }
                 fclose(fp);
 

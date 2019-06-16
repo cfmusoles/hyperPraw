@@ -72,7 +72,7 @@ run_experiment() {
 	aprun -n $PROCESSES hyperPraw -n $EXPERIMENT_NAME"_zoltan" -h $HYPERGRAPH_FILE -i 100 -m 1200 -p zoltan -t $E_SIM_STEPS -x $H_SIM_STEPS_MULT -s $SEED -k $MESSAGE_SIZE -b $BM_FILE
 	sleep 1
 
-	aprun -n $PROCESSES hyperPraw -n $EXPERIMENT_NAME"_parallel" -h $HYPERGRAPH_FILE -i 100 -m 1200 -p prawV -t $E_SIM_STEPS -x $H_SIM_STEPS_MULT -s $SEED -k $MESSAGE_SIZE 
+	aprun -n $PROCESSES hyperPraw -n $EXPERIMENT_NAME"_parallel" -h $HYPERGRAPH_FILE -i 100 -m 1200 -p prawV -t $E_SIM_STEPS -x $H_SIM_STEPS_MULT -s $SEED -k $MESSAGE_SIZE -H
 	sleep 1
 }
 
@@ -95,7 +95,7 @@ do
 	run_experiment "tmt_unsym.mtx.hgr" $SEED 1 0
 	run_experiment "xenon2.mtx.hgr" $SEED 1 0
 	#run_experiment "BenElechi1.mtx.hgr" $SEED 0 0
-	run_experiment "msdoor.mtx.hgr" $SEED 0 0
+	run_experiment "msdoor.mtx.hgr" $SEED 1 0
 
 done
 

@@ -680,17 +680,13 @@ namespace PRAW {
     // sim comm cost
     // imbalance
     void getEdgeCentricPartitionStatsFromFile(idx_t* partitioning, int num_processes, std::string hgraph_filename, int* he_wgt,double** comm_cost_matrix, // input
-                            float* vertex_replication_factor, float* max_hedge_imbalance, double* total_sim_comm_cost) { // output
-
-        ////////
-        // TODO
-        ///////
+                            float* vertex_replication_factor, float* max_hedge_imbalance, float* hedgecut) { // output
 
         // take partitioning statistics directly from reading a graph file
         // loading the entire graph on a process should be avoided for scalability
         *vertex_replication_factor=0;
         *max_hedge_imbalance=0;
-        *total_sim_comm_cost=0;
+        *hedgecut=0;
         
         long int total_workload = 0;
         
@@ -757,7 +753,40 @@ namespace PRAW {
         *max_hedge_imbalance = *max_hedge_imbalance / ((float)total_workload / num_processes);
         *vertex_replication_factor = *vertex_replication_factor / total_vertices;
 
-        PRINTF("Vertex replication factor: %.3f, %.3f (hedge imbalance), %f (sim comm cost),\n",*vertex_replication_factor,*max_hedge_imbalance,*total_sim_comm_cost);
+        // calculate hedgecut
+        // a hyperedge is cut if at least one of its vertices is replicated in more than one partition
+        std::ifstream istream2(hgraph_filename.c_str());
+        // skip header
+        std::getline(istream2,line);
+        // read reminder of file (one line per hyperedge)
+        int hedges_cut = 0;
+        while(std::getline(istream2,line)) {
+            // each line corresponds to a hyperedge
+            char str[line.length() + 1]; 
+            strcpy(str, line.c_str()); 
+            char* token = strtok(str, " "); 
+            while (token != NULL) { 
+                int vertex_id = atoi(token) - 1; 
+                int counter = 0;
+                for(int pp=0; pp < num_processes; pp++) {
+                    if(vertex_list[pp].find(vertex_id) != vertex_list[pp].end()) counter++;
+                    if(counter > 1) {
+                        break;
+                    }
+                }
+                if(counter > 1) {
+                    hedges_cut++;
+                    break;
+                }
+                token = strtok(NULL, " "); 
+            } 
+        }
+        istream2.close();  
+
+        *hedgecut = (float)hedges_cut / total_hyperedges;      
+
+
+        PRINTF("Vertex replication factor: %.3f, %.3f (hedge imbalance) %.3f (hyperedge cut)\n",*vertex_replication_factor,*max_hedge_imbalance,*hedgecut);
         
         // clean up
         free(hedges_size);
@@ -1905,8 +1934,8 @@ namespace PRAW {
                         double c_bal = lambda * (maxsize - part_load[pp]) / (0.1 + maxsize - minsize);
                         
                         
-                        // assign to partition that maximises C_rep + C_bal
-                        double current_value = c_rep + c_bal + c_comm;
+                        // assign to partition that maximises C_rep + C_bal + C_comm
+                        double current_value = c_rep + c_comm + c_bal ;
                         if(current_value > max_value) {
                             max_value = current_value;
                             best_partition = pp;

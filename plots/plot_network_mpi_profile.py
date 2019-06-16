@@ -8,11 +8,11 @@ from mpl_toolkits.mplot3d import Axes3D
 from matplotlib.ticker import LinearLocator, FormatStrFormatter
 from pylab import *
 
-num_processes = 144
+num_processes = 12
 plot_bandwidth = True			# plot network bandwidth data
 plot_sent_data = True			# plot application sent data
 plot_comm_cost = False			# plot combined comm cost
-storeResults = True
+storeResults = False
 log_scale = True
 show_title = False
 
@@ -27,12 +27,16 @@ show_title = False
 # "sat14_E02F22.cnf.hgr" $SEED 3 1 #Y
 # "webbase-1M.mtx.hgr" $SEED 1 1 #Y
 # "ship_001.mtx.hgr" $SEED 1 30 #Y # hedge sim is too short
+#
+# msdoor.mtx.hgr
+# xenon2.mtx.hgr
+# tmt_unsym.mtx.hgr
 
-folder = "../results/runtime/"
-bandwidth_send_experiment_name = 'results_mpi_send_bandwidth_3_' + str(num_processes)
-graph_name = "sparsine.mtx.hgr"
-partitioning = 'zoltan'
-test_name = 'runtime_zoltan'
+folder = ""
+bandwidth_send_experiment_name = 'results_mpi_send_bandwidth_' + str(num_processes)
+graph_name = "sat14_E02F20.cnf.hgr"
+partitioning = 'prawV'
+test_name = 'test_default'
 
 sim_sent_experiment = test_name + '_' + graph_name + '_' + partitioning + '_edgeSim_comm_cost__' + str(num_processes)
 #sim_sent_experiment = test_name + '_' + partitioning + '_comm_matrix_' + str(num_processes)
