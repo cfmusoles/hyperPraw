@@ -8,7 +8,7 @@ from mpl_toolkits.mplot3d import Axes3D
 from matplotlib.ticker import LinearLocator, FormatStrFormatter
 from pylab import *
 
-num_processes = 12
+num_processes = 96
 plot_bandwidth = True			# plot network bandwidth data
 plot_sent_data = True			# plot application sent data
 plot_comm_cost = False			# plot combined comm cost
@@ -32,11 +32,11 @@ show_title = False
 # xenon2.mtx.hgr
 # tmt_unsym.mtx.hgr
 
-folder = ""
-bandwidth_send_experiment_name = 'results_mpi_send_bandwidth_' + str(num_processes)
-graph_name = "sat14_E02F20.cnf.hgr"
+folder = "../results/"
+bandwidth_send_experiment_name = 'results_mpi_send_bandwidth_1_' + str(num_processes)
+graph_name = "msdoor.mtx.hgr"
 partitioning = 'prawV'
-test_name = 'test_default'
+test_name = 'hyperPraw_parallel'
 
 sim_sent_experiment = test_name + '_' + graph_name + '_' + partitioning + '_edgeSim_comm_cost__' + str(num_processes)
 #sim_sent_experiment = test_name + '_' + partitioning + '_comm_matrix_' + str(num_processes)
