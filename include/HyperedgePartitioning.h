@@ -14,13 +14,17 @@
 class HyperedgePartitioning : public Partitioning {
 public:
 	
-	HyperedgePartitioning(char* experimentName, char* graph_file, int iterations, float imbalance_tolerance, char* comm_bandwidth_file, bool parallel, bool useBandwidth, bool saveHistory) : Partitioning(graph_file,imbalance_tolerance,false) {
+	HyperedgePartitioning(char* experimentName, char* graph_file, float imbalance_tolerance, float ta_ref, int iterations, char* comm_bandwidth_file, bool parallel, bool useBandwidth, bool resetPartitioning, int stoppingCondition, bool proportionalCommCost, bool saveHistory) : Partitioning(graph_file,imbalance_tolerance) {
 		experiment_name = experimentName;
         comm_bandwidth_filename = comm_bandwidth_file;
         isParallel = parallel;
         use_bandwidth_file = useBandwidth;
-        save_partitioning_history = saveHistory;
         max_iterations = iterations;
+        reset_partitioning = resetPartitioning;
+        stopping_condition = stoppingCondition;
+        proportional_comm_cost = proportionalCommCost;
+        ta_refinement = ta_ref;
+        save_partitioning_history = saveHistory;
 	}
 	virtual ~HyperedgePartitioning() {}
 	
@@ -37,80 +41,27 @@ public:
         }
         
         if(use_bandwidth_file)
-            PRAW::get_comm_cost_matrix_from_bandwidth(comm_bandwidth_filename,comm_cost_matrix,num_processes,false);
+            PRAW::get_comm_cost_matrix_from_bandwidth(comm_bandwidth_filename,comm_cost_matrix,num_processes,proportional_comm_cost);
         else 
-            PRAW::get_comm_cost_matrix_from_bandwidth(NULL,comm_cost_matrix,num_processes,false);
+            PRAW::get_comm_cost_matrix_from_bandwidth(NULL,comm_cost_matrix,num_processes,proportional_comm_cost);
         
         // initialise vertex weight values
-        int* he_wgt = (int*)calloc(num_hyperedges,sizeof(int));
-        for(int ii =0; ii < num_hyperedges; ii++) {
-            he_wgt[ii] = 1;
+        int* vtx_wgt = (int*)calloc(num_vertices,sizeof(int));
+        for(int ii =0; ii < num_vertices; ii++) {
+            vtx_wgt[ii] = 1;
         }
 
-        // divide original hMetis file into as many streams as processes
-        std::string hgraph_file = hgraph_name;
-        hgraph_file += "_";
-        char str_int[16];
-        sprintf(str_int,"%i",num_processes);
-        hgraph_file += str_int;
-        hgraph_file += "_";
-        sprintf(str_int,"%i",process_id);
-        hgraph_file += str_int;
-        hgraph_file += ".hgr";
-
-        PRINTF("%i: Storing model in file %s\n",process_id,hgraph_file.c_str());
-        FILE *fp = fopen(hgraph_file.c_str(), "w+");
-        
-        // load and parse full graph
-        std::ifstream istream(hgraph_name);
-        
-        if(!istream) {
-            printf("Error while opening hMETIS file %s\n",hgraph_name);
-            return;
+        if(isParallel) {
+            PRAW::ParallelHyperedgePartitioning(experiment_name,partitioning, comm_cost_matrix, hgraph_name, vtx_wgt, max_iterations, imbalance_tolerance, ta_refinement, reset_partitioning,stopping_condition,save_partitioning_history);
+        } else {
+            if(process_id == 0) {
+                PRAW::SequentialHyperedgePartitioning(experiment_name,partitioning, num_processes, comm_cost_matrix, hgraph_name, vtx_wgt, max_iterations, imbalance_tolerance,ta_refinement,reset_partitioning,stopping_condition,save_partitioning_history);
+            } 
+            MPI_Barrier(MPI_COMM_WORLD);
+            // share new partitioning with other processes
+            MPI_Bcast(partitioning,num_vertices,MPI_LONG,0,MPI_COMM_WORLD);
         }
 
-        std::string line;
-        // ignore header
-        std::getline(istream,line);
-        // write header: NUM_HYPEREDGES NUM_VERTICES
-        //  num hyperedges == number of vertices, since each hyperedge represents a presynaptic neuron and all its connecting post synaptic neighbours
-        fprintf(fp,"%i %i",num_hyperedges,num_vertices);
-        fprintf(fp,"\n");
-
-        // read reminder of file (one line per hyperedge)
-        int counter = 0;
-        while(std::getline(istream,line)) {
-            if(counter % num_processes == process_id) {
-                char str[line.length() + 1]; 
-                strcpy(str, line.c_str()); 
-                char* token = strtok(str, " "); 
-                while (token != NULL) { 
-                    fprintf(fp,"%i ",atoi(token));
-                    token = strtok(NULL, " "); 
-                }
-                fprintf(fp,"\n");
-            }
-            counter++;
-            
-        }
-        istream.close();
-        fclose(fp);
-
-
-        PRAW::ParallelHyperedgePartitioning(experiment_name,partitioning, comm_cost_matrix, hgraph_file, he_wgt, max_iterations, imbalance_tolerance, save_partitioning_history);
-
-        /*std::vector<std::vector<int> > hyperedges;
-        std::vector<std::vector<int> > hedge_ptr;
-        std::string filename = hgraph_name;
-        PRAW::load_hypergraph_from_file(filename, &hyperedges, &hedge_ptr);
-
-        PRAW::ParallelHyperedgePartitioning(experiment_name,partitioning, comm_cost_matrix, hedge_ptr.size(), hyperedges.size(), &hyperedges, he_wgt, max_iterations, imbalance_tolerance, save_partitioning_history);
-        */
-
-        // remove graph file
-        if( remove(hgraph_file.c_str()) != 0 )
-            printf( "Error deleting temporary hgraph file %s\n",hgraph_file.c_str() );
-        
         // clean up operations
         for(int ii=0; ii < num_processes; ii++) {
             free(comm_cost_matrix[ii]);
@@ -118,7 +69,7 @@ public:
         free(comm_cost_matrix);
 
         // clean up operations
-        free(he_wgt);
+        free(vtx_wgt);
 	}
 
 private:
@@ -126,8 +77,12 @@ private:
     char* comm_bandwidth_filename = NULL;
     bool isParallel = false;
     bool use_bandwidth_file = false;
-    bool save_partitioning_history; 
     int max_iterations;
+    int stopping_condition;
+    bool reset_partitioning = false;
+    bool proportional_comm_cost = false;
+    float ta_refinement;
+    bool save_partitioning_history; 
 };
 
 

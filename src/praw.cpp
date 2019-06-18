@@ -11,7 +11,7 @@
 #include "Partitioning.h"
 #include "RandomPartitioning.h"
 #include "ZoltanPartitioning.h"
-#include "HyperPRAWPartitioning.h"
+#include "VertexPartitioning.h"
 #include "HyperedgePartitioning.h"
 #include <iterator>
 #include <numeric>
@@ -175,23 +175,23 @@ int main(int argc, char** argv) {
         isVertexCentric = true;
 	} else if(strcmp(part_method,"prawE") == 0) {  
 		PRINTF("%i: Partitioning: parallel hyperPRAW\n",process_id);
-        partition = new HyperPRAWPartitioning(experiment_name,graph_file,imbalance_tolerance,ta_refinement,iterations,bandwidth_file,true,use_bandwidth_in_partitioning,true,stopping_condition,proportional_comm_cost,save_partitioning_history);
+        partition = new HyperedgePartitioning(experiment_name,graph_file,imbalance_tolerance,ta_refinement,iterations,bandwidth_file,true,use_bandwidth_in_partitioning,true,stopping_condition,proportional_comm_cost,save_partitioning_history);
         isVertexCentric = true;
 	} else if(strcmp(part_method,"prawSref") == 0) {  
 		PRINTF("%i: Partitioning: sequential refinement hyperPRAW\n",process_id);
         Partitioning* p1 = new ZoltanPartitioning(graph_file,imbalance_tolerance);
         p1->perform_partitioning(num_processes,process_id);
-		partition = new HyperPRAWPartitioning(experiment_name,graph_file,imbalance_tolerance,ta_refinement,iterations,bandwidth_file,false,use_bandwidth_in_partitioning,false,stopping_condition,proportional_comm_cost,save_partitioning_history);
+		partition = new HyperedgePartitioning(experiment_name,graph_file,imbalance_tolerance,ta_refinement,iterations,bandwidth_file,false,use_bandwidth_in_partitioning,false,stopping_condition,proportional_comm_cost,save_partitioning_history);
         memcpy(partition->partitioning,p1->partitioning,partition->num_vertices * sizeof(idx_t));
         free(p1);
         isVertexCentric = true;
 	} else if(strcmp(part_method,"prawS") == 0) {  
 		PRINTF("%i: Partitioning: sequential hyperPRAW\n",process_id);
-		partition = new HyperPRAWPartitioning(experiment_name,graph_file,imbalance_tolerance,ta_refinement,iterations,bandwidth_file,false,use_bandwidth_in_partitioning,true,stopping_condition,proportional_comm_cost,save_partitioning_history);
+		partition = new HyperedgePartitioning(experiment_name,graph_file,imbalance_tolerance,ta_refinement,iterations,bandwidth_file,false,use_bandwidth_in_partitioning,true,stopping_condition,proportional_comm_cost,save_partitioning_history);
 	    isVertexCentric = true;
 	} else if(strcmp(part_method,"prawV") == 0) {  
 		PRINTF("%i: Partitioning: parallel hyperedge partitioning\n",process_id);
-		partition = new HyperedgePartitioning(experiment_name,graph_file,iterations,imbalance_tolerance,bandwidth_file,use_bandwidth_in_partitioning,true,save_partitioning_history);
+		partition = new VertexPartitioning(experiment_name,graph_file,iterations,imbalance_tolerance,bandwidth_file,use_bandwidth_in_partitioning,true,save_partitioning_history);
 	    isVertexCentric = false;
 	} else { // default is random
 		PRINTF("%i: Partitioning: random\n",process_id);

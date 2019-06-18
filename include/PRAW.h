@@ -856,7 +856,7 @@ namespace PRAW {
         }
     }
 
-    int SequentialStreamingPartitioning(char* experiment_name, idx_t* partitioning, int num_processes, double** comm_cost_matrix, std::string hypergraph_filename, int* vtx_wgt, int iterations, float imbalance_tolerance, float ta_refine, bool reset_partitioning, int stopping_condition, bool save_partitioning_history) {
+    int SequentialHyperedgePartitioning(char* experiment_name, idx_t* partitioning, int num_processes, double** comm_cost_matrix, std::string hypergraph_filename, int* vtx_wgt, int iterations, float imbalance_tolerance, float ta_refine, bool reset_partitioning, int stopping_condition, bool save_partitioning_history) {
         
         // get meta info (num vertices and hyperedges)
         int num_vertices, num_hyperedges;
@@ -1158,7 +1158,7 @@ namespace PRAW {
         return 0;
     }
 
-    int ParallelIndependentRestreamingPartitioning(char* experiment_name, idx_t* partitioning, double** comm_cost_matrix, std::string hypergraph_filename, int* vtx_wgt, int iterations, float imbalance_tolerance, float ta_refine, bool reset_partitioning, int stopping_condition, bool save_partitioning_history) {
+    int ParallelHyperedgePartitioning(char* experiment_name, idx_t* partitioning, double** comm_cost_matrix, std::string hypergraph_filename, int* vtx_wgt, int iterations, float imbalance_tolerance, float ta_refine, bool reset_partitioning, int stopping_condition, bool save_partitioning_history) {
         
         int process_id;
         MPI_Comm_rank(MPI_COMM_WORLD,&process_id);
@@ -1490,7 +1490,7 @@ namespace PRAW {
     }
 
     // Stream from multiple files / streams
-    int ParallelHyperedgePartitioning(char* experiment_name, idx_t* partitioning, double** comm_cost_matrix, std::string hypergraph_filename, int* he_wgt, int max_iterations, float imbalance_tolerance, bool save_partitioning_history) {
+    int ParallelVertexPartitioning(char* experiment_name, idx_t* partitioning, double** comm_cost_matrix, std::string hypergraph_filename, int* he_wgt, int max_iterations, float imbalance_tolerance, bool save_partitioning_history) {
         // Parallel Hyperedge Partitioning based algorithm
         // The goal is to assign hyperedges to partitions   
         // Minimisation goal: 
@@ -1714,7 +1714,7 @@ namespace PRAW {
                 for(int ii=0; ii < local_vertices.size(); ii++) {
                     int vertex_id = local_vertices[ii];
                     new_replicas.push_back(vertex_id);
-                    // cannot filter out already seen vertices, as we need them to update teh partial degree in local data structures
+                    // cannot filter out already seen vertices, as we need them to update teh partial degree in remote local data structures
                     // TODO: test performance degradation when only updating partial degree with local info
                     /*if(seen_vertices[vertex_id].partial_degree == 0) {
                         // if the vertex has not been seen before
@@ -1807,6 +1807,8 @@ namespace PRAW {
         return 0;
 
     }
+
+
     
 
     
