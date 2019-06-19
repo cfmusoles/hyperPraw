@@ -26,7 +26,7 @@ template_2 = '''
 template_3=''':bigmem='''
 template_4='''
 # walltime
-#PBS -l walltime=5:00:0
+#PBS -l walltime=6:00:0
 # budget code
 #PBS -A e582
 # bandwidth probing parameters
@@ -72,9 +72,11 @@ run_experiment() {
 	aprun -n $PROCESSES hyperPraw -n $EXPERIMENT_NAME"_zoltan" -h $HYPERGRAPH_FILE -i 100 -m 1200 -p zoltan -t $E_SIM_STEPS -x $H_SIM_STEPS_MULT -s $SEED -k $MESSAGE_SIZE -b $BM_FILE
 	sleep 1
 
-	#aprun -n $PROCESSES hyperPraw -n $EXPERIMENT_NAME"_prawV_bandwidth" -h $HYPERGRAPH_FILE -i 100 -m 1200 -p prawV -t $E_SIM_STEPS -x $H_SIM_STEPS_MULT -s $SEED -k $MESSAGE_SIZE -H -b $BM_FILE
-	#sleep 1
-	aprun -n $PROCESSES hyperPraw -n $EXPERIMENT_NAME"_prawE_bandwidth" -h $HYPERGRAPH_FILE -i 100 -m 1200 -p prawE -t $E_SIM_STEPS -x $H_SIM_STEPS_MULT -s $SEED -k $MESSAGE_SIZE -H -b $BM_FILE
+	aprun -n $PROCESSES hyperPraw -n $EXPERIMENT_NAME"_prawV_bandwidth" -h $HYPERGRAPH_FILE -i 100 -m 1200 -p prawV -t $E_SIM_STEPS -x $H_SIM_STEPS_MULT -s $SEED -k $MESSAGE_SIZE -W -H -b $BM_FILE
+	sleep 1
+	aprun -n $PROCESSES hyperPraw -n $EXPERIMENT_NAME"_prawV_default" -h $HYPERGRAPH_FILE -i 100 -m 1200 -p prawV -t $E_SIM_STEPS -x $H_SIM_STEPS_MULT -s $SEED -k $MESSAGE_SIZE -H
+	sleep 1
+	aprun -n $PROCESSES hyperPraw -n $EXPERIMENT_NAME"_prawE_bandwidth" -h $HYPERGRAPH_FILE -i 100 -m 1200 -p prawE -t $E_SIM_STEPS -x $H_SIM_STEPS_MULT -s $SEED -k $MESSAGE_SIZE -W -H -b $BM_FILE
 	sleep 1
 	aprun -n $PROCESSES hyperPraw -n $EXPERIMENT_NAME"_prawE_default" -h $HYPERGRAPH_FILE -i 100 -m 1200 -p prawE -t $E_SIM_STEPS -x $H_SIM_STEPS_MULT -s $SEED -k $MESSAGE_SIZE -H
 	sleep 1
@@ -86,17 +88,17 @@ do
 
 	#small graphs
 	#run_experiment "sat14_itox_vc1130.cnf.dual.hgr" $SEED 0 0 
-	#run_experiment "2cubes_sphere.mtx.hgr" $SEED 3 0 
-	#run_experiment "ABACUS_shell_hd.mtx.hgr" $SEED 40 0 
-	#run_experiment "sparsine.mtx.hgr" $SEED 0 0
+	run_experiment "2cubes_sphere.mtx.hgr" $SEED 3 0 
+	run_experiment "ABACUS_shell_hd.mtx.hgr" $SEED 40 0 
+	run_experiment "sparsine.mtx.hgr" $SEED 0 0
 	
 	#large graphs
 	run_experiment "webbase-1M.mtx.hgr" $SEED 10 0
 	#run_experiment "sat14_10pipe_q0_k.cnf.dual.hgr" $SEED 0 0 # fails with zoltan?
 	#run_experiment "sat14_11pipe_q0_k.cnf.hgr" $SEED 0 0
-	run_experiment "IMDB.mtx.hgr" $SEED 10 0
+	#un_experiment "IMDB.mtx.hgr" $SEED 10 0
 	#run_experiment "sat14_ACG-20-10p1.cnf.hgr" $SEED 0 0
-	run_experiment "tmt_unsym.mtx.hgr" $SEED 10 0
+	#run_experiment "tmt_unsym.mtx.hgr" $SEED 10 0
 	run_experiment "xenon2.mtx.hgr" $SEED 10 0
 	#run_experiment "BenElechi1.mtx.hgr" $SEED 0 0
 	#run_experiment "msdoor.mtx.hgr" $SEED 10 0
