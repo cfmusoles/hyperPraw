@@ -235,8 +235,8 @@ namespace PRAW {
         int total_hyperedges;
         get_hypergraph_file_header(filename,&total_vertices,&total_hyperedges);
 
-        hyperedges->resize(total_hyperedges);
-        hedge_ptr->resize(total_vertices);
+        if(hyperedges != NULL) hyperedges->resize(total_hyperedges);
+        if(hedge_ptr != NULL) hedge_ptr->resize(total_vertices);
         
         PRINTF("Loaded from file: Vertices: %i; hyperedges %i:\n",total_vertices,total_hyperedges);
         
@@ -267,8 +267,8 @@ namespace PRAW {
 
             for(int ii=0; ii < tokens.size(); ii++) {
                 int vertex_id = tokens[ii]-1;
-                hedge_ptr->at(vertex_id).push_back(counter);
-                hyperedges->at(counter).push_back(vertex_id);
+                if(hedge_ptr != NULL) hedge_ptr->at(vertex_id).push_back(counter);
+                if(hyperedges != NULL) hyperedges->at(counter).push_back(vertex_id);
             }
             counter++;
             
@@ -286,8 +286,8 @@ namespace PRAW {
         int total_hyperedges;
         get_hypergraph_file_header(filename,&total_vertices,&total_hyperedges);
 
-        hyperedges->resize(total_hyperedges);
-        hedge_ptr->resize(total_vertices);
+        if(hyperedges != NULL) hyperedges->resize(total_hyperedges);
+        if(hedge_ptr != NULL) hedge_ptr->resize(total_vertices);
         
         PRINTF("Loaded from file: Vertices: %i; hyperedges %i:\n",total_vertices,total_hyperedges);
         
@@ -332,15 +332,61 @@ namespace PRAW {
                 for(int ii=0; ii < tokens.size(); ii++) {
                     int vertex_id = tokens[ii]-1;
                     if(partitioning[vertex_id] == process_id || load_all) {
-                        hedge_ptr->at(vertex_id).push_back(counter);
+                        if(hedge_ptr != NULL) hedge_ptr->at(vertex_id).push_back(counter);
                     }
-                    hyperedges->at(counter).push_back(vertex_id);
+                    if(hyperedges != NULL) hyperedges->at(counter).push_back(vertex_id);
                 }
             } else nonlocal++;
             counter++;            
         }
         istream.close();
         PRINTF("%i: non local hyperedges: %i\n",process_id,nonlocal);
+        return 0;
+        
+    }
+
+    // load hyperedge ids per vertes (only local vertex stream)
+    int load_hedge_ptr_from_file_dist_CSR(std::string filename, std::vector<std::vector<int> >* hedge_ptr, int process_id, int num_processes, idx_t* partitioning) {
+        
+        // get header info
+        int total_vertices;
+        int total_hyperedges;
+        get_hypergraph_file_header(filename,&total_vertices,&total_hyperedges);
+
+        hedge_ptr->resize(ceil((float)total_vertices / num_processes));
+        
+        std::ifstream istream(filename.c_str());
+        
+        if(!istream) {
+            printf("Error while opening hMETIS file %s\n",filename.c_str());
+            return -1;
+        }
+        
+        std::string line;
+        // skip header
+        std::getline(istream,line);
+        // read reminder of file (one line per hyperedge)
+        int counter = 0;
+        while(std::getline(istream,line)) {
+            char str[line.length() + 1]; 
+            strcpy(str, line.c_str()); 
+            char* token = strtok(str, " "); 
+            std::vector<int> tokens;
+            while (token != NULL) { 
+                tokens.push_back(atoi(token)); 
+                token = strtok(NULL, " "); 
+            } 
+
+            for(int ii=0; ii < tokens.size(); ii++) {
+                int vertex_id = tokens[ii]-1;
+                if(vertex_id % num_processes == process_id) {
+                    hedge_ptr->at(vertex_id / num_processes).push_back(counter);
+                }
+            }
+            counter++;            
+        }
+        istream.close();
+
         return 0;
         
     }
@@ -1490,6 +1536,244 @@ namespace PRAW {
     }
 
     // Stream from multiple files / streams
+    int ParallelHyperedgePartitioning_he_stream(char* experiment_name, idx_t* partitioning, double** comm_cost_matrix, char* hypergraph_filename, int num_vertices, std::vector<std::vector<int> >* he_stream, int* vtx_wgt, int max_iterations, float imbalance_tolerance, bool save_partitioning_history) {
+        
+        ////////////////////////
+        // Parallel streaming algorithm based on streaming proposed by Alistairh (minmax hypergraph streaming)
+        // Single pass, a decision is made looking only at the info for one vertex (vertex id plus all hyperedges it belongs to)
+        // Necessary to store, for each partition, the list of hyperedges currently present in them
+        // Novelty: 
+        //      Parallel streams
+        //      Inclusion of communication costs
+        //      Inclusion of load balance parameter
+        ////////////////////////
+
+
+        // Parameters (from HDRF, Petroni 2015)
+        float lambda = 0.0f;
+        // own parameters
+        float lambda_update = 0.1f;
+
+        int process_id;
+        MPI_Comm_rank(MPI_COMM_WORLD,&process_id);
+        int num_processes;
+        MPI_Comm_size(MPI_COMM_WORLD,&num_processes); 
+
+        // create shared data structures (partitions workload, list of replica destinations for each vertex, partial degree for each vertex)
+        long int* part_load = (long int*)calloc(num_processes, sizeof(long int));
+        float max_comm_cost = 0;
+        for(int ff=0; ff < num_processes; ff++) {
+            float current_max_cost = 0;
+            for(int tt=0; tt < num_processes; tt++) {
+                current_max_cost += comm_cost_matrix[ff][tt];
+            }
+            if(current_max_cost > max_comm_cost) {
+                max_comm_cost = current_max_cost;
+            }
+        }
+
+        std::string history_file = experiment_name;
+        
+        if(save_partitioning_history && process_id == 0 && hypergraph_filename != NULL) {
+            history_file += "_partition_history__";
+            char str_int[16];
+            sprintf(str_int,"%i",num_processes);
+            history_file +=  str_int;
+            // remove history file if exists
+            FILE *fp = fopen(history_file.c_str(), "w");
+            if(fp == NULL) {
+                printf("Error when storing partitioning history into file\n");
+            } else {
+                fprintf(fp,"%s\n","Imbalance, Hedges cut, Edges cut, SOED, Absorption, Edge sim comm cost, Hedge sim comm cost");
+            }
+            fclose(fp);
+        }
+
+        for(int iter=0; iter < max_iterations; iter++) {
+
+            //int num_vertices = he_stream->size();
+            //int num_hyperedges = tokens[0];
+            
+            PRINTF("Found in stream: Vertices: %i\n",num_vertices);
+
+            // initialise workload
+            // workload starts empty across all partitions
+            long int total_workload = 0;
+            memset(part_load,0,num_processes * sizeof(long int));
+            
+            long int maxsize = part_load[0]; // used for c_bal
+            long int minsize = part_load[0]; // used for c_bal
+
+            // Check balance guarantee 
+            // The parallel algorithm is guaranteed to reach load imbalance tolerance if the hypergraphs safisfies:
+             //      num_processes < floor(sqrt(num_vertices * imbalance_tolerance - num_vertices))
+            if(num_processes >= floor(sqrt(num_vertices * imbalance_tolerance - num_vertices))) {
+                int p = num_processes;
+                float v = num_vertices;
+                float i = imbalance_tolerance;
+                int max_processes_for_guarantee = floor(sqrt(v * i - v));
+                int min_graph_size = pow(p,2) / (i - 1);
+                printf("WARNING: Current run is not guaranteed to reach load imbalance tolerance. Decrease the number of processes to %i.\nWith %i processes, %i vertices are required for guarantee\n",
+                                max_processes_for_guarantee,p,min_graph_size);
+            }      
+
+            // HOW DO WE STORE AND COORDINATE THE DATASTRUCTURES? Balance between memory and communication
+            // store for each hyperedge, store list of partitions
+            std::unordered_map<int,std::set<int> > seen_hyperedges;
+
+            // read reminder of file (one line per hyperedge)
+            int vid = 0;
+            int current_stream = 0; // current local position on local stream
+            int v_mapping = -1; // mapping of current he (to partition)
+            while(vid < num_vertices) {
+                if(current_stream < he_stream->size()) {
+                    // prevents out of bounds in last round of streaming for last processes
+                    // process hyperedges to which vertex_id belongs and assign to partition
+                    float max_value = 0;
+                    int best_partition = 0;
+                    int num_hedges = he_stream->at(current_stream).size();
+                    for(int pp=0; pp < num_processes; pp++) {
+                        float c_overlap = 0;
+                        float c_comm = 0;
+                        int top_connections;
+                        for(int hid=0; hid < num_hedges; hid++) {
+                            int he_id = he_stream->at(current_stream)[hid];
+                            top_connections += seen_hyperedges[he_id].size();
+                            std::set<int>::iterator it;
+                            for(it = seen_hyperedges[he_id].begin(); it != seen_hyperedges[he_id].end(); it++) {
+                                int dest = *it;
+                                // calculate communication cost
+                                c_comm += comm_cost_matrix[pp][dest];
+                                // Calculate overlap of heges on current considered partition
+                                if(dest == pp) c_overlap += 1;
+                            }
+                        }
+                        c_overlap /= num_hedges;
+                        c_comm = 1 - c_comm / (max_comm_cost * num_hedges);
+                        
+                        // calculate load balance component
+                        float c_bal = lambda * (maxsize - part_load[pp]) / (0.1f + maxsize - minsize);
+                        
+
+                        // assign to partition that maximises C_rep + C_bal + C_comm
+                        float current_value = c_overlap + c_comm + c_bal;
+                        if(current_value > max_value) {
+                            max_value = current_value;
+                            best_partition = pp;
+                            //printf("%f, %f, %f\n",c_overlap,c_bal,c_comm);
+                        }
+
+                    }
+                    v_mapping = best_partition;
+                }
+                
+                
+                // synchronise data amongst parallel streams
+                std::vector<int> new_he_presence;
+                new_he_presence.push_back(v_mapping); // add in front the partition selected for vertex_id
+                for(int ii=0; ii < he_stream->at(current_stream).size(); ii++) {
+                    int he_id = he_stream->at(current_stream)[ii];
+                    // only send it over to other processes if it has not been recorded before
+                    if(seen_hyperedges[he_id].find(v_mapping) == seen_hyperedges[he_id].end()) {
+                        // if the vertex has not been seen before
+                        new_he_presence.push_back(he_id);
+                    }
+                }
+
+                current_stream++;
+                vid += num_processes; // since we are doing parallel streams, one per process
+
+                // share send buffer size with other processes
+                // size = number of new replicas + 1 (the partition selected)
+                int* recvcounts = (int*)malloc(num_processes * sizeof(int));
+                int send_size = new_he_presence.size();
+                MPI_Allgather(&send_size,1,MPI_INT,recvcounts,1,MPI_INT,MPI_COMM_WORLD);
+
+                // share partition selected and new replicas list to all
+                int counter = 0;
+                int* displs = (int*)malloc(sizeof(int) * num_processes);
+                for(int ii=0; ii < num_processes; ii++) {
+                    displs[ii] = counter;
+                    counter += recvcounts[ii]; 
+                }
+                int* recvbuffer = (int*)malloc(sizeof(int) * counter);
+                MPI_Allgatherv(&new_he_presence[0],send_size,MPI_INT,recvbuffer,recvcounts,displs,MPI_INT,MPI_COMM_WORLD);
+
+                // process new he presence and add them to local datastructures
+                for(int ii=0; ii < num_processes; ii++)  {
+                    int dest_partition = recvbuffer[displs[ii]];
+                    int vertex_id = vid - num_processes + ii;
+                    if(vertex_id >= num_vertices) break;
+                    part_load[dest_partition] += vtx_wgt[vertex_id];
+                    total_workload += vtx_wgt[vertex_id];
+                    partitioning[vertex_id] = dest_partition;
+                    for(int jj=1; jj < recvcounts[ii]; jj++) {
+                        int he_id = recvbuffer[displs[ii] + jj];
+                        // update hedge info             
+                        seen_hyperedges[he_id].insert(dest_partition);                
+                    }
+                    
+                }
+
+                free(recvcounts);
+                free(displs);
+                free(recvbuffer);
+
+                // update workload limits
+                long int max = part_load[0];
+                long int min = part_load[0];
+                for(int pp=0; pp < num_processes; pp++) {
+                    if(part_load[pp] > max) max = part_load[pp];
+                    if(part_load[pp] < min) min = part_load[pp];
+                }
+                minsize = min;
+                maxsize = max;
+                
+            }
+
+            // check for termination condition (tolerance imbalance reached)   
+            float max_imbalance = ((float)maxsize) / ((float)total_workload/num_processes);
+            PRINTF("***Hedge imbalance: %.3f\n",max_imbalance);
+
+            if(save_partitioning_history && hypergraph_filename != NULL) {
+                float hyperedges_cut_ratio;
+                float edges_cut_ratio;
+                int soed;
+                float absorption;
+                float max_imbalance;
+                double total_edge_comm_cost;
+                double total_hedge_comm_cost;
+                // store partition history
+                PRAW::getVertexCentricPartitionStatsFromFile_parallel(partitioning, num_processes,process_id,hypergraph_filename, vtx_wgt,comm_cost_matrix,
+                            &hyperedges_cut_ratio, &edges_cut_ratio, &soed, &absorption, &max_imbalance, 
+                            &total_edge_comm_cost,NULL);
+                
+                if(process_id == MASTER_NODE) {
+                    FILE *fp = fopen(history_file.c_str(), "ab+");
+                    if(fp == NULL) {
+                        printf("Error when storing partitioning history into file\n");
+                    } else {
+                        fprintf(fp,"%.3f,%.3f,%.3f,%i,%.3f,%.3f,%.3f\n",max_imbalance,hyperedges_cut_ratio,edges_cut_ratio,soed,absorption,total_edge_comm_cost,total_hedge_comm_cost);
+                    }
+                    fclose(fp);
+                }
+            }
+
+            if(max_imbalance <= imbalance_tolerance) break;
+
+            // update lambda (importance of load balancing)
+            lambda += lambda_update;
+        }
+
+        // clean up
+        free(part_load);
+
+        return 0;
+
+    }
+
+
+    // Stream from multiple files / streams
     int ParallelVertexPartitioning(char* experiment_name, idx_t* partitioning, double** comm_cost_matrix, std::string hypergraph_filename, int* he_wgt, int max_iterations, float imbalance_tolerance, bool save_partitioning_history) {
         // Parallel Hyperedge Partitioning based algorithm
         // The goal is to assign hyperedges to partitions   
@@ -1807,8 +2091,6 @@ namespace PRAW {
         return 0;
 
     }
-
-
     
 
     

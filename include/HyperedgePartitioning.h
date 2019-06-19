@@ -52,7 +52,12 @@ public:
         }
 
         if(isParallel) {
-            PRAW::ParallelHyperedgePartitioning(experiment_name,partitioning, comm_cost_matrix, hgraph_name, vtx_wgt, max_iterations, imbalance_tolerance, ta_refinement, reset_partitioning,stopping_condition,save_partitioning_history);
+
+            //PRAW::ParallelHyperedgePartitioning(experiment_name,partitioning, comm_cost_matrix, hgraph_name, vtx_wgt, max_iterations, imbalance_tolerance, ta_refinement, reset_partitioning,stopping_condition,save_partitioning_history);
+            // alternative based on Alistairh minmax streaming
+            std::vector<std::vector<int> > hedge_ptr;
+            PRAW::load_hedge_ptr_from_file_dist_CSR(hgraph_name, &hedge_ptr, process_id, num_processes, partitioning);
+            PRAW::ParallelHyperedgePartitioning_he_stream(experiment_name,partitioning,comm_cost_matrix, hgraph_name, num_vertices,&hedge_ptr,vtx_wgt,max_iterations, imbalance_tolerance,save_partitioning_history);
         } else {
             if(process_id == 0) {
                 PRAW::SequentialHyperedgePartitioning(experiment_name,partitioning, num_processes, comm_cost_matrix, hgraph_name, vtx_wgt, max_iterations, imbalance_tolerance,ta_refinement,reset_partitioning,stopping_condition,save_partitioning_history);
