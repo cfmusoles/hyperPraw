@@ -1774,7 +1774,7 @@ namespace PRAW {
 
 
     // Stream from multiple files / streams
-    int ParallelVertexPartitioning(char* experiment_name, idx_t* partitioning, double** comm_cost_matrix, std::string hypergraph_filename, int* he_wgt, int max_iterations, float imbalance_tolerance, bool save_partitioning_history) {
+    int ParallelHDRF(char* experiment_name, idx_t* partitioning, double** comm_cost_matrix, std::string hypergraph_filename, int* he_wgt, int max_iterations, float imbalance_tolerance, bool save_partitioning_history) {
         // Parallel Hyperedge Partitioning based algorithm
         // The goal is to assign hyperedges to partitions   
         // Minimisation goal: 

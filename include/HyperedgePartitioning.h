@@ -51,13 +51,52 @@ public:
             vtx_wgt[ii] = 1;
         }
 
+
+        // USED FOR ParallelHyperedgePartitioning_he_stream
+        std::vector<std::vector<int> > hedge_ptr;
+        PRAW::load_hedge_ptr_from_file_dist_CSR(hgraph_name, &hedge_ptr, process_id, num_processes, partitioning);
+
+        // USED FOR ParallelHDRF
+        std::string hgraph_file = hgraph_name;
+        hgraph_file += "_";
+        char str_int[16];
+        sprintf(str_int,"%i",num_processes);
+        hgraph_file += str_int;
+        hgraph_file += "_";
+        sprintf(str_int,"%i",process_id);
+        hgraph_file += str_int;
+        hgraph_file += ".hgr";
+
+        PRINTF("%i: Storing model in file %s\n",process_id,hgraph_file.c_str());
+        FILE *fp = fopen(hgraph_file.c_str(), "w+");
+        
+        // write header: NUM_HYPEREDGES NUM_VERTICES
+        //  num hyperedges == number of vertices, since each hyperedge represents a presynaptic neuron and all its connecting post synaptic neighbours
+        fprintf(fp,"%i %i",num_vertices,num_hyperedges); // does this need reversing when using HDRF??
+        fprintf(fp,"\n");
+
+        // write reminder of hyperedges per vertex
+        for(int ii=0; ii < hedge_ptr.size(); ii++) {
+            for(int he=0; he < hedge_ptr[ii].size(); he++) {
+                fprintf(fp,"%i ",hedge_ptr[ii][he]);
+            }
+            fprintf(fp,"\n");
+            
+        }
+        fclose(fp);
+        ///////////////////////////
+
+
+
         if(isParallel) {
 
             //PRAW::ParallelHyperedgePartitioning(experiment_name,partitioning, comm_cost_matrix, hgraph_name, vtx_wgt, max_iterations, imbalance_tolerance, ta_refinement, reset_partitioning,stopping_condition,save_partitioning_history);
+            
             // alternative based on Alistairh minmax streaming
-            std::vector<std::vector<int> > hedge_ptr;
-            PRAW::load_hedge_ptr_from_file_dist_CSR(hgraph_name, &hedge_ptr, process_id, num_processes, partitioning);
             PRAW::ParallelHyperedgePartitioning_he_stream(experiment_name,partitioning,comm_cost_matrix, hgraph_name, num_vertices,&hedge_ptr,vtx_wgt,max_iterations, imbalance_tolerance,save_partitioning_history);
+            
+            // alternative using HDRF flipping the hgraph (minimising replication of hyperedges, therefore reducing cut)
+            //PRAW::ParallelHDRF(experiment_name,partitioning, comm_cost_matrix, hgraph_file, vtx_wgt, max_iterations, imbalance_tolerance, save_partitioning_history);
         } else {
             if(process_id == 0) {
                 PRAW::SequentialHyperedgePartitioning(experiment_name,partitioning, num_processes, comm_cost_matrix, hgraph_name, vtx_wgt, max_iterations, imbalance_tolerance,ta_refinement,reset_partitioning,stopping_condition,save_partitioning_history);
@@ -75,6 +114,10 @@ public:
 
         // clean up operations
         free(vtx_wgt);
+
+        // remove graph file
+        if( remove(hgraph_file.c_str()) != 0 )
+            printf( "Error deleting temporary hgraph file %s\n",hgraph_file.c_str() );
 	}
 
 private:

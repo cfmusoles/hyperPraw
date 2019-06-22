@@ -90,7 +90,7 @@ do
 	#run_experiment "sat14_itox_vc1130.cnf.dual.hgr" $SEED 0 0 
 	run_experiment "2cubes_sphere.mtx.hgr" $SEED 3 0 
 	run_experiment "ABACUS_shell_hd.mtx.hgr" $SEED 40 0 
-	run_experiment "sparsine.mtx.hgr" $SEED 0 0
+	run_experiment "sparsine.mtx.hgr" $SEED 2 0
 	
 	#large graphs
 	run_experiment "webbase-1M.mtx.hgr" $SEED 10 0

@@ -97,7 +97,7 @@ public:
         fclose(fp);
 
 
-        PRAW::ParallelVertexPartitioning(experiment_name,partitioning, comm_cost_matrix, hgraph_file, he_wgt, max_iterations, imbalance_tolerance, save_partitioning_history);
+        PRAW::ParallelHDRF(experiment_name,partitioning, comm_cost_matrix, hgraph_file, he_wgt, max_iterations, imbalance_tolerance, save_partitioning_history);
 
         /*std::vector<std::vector<int> > hyperedges;
         std::vector<std::vector<int> > hedge_ptr;
