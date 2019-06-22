@@ -72,7 +72,7 @@ public:
         
         // write header: NUM_HYPEREDGES NUM_VERTICES
         //  num hyperedges == number of vertices, since each hyperedge represents a presynaptic neuron and all its connecting post synaptic neighbours
-        fprintf(fp,"%i %i",num_vertices,num_hyperedges); // does this need reversing when using HDRF??
+        fprintf(fp,"%i %i",num_vertices,num_hyperedges); // this needs reversing because each line represents a vertex, not a hyperedge
         fprintf(fp,"\n");
 
         // write reminder of hyperedges per vertex
