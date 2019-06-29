@@ -1820,7 +1820,7 @@ namespace PRAW {
         //      Partial degree? (experiment with and without)
 
         // Parameters (from HDRF, Petroni 2015)
-        float lambda = 0.02f;
+        float lambda = 0.1f;
         // own parameters
         float lambda_update = 1.1f;
 
@@ -2131,6 +2131,7 @@ namespace PRAW {
 
         // clean up
         free(part_load);
+        if(last_partitioning != NULL) free(last_partitioning);
 
         return 0;
 
