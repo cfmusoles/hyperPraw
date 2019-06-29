@@ -345,7 +345,7 @@ namespace PRAW {
         
     }
 
-    // load hyperedge ids per vertes (only local vertex stream)
+    // load hyperedge ids per vertex (only local vertex stream)
     int load_hedge_ptr_from_file_dist_CSR(std::string filename, std::vector<std::vector<int> >* hedge_ptr, int process_id, int num_processes, idx_t* partitioning) {
         
         // get header info
@@ -366,7 +366,7 @@ namespace PRAW {
         // skip header
         std::getline(istream,line);
         // read reminder of file (one line per hyperedge)
-        int counter = 0;
+        int counter = 1;
         while(std::getline(istream,line)) {
             char str[line.length() + 1]; 
             strcpy(str, line.c_str()); 
@@ -845,6 +845,8 @@ namespace PRAW {
 
         *vertex_replication_factor = 0;
         for(int vid = 0; vid < num_vertices; vid++) {
+            std::unordered_map<int,vertex_data>::const_iterator it = seen_vertices->find (vid);
+            if(it == seen_vertices->end()) continue;
             *vertex_replication_factor += seen_vertices->at(vid).A.size();
         }
         *vertex_replication_factor /= num_vertices;
@@ -2073,7 +2075,7 @@ namespace PRAW {
             float max_imbalance = ((float)maxsize) / ((float)total_workload/num_processes);
             PRINTF("***Hedge imbalance: %.3f\n",max_imbalance);
 
-            if(save_partitioning_history && process_id == 0) {
+            if(save_partitioning_history && process_id == MASTER_NODE) {
                 // store partition history
                 float vertex_replication_factor;
                 PRAW::getEdgeCentricReplicationFactor(&seen_vertices,num_vertices,
@@ -2114,7 +2116,6 @@ namespace PRAW {
 
         // roll back to last partitioning that was inside imbalance tolerance
         if(rollback) {
-            printf("Doing rollback...\n");
             if(process_id == MASTER_NODE) {
                 // share last partitioning with all
                 memcpy(partitioning,last_partitioning,num_hyperedges * sizeof(idx_t));
@@ -2131,7 +2132,6 @@ namespace PRAW {
 
         // clean up
         free(part_load);
-        if(last_partitioning != NULL) free(last_partitioning);
 
         return 0;
 

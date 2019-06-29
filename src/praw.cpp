@@ -174,7 +174,7 @@ int main(int argc, char** argv) {
 		partition = new ZoltanPartitioning(graph_file,imbalance_tolerance);
         isVertexCentric = true;
 	} else if(strcmp(part_method,"prawE") == 0) {  
-		PRINTF("%i: Partitioning: parallel hyperPRAW\n",process_id);
+		PRINTF("%i: Partitioning: parallel vertex hyperPRAW\n",process_id);
         partition = new HyperedgePartitioning(experiment_name,graph_file,imbalance_tolerance,ta_refinement,iterations,bandwidth_file,true,use_bandwidth_in_partitioning,true,stopping_condition,proportional_comm_cost,save_partitioning_history);
         isVertexCentric = true;
 	} else if(strcmp(part_method,"prawSref") == 0) {  
