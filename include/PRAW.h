@@ -1820,9 +1820,9 @@ namespace PRAW {
         //      Partial degree? (experiment with and without)
 
         // Parameters (from HDRF, Petroni 2015)
-        float lambda = 0.3f;
+        float lambda = 0.02f;
         // own parameters
-        float lambda_update = 0.1f;
+        float lambda_update = 1.1f;
 
         int process_id;
         MPI_Comm_rank(MPI_COMM_WORLD,&process_id);
@@ -1861,6 +1861,15 @@ namespace PRAW {
             fclose(fp);
         }
 
+        int num_vertices;
+        int num_hyperedges;
+
+        // avoid overfitting variables
+        bool check_overfit = false;
+        bool rollback = false;
+        idx_t* last_partitioning = NULL;
+
+
         for(int iter=0; iter < max_iterations; iter++) {
 
             // Open stream
@@ -1880,8 +1889,8 @@ namespace PRAW {
                 tokens.push_back(atoi(token)); 
                 token = strtok(NULL, " "); 
             } 
-            int num_vertices = tokens[1];
-            int num_hyperedges = tokens[0];
+            num_vertices = tokens[1];
+            num_hyperedges = tokens[0];
             
             PRINTF("Found in file: Vertices: %i; hyperedges %i:\n",num_vertices,num_hyperedges);
 
@@ -2079,10 +2088,45 @@ namespace PRAW {
                 fclose(fp);
             }
 
-            if(max_imbalance <= imbalance_tolerance) break;
+            //if(max_imbalance <= imbalance_tolerance) break;
 
             // update lambda (importance of load balancing)
-            lambda += lambda_update;
+            // keep searching until the algorithm has dipped into tolerance imbalance and gone out once
+            // then return last partitioning that was within tolerance imbalance
+            if(max_imbalance > imbalance_tolerance) {
+                if(check_overfit) {
+                    // exit and return previous partitioning
+                    rollback = true;
+                    break;
+                }
+                lambda *= lambda_update;
+            } else {
+                lambda *= 0.99f;
+                check_overfit = true;
+                if(process_id == MASTER_NODE) {
+                    if(last_partitioning == NULL) {
+                        last_partitioning = (idx_t*)malloc(num_hyperedges*sizeof(idx_t));
+                    }
+                    memcpy(last_partitioning,partitioning,num_hyperedges * sizeof(idx_t));
+                }
+            }
+        }
+
+        // roll back to last partitioning that was inside imbalance tolerance
+        if(rollback) {
+            printf("Doing rollback...\n");
+            if(process_id == MASTER_NODE) {
+                // share last partitioning with all
+                memcpy(partitioning,last_partitioning,num_hyperedges * sizeof(idx_t));
+                free(last_partitioning);
+                for(int dest=0; dest < num_processes; dest++) {
+                    if(dest == MASTER_NODE) continue;
+                    MPI_Send(partitioning,num_hyperedges,MPI_LONG,dest,0,MPI_COMM_WORLD);
+                }
+            } else {
+                // update partitioning from 0
+                MPI_Recv(partitioning,num_hyperedges,MPI_LONG,MASTER_NODE,0,MPI_COMM_WORLD,MPI_STATUS_IGNORE);
+            }
         }
 
         // clean up
