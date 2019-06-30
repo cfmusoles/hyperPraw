@@ -31,10 +31,12 @@ show_title = False
 # msdoor.mtx.hgr
 # xenon2.mtx.hgr
 # tmt_unsym.mtx.hgr
+# BenElechi1.mtx.hgr
+# xenon2.mtx.hgr
 
 folder = "../results/test/"
 bandwidth_send_experiment_name = 'results_mpi_send_bandwidth_1_' + str(num_processes)
-graph_name = "2cubes_sphere.mtx.hgr"
+graph_name = "BenElechi1.mtx.hgr"
 partitioning = 'prawE'
 test_name = 'hyperPraw_prawE_default'
 

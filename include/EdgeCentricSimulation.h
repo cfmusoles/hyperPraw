@@ -181,7 +181,7 @@ namespace EdgeCentricSimulation {
                 } else {
                     if(!fileexists) // file does not exist, add header
                         fprintf(fp,"%s,%s,%s,%s,%s,%s\n","Partition time","Sim time","Vertex replication factor","Hedge imbalance","Hedgecut","Sim Messages sent");
-                    fprintf(fp,"%.3f,%.3f,%.3f,%.3f,%.0f,%li\n",partition_timer,total_edge_sim_time,vertex_replication_factor,max_hedge_imbalance,hedgecut,total_edge_messages_sent);
+                    fprintf(fp,"%.3f,%.3f,%.3f,%.3f,%.3f,%li\n",partition_timer,total_edge_sim_time,vertex_replication_factor,max_hedge_imbalance,hedgecut,total_edge_messages_sent);
                 }
                 fclose(fp);
 
