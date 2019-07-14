@@ -33,14 +33,15 @@ show_title = False
 # tmt_unsym.mtx.hgr
 # BenElechi1.mtx.hgr
 # xenon2.mtx.hgr
+# IMDB.mtx.hgr
 
 folder = "../results/test/"
 bandwidth_send_experiment_name = 'results_mpi_send_bandwidth_1_' + str(num_processes)
-graph_name = "BenElechi1.mtx.hgr"
+graph_name = "webbase-1M.mtx.hgr"
 partitioning = 'prawE'
-test_name = 'hyperPraw_prawE_default'
+test_name = 'prawE_prawE_bandwidth'
 
-sim_sent_experiment = test_name + '_' + graph_name + '_' + partitioning + '_edgeSim_comm_cost__' + str(num_processes)
+sim_sent_experiment = test_name + '_' + graph_name + '_' + partitioning + '_hedgeSim_comm_cost__' + str(num_processes)
 #sim_sent_experiment = test_name + '_' + partitioning + '_comm_matrix_' + str(num_processes)
 
 xlabel = "Process"

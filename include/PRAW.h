@@ -1882,11 +1882,6 @@ namespace PRAW {
 
         for(int iter=0; iter < max_iterations; iter++) {
 
-            double c_min = 1;
-            double c_max = 0;
-            double c_avg = 0;
-            int count = 0;
-
             // Open stream
             std::ifstream istream(hypergraph_filename.c_str());
             
@@ -1977,7 +1972,9 @@ namespace PRAW {
                     //      lambda * (maxsize - |p|) / (e + maxsize - minsize)
                     //      lambda --> > 1
                     //      e --> required to avoid dividing by 0 if maxsize == minsize
-                    double* c_total = (double*)calloc(num_processes,sizeof(double));
+                    // TODO: can we avoid having to do two passes across all processes?
+                    // can we avoid having these two datastructures?
+                    float* c_total = (float*)calloc(num_processes,sizeof(float));
                     double* c_comms = (double*)calloc(num_processes,sizeof(double));
                     float comm_min = std::numeric_limits<float>::max();
                     float comm_max = 0;
@@ -2005,25 +2002,21 @@ namespace PRAW {
 
                         c_rep = c_rep/(local_pins.size()*2);
 
-                        double c_bal = lambda * (maxsize - part_load[pp]) / (0.1 + maxsize - minsize);
+                        float c_bal = lambda * (maxsize - part_load[pp]) / (0.1 + maxsize - minsize);
 
                         c_total[pp] = c_bal + c_rep;
 
                     }
 
-                    double max_value = 0;
+                    float max_value = 0;
                     int best_partition = 0;
                     for(int pp=0; pp < num_processes; pp++) {    
                         // normalise c_comms
                         c_comms[pp] = (comm_max - c_comms[pp]) / (0.1 + comm_max - comm_min);
                         
                         // assign to partition that maximises C_rep + C_bal + C_comm
-                        double current_value = c_total[pp] + c_comms[pp];
+                        float current_value = c_total[pp] + c_comms[pp];
                         if(current_value > max_value) {
-                            c_min = std::min(c_comms[pp],c_min);
-                            c_max = std::max(c_comms[pp],c_max);
-                            c_avg += c_comms[pp];
-                            count++;
                             max_value = current_value;
                             best_partition = pp;
                             //printf("%f, %f, %f\n",c_rep,c_bal,c_comm);
@@ -2107,9 +2100,7 @@ namespace PRAW {
 
             // check for termination condition (tolerance imbalance reached)   
             float max_imbalance = ((float)maxsize) / ((float)total_workload/num_processes);
-            PRINTF("***Imbalance: %.3f\n",max_imbalance);
-            printf("%.3f || %.3f (%.3f)\n",c_min,c_max,c_avg/count);
-                            
+            PRINTF("***Imbalance: %.3f\n",max_imbalance);                            
 
             if(save_partitioning_history && process_id == MASTER_NODE) {
                 // store partition history
