@@ -1830,7 +1830,7 @@ namespace PRAW {
         //      Partial degree? (experiment with and without)
 
         // Parameters (from HDRF, Petroni 2015)
-        float lambda = 0.1f;
+        float lambda = 1.0f;
         // own parameters
         float lambda_update = 1.1f;
 
