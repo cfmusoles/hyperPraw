@@ -2130,7 +2130,7 @@ namespace PRAW {
                 }
                 lambda *= lambda_update;
             } else {
-                lambda *= 0.99f;
+                lambda *= 0.98f;
                 check_overfit = true;
                 if(process_id == MASTER_NODE) {
                     if(last_partitioning == NULL) {
