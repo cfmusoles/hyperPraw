@@ -1832,7 +1832,8 @@ namespace PRAW {
         // Parameters (from HDRF, Petroni 2015)
         float lambda = 1.0f;
         // own parameters
-        float lambda_update = 1.1f;
+        float lambda_update = 1.05f;
+        float lambda_refinement = 0.99f;
 
         int process_id;
         MPI_Comm_rank(MPI_COMM_WORLD,&process_id);
@@ -2130,7 +2131,7 @@ namespace PRAW {
                 }
                 lambda *= lambda_update;
             } else {
-                lambda *= 0.98f;
+                lambda *= lambda_refinement;
                 check_overfit = true;
                 if(process_id == MASTER_NODE) {
                     if(last_partitioning == NULL) {
