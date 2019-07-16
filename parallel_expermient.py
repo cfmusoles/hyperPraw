@@ -26,7 +26,7 @@ template_2 = '''
 template_3=''':bigmem='''
 template_4='''
 # walltime
-#PBS -l walltime=6:00:0
+#PBS -l walltime=10:00:0
 # budget code
 #PBS -A e582
 # bandwidth probing parameters
@@ -34,7 +34,7 @@ SIZE=512
 ITERATIONS=20
 WINDOW=10
 
-TEST_REPETITIONS=1
+TEST_REPETITIONS=2
 PROCESSES='''
 template_5='''
 EXPERIMENT_NAME='''
@@ -69,8 +69,8 @@ run_experiment() {
 	#aprun -n $PROCESSES hyperPraw -n $EXPERIMENT_NAME"_parallel" -h $HYPERGRAPH_FILE -i 100 -m 1200 -p prawE -t $E_SIM_STEPS -x $H_SIM_STEPS_MULT -s $SEED -k $MESSAGE_SIZE -o 2 -b $BM_FILE -W -c 0 -r 950
 	#sleep 1
 	
-	#aprun -n $PROCESSES hyperPraw -n $EXPERIMENT_NAME"_zoltan" -h $HYPERGRAPH_FILE -i 100 -m 1200 -p zoltan -t $E_SIM_STEPS -x $H_SIM_STEPS_MULT -s $SEED -k $MESSAGE_SIZE -b $BM_FILE
-	#sleep 1
+	aprun -n $PROCESSES hyperPraw -n $EXPERIMENT_NAME"_zoltan" -h $HYPERGRAPH_FILE -i 100 -m 1200 -p zoltan -t $E_SIM_STEPS -x $H_SIM_STEPS_MULT -s $SEED -k $MESSAGE_SIZE -b $BM_FILE
+	sleep 1
 
 	#aprun -n $PROCESSES hyperPraw -n $EXPERIMENT_NAME"_prawV_bandwidth" -h $HYPERGRAPH_FILE -i 100 -m 1200 -p prawV -t $E_SIM_STEPS -x $H_SIM_STEPS_MULT -s $SEED -k $MESSAGE_SIZE -W -H -b $BM_FILE
 	#sleep 1
@@ -93,15 +93,15 @@ do
 	#run_experiment "sparsine.mtx.hgr" $SEED 2 0
 	
 	#large graphs
-	run_experiment "webbase-1M.mtx.hgr" $SEED 1 0
+	run_experiment "webbase-1M.mtx.hgr" $SEED 1 10
 	#run_experiment "sat14_10pipe_q0_k.cnf.dual.hgr" $SEED 0 0 # fails with zoltan?
 	#run_experiment "sat14_11pipe_q0_k.cnf.hgr" $SEED 0 0
-	run_experiment "IMDB.mtx.hgr" $SEED 1 0
+	run_experiment "IMDB.mtx.hgr" $SEED 1 10
 	#run_experiment "sat14_ACG-20-10p1.cnf.hgr" $SEED 0 0
 	#run_experiment "tmt_unsym.mtx.hgr" $SEED 10 0
-	#run_experiment "xenon2.mtx.hgr" $SEED 1 0
-	#run_experiment "BenElechi1.mtx.hgr" $SEED 1 0
-	run_experiment "msdoor.mtx.hgr" $SEED 1 0
+	run_experiment "xenon2.mtx.hgr" $SEED 1 10
+	run_experiment "BenElechi1.mtx.hgr" $SEED 1 0
+	#run_experiment "msdoor.mtx.hgr" $SEED 1 10
 
 done
 
