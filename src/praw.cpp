@@ -1,6 +1,7 @@
 // Test harness for SPAAW (Streaming parallel Partitioning Architecture AWare)
 #define VERBOSE                 // extra debug info printed out during runtime
 #define SAVE_COMM_COST      // store actual p2p communication based on partitioning
+#define STORE_PARTITIONING      // store partitioning allocation
 
 #include <mpi.h>
 #include <cstdio>
@@ -96,12 +97,13 @@ int main(int argc, char** argv) {
     int hedge_sim_steps_multiplier = 0;
     int fake_compute_time = 0;
     int fake_compute_std = 0;
+    bool store_partitioning = false;
 
     // getting command line parameters
     extern char *optarg;
 	extern int optind, opterr, optopt;
 	int c;
-	while( (c = getopt(argc,argv,"n:h:i:m:b:Ws:p:t:k:o:c:r:Hq:x:f:u:")) != -1 ) {
+	while( (c = getopt(argc,argv,"n:h:i:m:b:Ws:p:t:k:o:c:r:Hq:x:f:u:P")) != -1 ) {
 		switch(c) {
 			case 'n': // test name
 				experiment_name = optarg;
@@ -157,6 +159,9 @@ int main(int argc, char** argv) {
             case 'u': // variation in fake computing time
 				fake_compute_std = atoi(optarg);
 				break; 
+            case 'P': // store partitioning
+				store_partitioning = true;
+				break;
 		}
 	}
 
@@ -202,6 +207,35 @@ int main(int argc, char** argv) {
 	partition->perform_partitioning(num_processes,process_id);
 
     partition_timer = MPI_Wtime() - partition_timer;
+
+
+    // store partitioning mapping to a file
+    if(store_partitioning && process_id == 0) {
+        int partitioning_length = isVertexCentric ? partition->num_vertices : partition->num_hyperedges;
+        
+        // store stats in file
+        std::string filename = experiment_name;
+        filename += "_";
+        std::string graph_string = graph_file;
+        filename += PRAW::getFileName(graph_string);
+        filename += "_";
+        filename += part_method;
+        char str_int[16];
+        sprintf(str_int,"%i",num_processes);
+        filename += "_partitioning__";
+        filename +=  str_int;
+        bool fileexists = access(filename.c_str(), F_OK) != -1;
+        FILE *fp = fopen(filename.c_str(), "ab+");
+        if(fp == NULL) {
+            printf("Error when storing partitioning into file\n");
+        } else {
+            for(int ii=0; ii < partitioning_length; ii++) {
+                fprintf(fp,"%li\n",partition->partitioning[ii]);
+            }
+        }
+        fclose(fp);
+    }
+    
 
     if(isVertexCentric) {
         VertexCentricSimulation::runSimulation(experiment_name, graph_file, part_method, bandwidth_file, partition->partitioning, partition_timer, partition->num_vertices, simulation_iterations, sim_steps, hedge_sim_steps_multiplier, fake_compute_time, fake_compute_std, message_size, proportional_comm_cost);
