@@ -1776,7 +1776,7 @@ namespace PRAW {
 
 
     // Stream from multiple files / streams
-    int ParallelHDRF(char* experiment_name, idx_t* partitioning, double** comm_cost_matrix, std::string hypergraph_filename, int* element_wgt, int max_iterations, float imbalance_tolerance, bool save_partitioning_history) {
+    int ParallelHDRF(char* experiment_name, idx_t* partitioning, double** comm_cost_matrix, std::string hypergraph_filename, int* element_wgt, int max_iterations, float imbalance_tolerance, bool save_partitioning_history, bool local_replica_degree_updates_only = false) {
         // Parallel Hyperedge Partitioning based algorithm
         // Because it can be applied to both vertex and hyperedge partitionings, we adopt the following nomenclature:
         //      element: what each line in the stream represent
@@ -2036,18 +2036,20 @@ namespace PRAW {
                 new_replicas.push_back(element_mapping); // add in front the partition selected
                 for(int ii=0; ii < local_pins.size(); ii++) {
                     int pin_id = local_pins[ii];
-                    new_replicas.push_back(pin_id);
-                    // cannot filter out already seen vertices, as we need them to update teh partial degree in remote local data structures
-                    // TODO: test performance degradation when only updating partial degree with local info
-                    /*if(seen_pins[pin_id].partial_degree == 0) {
-                        // if the vertex has not been seen before
-                        new_replicas.push_back(pin_id);
-                    } else if(seen_pins[pin_id].A.find(element_mapping) == seen_pins[pin_id].A.end()) {
-                        // if it has been seen but it's the first replica on new partition
+                    if(!local_replica_degree_updates_only) {
                         new_replicas.push_back(pin_id);
                     } else {
-                        seen_pins[pin_id].partial_degree += 1;
-                    }*/
+                        // TODO: test performance degradation when only updating partial degree with local info
+                        if(seen_pins[pin_id].partial_degree == 0) {
+                            // if the vertex has not been seen before
+                            new_replicas.push_back(pin_id);
+                        } else if(seen_pins[pin_id].A.find(element_mapping) == seen_pins[pin_id].A.end()) {
+                            // if it has been seen but it's the first replica on new partition
+                            new_replicas.push_back(pin_id);
+                        } else {
+                            seen_pins[pin_id].partial_degree += 1;
+                        }
+                    }
                 }
 
                 // share send buffer size with other processes

@@ -96,7 +96,7 @@ public:
             
             // alternative using HDRF flipping the hgraph (minimising replication of hyperedges, therefore reducing cut)
             // if store partitioning history we would get vertex replication factor as hyperedge replication factor
-            PRAW::ParallelHDRF(experiment_name,partitioning, comm_cost_matrix, hgraph_file, vtx_wgt, max_iterations, imbalance_tolerance, save_partitioning_history);
+            PRAW::ParallelHDRF(experiment_name,partitioning, comm_cost_matrix, hgraph_file, vtx_wgt, max_iterations, imbalance_tolerance, save_partitioning_history,false);
         } else {
             if(process_id == 0) {
                 PRAW::SequentialHyperedgePartitioning(experiment_name,partitioning, num_processes, comm_cost_matrix, hgraph_name, vtx_wgt, max_iterations, imbalance_tolerance,ta_refinement,reset_partitioning,stopping_condition,save_partitioning_history);
