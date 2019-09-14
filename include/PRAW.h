@@ -1832,8 +1832,8 @@ namespace PRAW {
         // Parameters (from HDRF, Petroni 2015)
         float lambda = 1.0f;
         // own parameters
-        float lambda_update = 1.05f;
-        float lambda_refinement = 0.99f;
+        float lambda_update = 1.1f;
+        float lambda_refinement = 0.95f;
 
         int process_id;
         MPI_Comm_rank(MPI_COMM_WORLD,&process_id);
@@ -2103,7 +2103,7 @@ namespace PRAW {
 
             // check for termination condition (tolerance imbalance reached)   
             float max_imbalance = ((float)maxsize) / ((float)total_workload/num_processes);
-            PRINTF("***Imbalance: %.3f\n",max_imbalance);                            
+            PRINTF("***Imbalance: %.3f, current lambda: %f\n",max_imbalance,lambda);                            
 
             if(save_partitioning_history && process_id == MASTER_NODE) {
                 // store partition history
