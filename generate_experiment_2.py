@@ -26,7 +26,7 @@ template_2 = '''
 template_3=''':bigmem='''
 template_4='''
 # walltime
-#PBS -l walltime=12:00:0
+#PBS -l walltime=18:00:0
 # budget code
 #PBS -A e582
 # bandwidth probing parameters
