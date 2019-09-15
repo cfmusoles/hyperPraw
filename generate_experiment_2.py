@@ -63,14 +63,14 @@ run_experiment() {
 	HYPERGRAPH_FILE="$1"
 	SEED="$2"
 	E_SIM_STEPS="$3"
-	H_SIM_STEPS_MULT="$4"
-	#aprun -n $PROCESSES hyperPraw -n $EXPERIMENT_NAME"_default" -h $HYPERGRAPH_FILE -i 100 -m 1100 -p prawS -t $E_SIM_STEPS -x $H_SIM_STEPS_MULT -s $SEED -k $MESSAGE_SIZE -o 2 -b $BM_FILE -r 950 -q 2
+	H_SIM_STEPS="$4"
+	#aprun -n $PROCESSES hyperPraw -n $EXPERIMENT_NAME"_default" -h $HYPERGRAPH_FILE -i 100 -m 1100 -p prawS -t $E_SIM_STEPS -x $H_SIM_STEPS -s $SEED -k $MESSAGE_SIZE -o 2 -b $BM_FILE -r 950 -q 2
 	#sleep 1
-	aprun -n $PROCESSES hyperPraw -n $EXPERIMENT_NAME"_bandwidth" -h $HYPERGRAPH_FILE -i 100 -m 1100 -p prawS -t $E_SIM_STEPS -x $H_SIM_STEPS_MULT -s $SEED -k $MESSAGE_SIZE -o 2 -b $BM_FILE -W -c 0 -r 950  -q 2
+	aprun -n $PROCESSES hyperPraw -n $EXPERIMENT_NAME"_bandwidth" -h $HYPERGRAPH_FILE -i 100 -m 1100 -p prawS -t $E_SIM_STEPS -x $H_SIM_STEPS -s $SEED -k $MESSAGE_SIZE -o 2 -b $BM_FILE -W -c 0 -r 950  -q 2
 	sleep 1
-	aprun -n $PROCESSES hyperPraw -n $EXPERIMENT_NAME"_zoltan" -h $HYPERGRAPH_FILE -i 100 -m 1070 -p zoltan -t $E_SIM_STEPS -x $H_SIM_STEPS_MULT -s $SEED -k $MESSAGE_SIZE -b $BM_FILE  -q 2
+	aprun -n $PROCESSES hyperPraw -n $EXPERIMENT_NAME"_zoltan" -h $HYPERGRAPH_FILE -i 100 -m 1070 -p zoltan -t $E_SIM_STEPS -x $H_SIM_STEPS -s $SEED -k $MESSAGE_SIZE -b $BM_FILE  -q 2
 	sleep 1
-	#aprun -n $PROCESSES hyperPraw -n $EXPERIMENT_NAME"_refinement" -h $HYPERGRAPH_FILE -i 100 -m 1100 -p prawSref -t $E_SIM_STEPS -x $H_SIM_STEPS_MULT -s $SEED -k $MESSAGE_SIZE -o 2 -b $BM_FILE -W -c 0 -r 950  -q 2
+	#aprun -n $PROCESSES hyperPraw -n $EXPERIMENT_NAME"_refinement" -h $HYPERGRAPH_FILE -i 100 -m 1100 -p prawSref -t $E_SIM_STEPS -x $H_SIM_STEPS -s $SEED -k $MESSAGE_SIZE -o 2 -b $BM_FILE -W -c 0 -r 950  -q 2
 	#sleep 1
 }
 
@@ -78,18 +78,18 @@ for i in $(seq 1 $TEST_REPETITIONS)
 do
 	SEED=$RANDOM
 	#small graphs
-	run_experiment "sat14_itox_vc1130.cnf.dual.hgr" $SEED 2 2
-	run_experiment "2cubes_sphere.mtx.hgr" $SEED 3 3
-	run_experiment "ABACUS_shell_hd.mtx.hgr" $SEED 40 40
-	run_experiment "sparsine.mtx.hgr" $SEED 2 2
+	run_experiment "sat14_itox_vc1130.cnf.dual.hgr" $SEED 0 2
+	run_experiment "2cubes_sphere.mtx.hgr" $SEED 0 3
+	run_experiment "ABACUS_shell_hd.mtx.hgr" $SEED 0 40
+	run_experiment "sparsine.mtx.hgr" $SEED 0 2
 	
 	#large graphs
-	run_experiment "pdb1HYS.mtx.hgr" $SEED 1 1 #
-	run_experiment "sat14_10pipe_q0_k.cnf.primal.hgr" $SEED 1 1 
-	run_experiment "sat14_E02F22.cnf.hgr" $SEED 2 2
-	run_experiment "webbase-1M.mtx.hgr" $SEED 1 1
-	run_experiment "ship_001.mtx.hgr" $SEED 1 1
-	run_experiment "sat14_atco_enc1_opt1_05_21.cnf.dual.hgr" $SEED 1 1
+	run_experiment "pdb1HYS.mtx.hgr" $SEED 0 1 #
+	run_experiment "sat14_10pipe_q0_k.cnf.primal.hgr" $SEED 0 1 
+	run_experiment "sat14_E02F22.cnf.hgr" $SEED 0 2
+	run_experiment "webbase-1M.mtx.hgr" $SEED 0 1
+	run_experiment "ship_001.mtx.hgr" $SEED 0 1
+	run_experiment "sat14_atco_enc1_opt1_05_21.cnf.dual.hgr" $SEED 0 1
 	
 	
 done
