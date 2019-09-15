@@ -21,7 +21,7 @@
 namespace VertexCentricSimulation {
 
     
-    void runSimulation(char* experiment_name, char* graph_file, char* part_method, char* bandwidth_file,  idx_t* partitioning, float partition_timer, int num_vertices, int simulation_iterations, int sim_steps, int hedge_sim_steps_multiplier, int fake_compute_time, float fake_compute_std, int message_size, bool proportional_comm_cost) {
+    void runSimulation(char* experiment_name, char* graph_file, char* part_method, char* bandwidth_file,  idx_t* partitioning, float partition_timer, int num_vertices, int simulation_iterations, int edge_sim_steps, int hedge_sim_steps, int fake_compute_time, float fake_compute_std, int message_size, bool proportional_comm_cost) {
 
         int process_id;
         int num_processes;
@@ -62,7 +62,7 @@ namespace VertexCentricSimulation {
             std::default_random_engine generator;
             std::normal_distribution<double> distribution(fake_compute_time,fake_compute_std);
             
-            for(int tt = 0; tt < sim_steps; tt++) {
+            for(int tt = 0; tt < edge_sim_steps; tt++) {
                 
                 // fake compute based on stochastic time sleep
                 if(fake_compute_time > 0) {
@@ -135,7 +135,7 @@ namespace VertexCentricSimulation {
             int* neighbouring_partitions = (int*)calloc(num_processes,sizeof(int));
             timer = MPI_Wtime();
             
-            for(int tt = 0; tt < sim_steps * hedge_sim_steps_multiplier; tt++) {
+            for(int tt = 0; tt < hedge_sim_steps; tt++) {
                 // for each local hyperedge
                 //      if any vertex is not local, add destination to target list
                 //      send messages all to all for processes in target list plus local
@@ -203,7 +203,7 @@ namespace VertexCentricSimulation {
             //    partitioning stats (hedge cut, SOED, absorption)
             
             if(process_id == 0) {
-                printf("%i: Edge simulation time (%i steps): %f secs, Hedge simulation time: %f secs\n",process_id,sim_steps,total_edge_sim_time,total_hedge_sim_time);
+                printf("%i: Edge simulation time (%i steps): %f secs, Hedge simulation time: %f secs\n",process_id,edge_sim_steps,total_edge_sim_time,total_hedge_sim_time);
                 // used to calculate the theoretical cost of communication
                 // if bandwidth file is not provided, then assumes all costs are equal
                 // initialise comm cost matrix (for theoretical cost analysis)

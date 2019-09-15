@@ -2032,6 +2032,14 @@ namespace PRAW {
                 element_id += num_processes;
                 
                 // synchronise data
+                // ***** 
+                //  TODO: test just synchronising partition sizes, not vertex degree
+                //  assumption: if pins are sufficiently shuffled, partial local degree may be enough and saves data shared
+                // *****
+                // ***** 
+                //  TODO: only synchronise once a batch of local pins have been processed (not just one)
+                //  issues: tradeoff between less comm overhead and quality of partition (potentially higher graph size requirements as partition load is not updated often)
+                // *****
                 std::vector<int> new_replicas;
                 new_replicas.push_back(element_mapping); // add in front the partition selected
                 for(int ii=0; ii < local_pins.size(); ii++) {
@@ -2041,7 +2049,7 @@ namespace PRAW {
                     } else {
                         // TODO: test performance degradation when only updating partial degree with local info
                         if(seen_pins[pin_id].partial_degree == 0) {
-                            // if the vertex has not been seen before
+                            // if the pin has not been seen before
                             new_replicas.push_back(pin_id);
                         } else if(seen_pins[pin_id].A.find(element_mapping) == seen_pins[pin_id].A.end()) {
                             // if it has been seen but it's the first replica on new partition

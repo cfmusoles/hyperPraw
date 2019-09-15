@@ -17,7 +17,7 @@
 
 namespace EdgeCentricSimulation {
 
-    void runSimulation(char* experiment_name, char* graph_file, char* part_method, char* bandwidth_file,  idx_t* partitioning, float partition_timer, int num_vertices, int simulation_iterations, int sim_steps, int hedge_sim_steps_multiplier, int message_size, bool proportional_comm_cost) {
+    void runSimulation(char* experiment_name, char* graph_file, char* part_method, char* bandwidth_file,  idx_t* partitioning, float partition_timer, int num_vertices, int simulation_iterations, int edge_sim_steps, int hedge_sim_steps, int message_size, bool proportional_comm_cost) {
 
         int process_id;
         int num_processes;
@@ -84,7 +84,7 @@ namespace EdgeCentricSimulation {
             ////////////////////////
             // SIMULATION CODE
             ////////////////////////
-            for(int tt = 0; tt < sim_steps; tt++) {
+            for(int tt = 0; tt < edge_sim_steps; tt++) {
                 for(int vid=0; vid < num_vertices; vid++) {
                     std::set<int>::iterator sit;
                     for(sit =vertex_replicas[vid].begin(); sit != vertex_replicas[vid].end(); sit++) {
@@ -136,7 +136,7 @@ namespace EdgeCentricSimulation {
             //    partitioning stats (hedge cut, SOED, absorption)
             
             if(process_id == 0) {
-                printf("%i: simulation time (%i steps): %f secs\n",process_id,sim_steps,total_edge_sim_time);
+                printf("%i: simulation time (%i steps): %f secs\n",process_id,edge_sim_steps,total_edge_sim_time);
                 // used to calculate the theoretical cost of communication
                 // if bandwidth file is not provided, then assumes all costs are equal
                 // initialise comm cost matrix (for theoretical cost analysis)

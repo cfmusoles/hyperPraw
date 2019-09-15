@@ -87,14 +87,14 @@ int main(int argc, char** argv) {
     bool use_bandwidth_in_partitioning = false;
     int rand_seed = time(NULL);
     char* part_method = NULL;
-    int sim_steps  = 100;
+    int edge_sim_steps  = 100;
     int message_size = 1;
     int stopping_condition = 0;
     bool proportional_comm_cost = false;
     float ta_refinement = 1.0f;
     bool save_partitioning_history = false;
     int simulation_iterations = 1;
-    int hedge_sim_steps_multiplier = 0;
+    int hedge_sim_steps = 0;
     int fake_compute_time = 0;
     int fake_compute_std = 0;
     bool store_partitioning = false;
@@ -129,8 +129,8 @@ int main(int argc, char** argv) {
             case 'p': // partitioning method
 				part_method = optarg;
 				break;
-            case 't': // simulated steps
-				sim_steps = atoi(optarg);
+            case 't': // simulated steps (edge sim)
+				edge_sim_steps = atoi(optarg);
 				break;
             case 'k': // message size during simulation
 				message_size = atoi(optarg);
@@ -150,8 +150,8 @@ int main(int argc, char** argv) {
             case 'q': // simulation iterations
 				simulation_iterations = atoi(optarg);
 				break;
-            case 'x': // simulated steps multiplier for hedge sims
-				hedge_sim_steps_multiplier = atoi(optarg);
+            case 'x': // simulated steps (hedge sims)
+				hedge_sim_steps = atoi(optarg);
 				break;
             case 'f': // mean in fake computing time
 				fake_compute_time = atoi(optarg);
@@ -238,10 +238,10 @@ int main(int argc, char** argv) {
     
 
     if(isVertexCentric) {
-        VertexCentricSimulation::runSimulation(experiment_name, graph_file, part_method, bandwidth_file, partition->partitioning, partition_timer, partition->num_vertices, simulation_iterations, sim_steps, hedge_sim_steps_multiplier, fake_compute_time, fake_compute_std, message_size, proportional_comm_cost);
+        VertexCentricSimulation::runSimulation(experiment_name, graph_file, part_method, bandwidth_file, partition->partitioning, partition_timer, partition->num_vertices, simulation_iterations, edge_sim_steps, hedge_sim_steps, fake_compute_time, fake_compute_std, message_size, proportional_comm_cost);
         
     } else {
-        EdgeCentricSimulation::runSimulation(experiment_name, graph_file, part_method, bandwidth_file, partition->partitioning, partition_timer, partition->num_vertices, simulation_iterations, sim_steps, hedge_sim_steps_multiplier, message_size, proportional_comm_cost);
+        EdgeCentricSimulation::runSimulation(experiment_name, graph_file, part_method, bandwidth_file, partition->partitioning, partition_timer, partition->num_vertices, simulation_iterations, edge_sim_steps, hedge_sim_steps, message_size, proportional_comm_cost);
     }
     
 
