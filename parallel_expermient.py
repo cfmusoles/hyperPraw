@@ -93,15 +93,15 @@ do
 	#run_experiment "sparsine.mtx.hgr" $SEED 2 0
 	
 	#large graphs
-	run_experiment "webbase-1M.mtx.hgr" $SEED 1 10
+	run_experiment "webbase-1M.mtx.hgr" $SEED 1 1
 	#run_experiment "sat14_10pipe_q0_k.cnf.dual.hgr" $SEED 0 0 # fails with zoltan?
 	#run_experiment "sat14_11pipe_q0_k.cnf.hgr" $SEED 0 0
-	run_experiment "IMDB.mtx.hgr" $SEED 1 10
+	run_experiment "IMDB.mtx.hgr" $SEED 1 1
 	#run_experiment "sat14_ACG-20-10p1.cnf.hgr" $SEED 0 0
 	#run_experiment "tmt_unsym.mtx.hgr" $SEED 10 0
-	run_experiment "xenon2.mtx.hgr" $SEED 1 10
+	run_experiment "xenon2.mtx.hgr" $SEED 1 1
 	run_experiment "BenElechi1.mtx.hgr" $SEED 1 1
-	#run_experiment "msdoor.mtx.hgr" $SEED 1 10
+	#run_experiment "msdoor.mtx.hgr" $SEED 1 1
 
 done
 
