@@ -12,7 +12,9 @@ public:
 	
 	virtual ~RandomPartitioning() {}
 	
-	virtual void perform_partitioning(int num_processes,int process_id) {
+	virtual void perform_partitioning(int num_processes,int process_id, int* iterations) {
+		
+		*iterations = 1;
 		
 		if(num_processes == 1) {
 			PRINTF("Partitioning not required\n");

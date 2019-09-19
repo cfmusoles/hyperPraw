@@ -160,7 +160,9 @@ public:
 		Zoltan_Destroy(&zz);
 	}
 	
-	virtual void perform_partitioning(int num_processes,int process_id) {
+	virtual void perform_partitioning(int num_processes,int process_id, int* iterations) {
+		
+		*iterations = 1;
 		
 		// Assign unique vertices to partitions
 		hg.numMyVertices = 0;

@@ -1203,7 +1203,7 @@ namespace PRAW {
         free(current_neighbours_in_partition);
         //free(sum_all_bandwidth);
 
-        return 0;
+        return 1;
     }
 
     int ParallelHyperedgePartitioning(char* experiment_name, idx_t* partitioning, double** comm_cost_matrix, std::string hypergraph_filename, int* vtx_wgt, int iterations, float imbalance_tolerance, float ta_refine, bool reset_partitioning, int stopping_condition, bool save_partitioning_history) {
@@ -1310,7 +1310,8 @@ namespace PRAW {
             if(part_load[ll] < minload) minload = part_load[ll];
         }*/
         
-        for(int iter=0; iter < iterations; iter++) {
+        int iter = 0;
+        for(iter=0; iter < iterations; iter++) {
             
             int best_partition = 0;
             int last_partition_update = 0;
@@ -1534,7 +1535,7 @@ namespace PRAW {
         free(part_load);
         free(current_neighbours_in_partition);
 
-        return 0;
+        return iter+1;
     }
 
     // Stream from multiple files / streams
@@ -1591,7 +1592,8 @@ namespace PRAW {
             fclose(fp);
         }
 
-        for(int iter=0; iter < max_iterations; iter++) {
+        int iter =0;
+        for(iter=0; iter < max_iterations; iter++) {
 
             //int num_vertices = he_stream->size();
             //int num_hyperedges = tokens[0];
@@ -1770,7 +1772,7 @@ namespace PRAW {
         // clean up
         free(part_load);
 
-        return 0;
+        return iter+1;
 
     }
 
@@ -1880,8 +1882,8 @@ namespace PRAW {
         bool rollback = false;
         idx_t* last_partitioning = NULL;
 
-
-        for(int iter=0; iter < max_iterations; iter++) {
+        int iter = 0;
+        for(iter=0; iter < max_iterations; iter++) {
 
             // Open stream
             std::ifstream istream(hypergraph_filename.c_str());
@@ -2171,7 +2173,7 @@ namespace PRAW {
         // clean up
         free(part_load);
 
-        return 0;
+        return iter+1;
 
     }
     

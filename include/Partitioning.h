@@ -32,7 +32,7 @@ public:
 		free(partitioning);
 	}
 	
-	virtual void perform_partitioning(int num_processes,int process_id) {}
+	virtual void perform_partitioning(int num_processes,int process_id, int* iterations) {}
 	
 protected:
 	float imbalance_tolerance;

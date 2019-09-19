@@ -17,7 +17,7 @@
 
 namespace EdgeCentricSimulation {
 
-    void runSimulation(char* experiment_name, char* graph_file, char* part_method, char* bandwidth_file,  idx_t* partitioning, float partition_timer, int num_vertices, int simulation_iterations, int edge_sim_steps, int hedge_sim_steps, int message_size, bool proportional_comm_cost) {
+    void runSimulation(char* experiment_name, char* graph_file, char* part_method, char* bandwidth_file,  idx_t* partitioning, float partition_timer, int partition_iterations, int num_vertices, int simulation_iterations, int edge_sim_steps, int hedge_sim_steps, int message_size, bool proportional_comm_cost) {
 
         int process_id;
         int num_processes;
@@ -180,8 +180,8 @@ namespace EdgeCentricSimulation {
                     printf("Error when storing results into file\n");
                 } else {
                     if(!fileexists) // file does not exist, add header
-                        fprintf(fp,"%s,%s,%s,%s,%s,%s\n","Partition time","Sim time","Vertex replication factor","Hedge imbalance","Hedgecut","Sim Messages sent");
-                    fprintf(fp,"%.3f,%.3f,%.3f,%.3f,%.3f,%li\n",partition_timer,total_edge_sim_time,vertex_replication_factor,max_hedge_imbalance,hedgecut,total_edge_messages_sent);
+                        fprintf(fp,"%s,%s,%s,%s,%s,%s,%s\n","Partition time","Sim time","Vertex replication factor","Hedge imbalance","Hedgecut","Sim Messages sent","Partition time per iteration");
+                    fprintf(fp,"%.3f,%.3f,%.3f,%.3f,%.3f,%li,%.3f\n",partition_timer,total_edge_sim_time,vertex_replication_factor,max_hedge_imbalance,hedgecut,total_edge_messages_sent,partition_timer/partition_iterations);
                 }
                 fclose(fp);
 

@@ -81,7 +81,7 @@ int main(int argc, char** argv) {
     // DEFAULT PARAMETERS
     char* experiment_name = NULL;
     char* graph_file = NULL;
-    int iterations = 1;
+    int max_iterations = 1;
     float imbalance_tolerance = 1.05f;
     char* bandwidth_file = NULL;
     bool use_bandwidth_in_partitioning = false;
@@ -112,7 +112,7 @@ int main(int argc, char** argv) {
 				graph_file = optarg;
 				break;
 			case 'i': // max iterations
-				iterations = atoi(optarg);
+				max_iterations = atoi(optarg);
 				break;
             case 's': // random seed
 				rand_seed = atoi(optarg);
@@ -178,25 +178,17 @@ int main(int argc, char** argv) {
 		PRINTF("%i: Partitioning: zoltan\n",process_id);
 		partition = new ZoltanPartitioning(graph_file,imbalance_tolerance);
         isVertexCentric = true;
-	} else if(strcmp(part_method,"prawE") == 0) {  
+	} else if(strcmp(part_method,"prawV") == 0) {  
 		PRINTF("%i: Partitioning: parallel vertex hyperPRAW\n",process_id);
-        partition = new HyperedgePartitioning(experiment_name,graph_file,imbalance_tolerance,ta_refinement,iterations,bandwidth_file,true,use_bandwidth_in_partitioning,true,stopping_condition,proportional_comm_cost,save_partitioning_history);
-        isVertexCentric = true;
-	} else if(strcmp(part_method,"prawSref") == 0) {  
-		PRINTF("%i: Partitioning: sequential refinement hyperPRAW\n",process_id);
-        Partitioning* p1 = new ZoltanPartitioning(graph_file,imbalance_tolerance);
-        p1->perform_partitioning(num_processes,process_id);
-		partition = new HyperedgePartitioning(experiment_name,graph_file,imbalance_tolerance,ta_refinement,iterations,bandwidth_file,false,use_bandwidth_in_partitioning,false,stopping_condition,proportional_comm_cost,save_partitioning_history);
-        memcpy(partition->partitioning,p1->partitioning,partition->num_vertices * sizeof(idx_t));
-        free(p1);
+        partition = new VertexPartitioning(experiment_name,graph_file,imbalance_tolerance,ta_refinement,max_iterations,bandwidth_file,true,use_bandwidth_in_partitioning,true,stopping_condition,proportional_comm_cost,save_partitioning_history);
         isVertexCentric = true;
 	} else if(strcmp(part_method,"prawS") == 0) {  
 		PRINTF("%i: Partitioning: sequential hyperPRAW\n",process_id);
-		partition = new HyperedgePartitioning(experiment_name,graph_file,imbalance_tolerance,ta_refinement,iterations,bandwidth_file,false,use_bandwidth_in_partitioning,true,stopping_condition,proportional_comm_cost,save_partitioning_history);
+		partition = new VertexPartitioning(experiment_name,graph_file,imbalance_tolerance,ta_refinement,max_iterations,bandwidth_file,false,use_bandwidth_in_partitioning,true,stopping_condition,proportional_comm_cost,save_partitioning_history);
 	    isVertexCentric = true;
-	} else if(strcmp(part_method,"prawV") == 0) {  
+	} else if(strcmp(part_method,"prawE") == 0) {  
 		PRINTF("%i: Partitioning: parallel hyperedge partitioning\n",process_id);
-		partition = new VertexPartitioning(experiment_name,graph_file,iterations,imbalance_tolerance,bandwidth_file,use_bandwidth_in_partitioning,true,save_partitioning_history);
+		partition = new HyperedgePartitioning(experiment_name,graph_file,max_iterations,imbalance_tolerance,bandwidth_file,use_bandwidth_in_partitioning,true,save_partitioning_history);
 	    isVertexCentric = false;
 	} else { // default is random
 		PRINTF("%i: Partitioning: random\n",process_id);
@@ -204,7 +196,8 @@ int main(int argc, char** argv) {
         isVertexCentric = true;
 	}
     srand(rand_seed);
-	partition->perform_partitioning(num_processes,process_id);
+    int partition_iterations;
+	partition->perform_partitioning(num_processes,process_id,&partition_iterations);
 
     partition_timer = MPI_Wtime() - partition_timer;
 
@@ -238,10 +231,10 @@ int main(int argc, char** argv) {
     
 
     if(isVertexCentric) {
-        VertexCentricSimulation::runSimulation(experiment_name, graph_file, part_method, bandwidth_file, partition->partitioning, partition_timer, partition->num_vertices, simulation_iterations, edge_sim_steps, hedge_sim_steps, fake_compute_time, fake_compute_std, message_size, proportional_comm_cost);
+        VertexCentricSimulation::runSimulation(experiment_name, graph_file, part_method, bandwidth_file, partition->partitioning, partition_timer, partition_iterations, partition->num_vertices, simulation_iterations, edge_sim_steps, hedge_sim_steps, fake_compute_time, fake_compute_std, message_size, proportional_comm_cost);
         
     } else {
-        EdgeCentricSimulation::runSimulation(experiment_name, graph_file, part_method, bandwidth_file, partition->partitioning, partition_timer, partition->num_vertices, simulation_iterations, edge_sim_steps, hedge_sim_steps, message_size, proportional_comm_cost);
+        EdgeCentricSimulation::runSimulation(experiment_name, graph_file, part_method, bandwidth_file, partition->partitioning, partition_timer, partition_iterations, partition->num_vertices, simulation_iterations, edge_sim_steps, hedge_sim_steps, message_size, proportional_comm_cost);
     }
     
 
