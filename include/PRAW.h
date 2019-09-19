@@ -904,7 +904,7 @@ namespace PRAW {
         }
     }
 
-    int SequentialHyperedgePartitioning(char* experiment_name, idx_t* partitioning, int num_processes, double** comm_cost_matrix, std::string hypergraph_filename, int* vtx_wgt, int iterations, float imbalance_tolerance, float ta_refine, bool reset_partitioning, int stopping_condition, bool save_partitioning_history) {
+    int SequentialVertexPartitioning(char* experiment_name, idx_t* partitioning, int num_processes, double** comm_cost_matrix, std::string hypergraph_filename, int* vtx_wgt, int iterations, float imbalance_tolerance, float ta_refine, bool reset_partitioning, int stopping_condition, bool save_partitioning_history) {
         
         // get meta info (num vertices and hyperedges)
         int num_vertices, num_hyperedges;

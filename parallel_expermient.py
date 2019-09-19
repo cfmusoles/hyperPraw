@@ -86,12 +86,17 @@ for i in $(seq 1 $TEST_REPETITIONS)
 do
 	SEED=$RANDOM
 
-	#large graphs
-	run_experiment "sat14_11pipe_k.cnf.dual.hgr" $SEED 0 0
-	run_experiment "sat14_atco_enc3_opt1_04_50.cnf.hgr" $SEED 0 0
-	run_experiment "sat14_blocks-blocks-37-1.130-NOTKNOWN.cnf.dual.hgr" $SEED 0 0
-	run_experiment "sat14_SAT_dat.k100-24_1_rule_1.cnf.dual.hgr" $SEED 0 0
+	#large graphs (> 3M)
+	#run_experiment "sat14_11pipe_k.cnf.dual.hgr" $SEED 0 0
+	#run_experiment "sat14_atco_enc3_opt1_04_50.cnf.hgr" $SEED 0 0
+	#run_experiment "sat14_blocks-blocks-37-1.130-NOTKNOWN.cnf.dual.hgr" $SEED 0 0
+	#run_experiment "sat14_SAT_dat.k100-24_1_rule_1.cnf.dual.hgr" $SEED 0 0
+	#run_experiment "sat14_q_query_3_L200_coli.sat.cnf.dual.hgr" $SEED 0 0
 
+	#medium graphs (> 800K)
+	run_experiment "atmosmodj.mtx.hgr" $SEED 0 0
+	run_experiment "kkt_power.mtx.hgr" $SEED 0 0
+	run_experiment "sat14_velev-vliw-uns-2.0-uq5.cnf.dual.hgr" $SEED 0 0
 done
 
 

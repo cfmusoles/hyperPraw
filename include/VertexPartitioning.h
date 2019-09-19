@@ -99,7 +99,7 @@ public:
             *iterations = PRAW::ParallelHDRF(experiment_name,partitioning, comm_cost_matrix, hgraph_file, vtx_wgt, max_iterations, imbalance_tolerance, save_partitioning_history,false);
         } else {
             if(process_id == 0) {
-                *iterations = PRAW::SequentialHyperedgePartitioning(experiment_name,partitioning, num_processes, comm_cost_matrix, hgraph_name, vtx_wgt, max_iterations, imbalance_tolerance,ta_refinement,reset_partitioning,stopping_condition,save_partitioning_history);
+                *iterations = PRAW::SequentialVertexPartitioning(experiment_name,partitioning, num_processes, comm_cost_matrix, hgraph_name, vtx_wgt, max_iterations, imbalance_tolerance,ta_refinement,reset_partitioning,stopping_condition,save_partitioning_history);
             } 
             MPI_Barrier(MPI_COMM_WORLD);
             // share new partitioning with other processes
