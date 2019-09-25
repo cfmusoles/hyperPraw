@@ -1837,6 +1837,10 @@ namespace PRAW {
         float lambda_update = 1.1f;
         float lambda_refinement = 0.95f;
 
+        // sets the frequency of remote updates between processes
+        int sync_batch_size = 1;
+            
+        
         int process_id;
         MPI_Comm_rank(MPI_COMM_WORLD,&process_id);
         int num_processes;
@@ -1944,6 +1948,10 @@ namespace PRAW {
             int element_mapping = -1; // mapping of current he (to partition)
             std::vector<int> local_pins; // list of hyperedges and vertices seen in the current batch that belong to process
 
+            // data structures for batch synchronisation
+            std::vector<int> local_pins_size;
+            std::vector<int> new_replicas;
+
             while(element_id < num_elements) {
                 if(std::getline(istream,line)) {
                     char str[line.length() + 1]; 
@@ -1954,7 +1962,7 @@ namespace PRAW {
                         local_pins.push_back(atoi(token)-1); 
                         token = strtok(NULL, " "); 
                     } 
-
+                    
                     // local hyperedge, process and assign it
                     // calculate norm_part_degree for each vertex
                     //std::vector<double> normalised_part_degrees(vertices.size());
@@ -2032,82 +2040,109 @@ namespace PRAW {
                 }
 
                 element_id += num_processes;
-                
+
                 // synchronise data
                 // ***** 
                 //  TODO: test just synchronising partition sizes, not vertex degree
                 //  assumption: if pins are sufficiently shuffled, partial local degree may be enough and saves data shared
                 // *****
                 // ***** 
-                //  TODO: only synchronise once a batch of local pins have been processed (not just one)
+                //  TODO: Batch synchronisation requres testing. Are we saving time? Are results correct?
                 //  issues: tradeoff between less comm overhead and quality of partition (potentially higher graph size requirements as partition load is not updated often)
                 // *****
-                std::vector<int> new_replicas;
                 new_replicas.push_back(element_mapping); // add in front the partition selected
+                
+                int new_pins = 0;
                 for(int ii=0; ii < local_pins.size(); ii++) {
                     int pin_id = local_pins[ii];
                     if(!local_replica_degree_updates_only) {
                         new_replicas.push_back(pin_id);
+                        new_pins++;
                     } else {
                         // TODO: test performance degradation when only updating partial degree with local info
                         if(seen_pins[pin_id].partial_degree == 0) {
                             // if the pin has not been seen before
                             new_replicas.push_back(pin_id);
+                            new_pins++;
                         } else if(seen_pins[pin_id].A.find(element_mapping) == seen_pins[pin_id].A.end()) {
                             // if it has been seen but it's the first replica on new partition
                             new_replicas.push_back(pin_id);
+                            new_pins++;
                         } else {
                             seen_pins[pin_id].partial_degree += 1;
                         }
                     }
                 }
+                local_pins_size.push_back(new_pins);
 
-                // share send buffer size with other processes
-                // size = number of new replicas + 1 (the partition selected)
-                int* recvcounts = (int*)malloc(num_processes * sizeof(int));
-                int send_size = new_replicas.size();
-                MPI_Allgather(&send_size,1,MPI_INT,recvcounts,1,MPI_INT,MPI_COMM_WORLD);
+                // batch synchronisation
+                if((element_id / num_processes) % sync_batch_size == 0) {
+                    // synchronise length of pins list to be sent
+                    int total_pins_size = sync_batch_size * num_processes;
+                    int* remote_pins_size = (int*)malloc(sizeof(int) * total_pins_size);
 
-                // share partition selected and new replicas list to all
-                int counter = 0;
-                int* displs = (int*)malloc(sizeof(int) * num_processes);
-                for(int ii=0; ii < num_processes; ii++) {
-                    displs[ii] = counter;
-                    counter += recvcounts[ii]; 
-                }
-                int* recvbuffer = (int*)malloc(sizeof(int) * counter);
-                MPI_Allgatherv(&new_replicas[0],send_size,MPI_INT,recvbuffer,recvcounts,displs,MPI_INT,MPI_COMM_WORLD);
-
-                // process new replicas and add them to local datastructures
-                for(int ii=0; ii < num_processes; ii++)  {
-                    int dest_partition = recvbuffer[displs[ii]];
-                    int el = element_id - num_processes + ii;
-                    if(el >= num_elements) break;
-                    part_load[dest_partition] += element_wgt[el];
-                    total_workload += element_wgt[el];
-                    partitioning[el] = dest_partition;
-                    for(int jj=1; jj < recvcounts[ii]; jj++) {
-                        int pin_id = recvbuffer[displs[ii] + jj];
-                        // update vertex info
-                        seen_pins[pin_id].partial_degree += 1;
-                        seen_pins[pin_id].A.insert(dest_partition);                  
-                    }
+                    MPI_Allgather(&local_pins_size[0],sync_batch_size,MPI_INT,remote_pins_size,sync_batch_size,MPI_INT,MPI_COMM_WORLD);
                     
-                }
-                free(recvcounts);
-                free(displs);
-                free(recvbuffer);
+                    // synchronise list of pins
+                    // share send buffer size with other processes
+                    // size = number of new replicas + 1 (the partition selected)
+                    int* recvcounts = (int*)malloc(num_processes * sizeof(int));
+                    int send_size = new_replicas.size();
+                    
+                    MPI_Allgather(&send_size,1,MPI_INT,recvcounts,1,MPI_INT,MPI_COMM_WORLD);
+                    
+                    // share partition selected and new replicas list to all
+                    int counter = 0;
+                    int* displs = (int*)malloc(sizeof(int) * num_processes);
+                    for(int ii=0; ii < num_processes; ii++) {
+                        displs[ii] = counter;
+                        counter += recvcounts[ii]; 
+                    }
+                    int* recvbuffer = (int*)malloc(sizeof(int) * counter);
+                    MPI_Allgatherv(&new_replicas[0],send_size,MPI_INT,recvbuffer,recvcounts,displs,MPI_INT,MPI_COMM_WORLD);
+                    
+                    // process new replicas and add them to local datastructures
+                    for(int ii=0; ii < num_processes; ii++)  {
+                        int current_element_index = 0;
+                        for(int el_order=0; el_order < sync_batch_size; el_order++) {
+                            int current_pin_length = remote_pins_size[ii*sync_batch_size+el_order];
+                            int dest_partition = recvbuffer[displs[ii] + current_element_index];
 
-                // update workload limits
-                long int max = part_load[0];
-                long int min = part_load[0];
-                for(int pp=0; pp < num_processes; pp++) {
-                    if(part_load[pp] > max) max = part_load[pp];
-                    if(part_load[pp] < min) min = part_load[pp];
+                            int current_element = element_id - (num_processes * (sync_batch_size - el_order)) + ii;
+                            if(current_element >= num_elements) break;
+                            part_load[dest_partition] += element_wgt[current_element];
+                            total_workload += element_wgt[current_element];
+                            partitioning[current_element] = dest_partition;
+                            for(int jj=0; jj < current_pin_length; jj++) {
+                                int pin_id = recvbuffer[displs[ii] + current_element_index + 1 + jj];
+                                // update vertex info
+                                seen_pins[pin_id].partial_degree += 1;
+                                seen_pins[pin_id].A.insert(dest_partition);                  
+                            }
+                            current_element_index += current_pin_length+1;
+                        }
+
+                    }
+                    free(recvcounts);
+                    free(displs);
+                    free(recvbuffer);
+                    free(remote_pins_size);
+
+                    // clear intermediate data structures
+                    new_replicas.clear();
+                    local_pins_size.clear();  
+
+                    // update workload limits
+                    long int max = part_load[0];
+                    long int min = part_load[0];
+                    for(int pp=0; pp < num_processes; pp++) {
+                        if(part_load[pp] > max) max = part_load[pp];
+                        if(part_load[pp] < min) min = part_load[pp];
+                    }
+                    minsize = min;
+                    maxsize = max;  
                 }
-                minsize = min;
-                maxsize = max;
-                
+
             }
             istream.close();
 
