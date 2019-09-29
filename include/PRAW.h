@@ -1778,7 +1778,7 @@ namespace PRAW {
 
 
     // Stream from multiple files / streams
-    int ParallelHDRF(char* experiment_name, idx_t* partitioning, double** comm_cost_matrix, std::string hypergraph_filename, int* element_wgt, int max_iterations, float imbalance_tolerance, bool save_partitioning_history, bool local_replica_degree_updates_only = false) {
+    int ParallelHDRF(char* experiment_name, idx_t* partitioning, double** comm_cost_matrix, std::string hypergraph_filename, int* element_wgt, int max_iterations, float imbalance_tolerance, bool save_partitioning_history, bool local_replica_degree_updates_only = false, int sync_batch_size = 1) {
         // Parallel Hyperedge Partitioning based algorithm
         // Because it can be applied to both vertex and hyperedge partitionings, we adopt the following nomenclature:
         //      element: what each line in the stream represent
@@ -1836,9 +1836,6 @@ namespace PRAW {
         // own parameters
         float lambda_update = 1.1f;
         float lambda_refinement = 0.95f;
-
-        // sets the frequency of remote updates between processes
-        int sync_batch_size = 1;
             
         
         int process_id;

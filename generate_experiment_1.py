@@ -44,13 +44,13 @@ run_experiment() {
 	HYPERGRAPH_FILE="$1"
 	SEED="$2"
 	SIM_STEPS="$3"
-	aprun -n $PROCESSES hyperPraw -n $EXPERIMENT_NAME"_hard" -h $HYPERGRAPH_FILE -i 100 -m 1100 -p prawS -t $SIM_STEPS -s $SEED -k $MESSAGE_SIZE -o 0 -H
+	aprun -n $PROCESSES hyperPraw -n $EXPERIMENT_NAME"_hard" -h $HYPERGRAPH_FILE -i 100 -m 1100 -p sequential -t $SIM_STEPS -s $SEED -k $MESSAGE_SIZE -o 0 -H
 	sleep 1
-	aprun -n $PROCESSES hyperPraw -n $EXPERIMENT_NAME"_refine_1000" -h $HYPERGRAPH_FILE -i 100 -m 1100 -p prawS -t $SIM_STEPS -s $SEED -k $MESSAGE_SIZE -o 2 -r 1000 -H
+	aprun -n $PROCESSES hyperPraw -n $EXPERIMENT_NAME"_refine_1000" -h $HYPERGRAPH_FILE -i 100 -m 1100 -p sequential -t $SIM_STEPS -s $SEED -k $MESSAGE_SIZE -o 2 -r 1000 -H
 	sleep 1
-	aprun -n $PROCESSES hyperPraw -n $EXPERIMENT_NAME"_refine_1700" -h $HYPERGRAPH_FILE -i 100 -m 1100 -p prawS -t $SIM_STEPS -s $SEED -k $MESSAGE_SIZE -o 2 -r 1700 -H
+	aprun -n $PROCESSES hyperPraw -n $EXPERIMENT_NAME"_refine_1700" -h $HYPERGRAPH_FILE -i 100 -m 1100 -p sequential -t $SIM_STEPS -s $SEED -k $MESSAGE_SIZE -o 2 -r 1700 -H
 	sleep 1
-	aprun -n $PROCESSES hyperPraw -n $EXPERIMENT_NAME"_refine_950" -h $HYPERGRAPH_FILE -i 100 -m 1100 -p prawS -t $SIM_STEPS -s $SEED -k $MESSAGE_SIZE -o 2 -r 950 -H
+	aprun -n $PROCESSES hyperPraw -n $EXPERIMENT_NAME"_refine_950" -h $HYPERGRAPH_FILE -i 100 -m 1100 -p sequential -t $SIM_STEPS -s $SEED -k $MESSAGE_SIZE -o 2 -r 950 -H
 	sleep 1
 	
 }

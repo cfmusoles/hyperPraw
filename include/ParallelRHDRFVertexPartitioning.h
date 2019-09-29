@@ -1,5 +1,5 @@
-#ifndef VERTEX_PARTITION_PARTITIONING
-#define VERTEX_PARTITION_PARTITIONING
+#ifndef PARALLEL_R_HDFR_VERTEX_PARTITION_PARTITIONING
+#define PARALLEL_R_HDFR_VERTEX_PARTITION_PARTITIONING
 
 #include <vector>
 #include <algorithm>
@@ -11,22 +11,26 @@
 #include "Partitioning.h"
 #include "PRAW.h"
 
-class VertexPartitioning : public Partitioning {
+/* DESCRIPTION OF THE STREAMING ALGORITHM
+Parallel version of reverse HDRF partitioning 
+HDRF is for hedge partitioning, this version transforms the stream to make it a vertex partitioning. 
+Stream is given to each process as a separate file 
+Each line represents a vertex and the hyperedge_id it  belongs to.
+ */
+
+class ParallelRHDRFVertexPartitioning : public Partitioning {
 public:
 	
-	VertexPartitioning(char* experimentName, char* graph_file, float imbalance_tolerance, float ta_ref, int iterations, char* comm_bandwidth_file, bool parallel, bool useBandwidth, bool resetPartitioning, int stoppingCondition, bool proportionalCommCost, bool saveHistory) : Partitioning(graph_file,imbalance_tolerance) {
+	ParallelRHDRFVertexPartitioning(char* experimentName, char* graph_file, float imbalance_tolerance, int iterations, char* comm_bandwidth_file, bool useBandwidth, bool proportionalCommCost, bool saveHistory, int syncBatchSize) : Partitioning(graph_file,imbalance_tolerance) {
 		experiment_name = experimentName;
         comm_bandwidth_filename = comm_bandwidth_file;
-        isParallel = parallel;
         use_bandwidth_file = useBandwidth;
         max_iterations = iterations;
-        reset_partitioning = resetPartitioning;
-        stopping_condition = stoppingCondition;
         proportional_comm_cost = proportionalCommCost;
-        ta_refinement = ta_ref;
         save_partitioning_history = saveHistory;
+        sync_batch_size = syncBatchSize;
 	}
-	virtual ~VertexPartitioning() {}
+	virtual ~ParallelRHDRFVertexPartitioning() {}
 	
 	virtual void perform_partitioning(int num_processes,int process_id, int* iterations) {
 		if(num_processes <= 1) {
@@ -51,12 +55,12 @@ public:
             vtx_wgt[ii] = 1;
         }
 
-
-        // USED FOR ParallelHyperedgePartitioning_he_stream
+        // Transform hgraph format
+        // From: each line contains the vertices belonging to a hyperedge
+        // To: each line contains the hyperedges a vertex belongs to
         std::vector<std::vector<int> > hedge_ptr;
         PRAW::load_hedge_ptr_from_file_dist_CSR(hgraph_name, &hedge_ptr, process_id, num_processes, partitioning);
 
-        // USED FOR ParallelHDRF
         std::string hgraph_file = hgraph_name;
         hgraph_file += "_";
         char str_int[16];
@@ -85,34 +89,13 @@ public:
         fclose(fp);
         ///////////////////////////
 
-
-
-        if(isParallel) {
-
-            //*iterations = PRAW::ParallelHyperedgePartitioning(experiment_name,partitioning, comm_cost_matrix, hgraph_name, vtx_wgt, max_iterations, imbalance_tolerance, ta_refinement, reset_partitioning,stopping_condition,save_partitioning_history);
-            
-            // alternative based on Alistairh minmax streaming
-            //*iterations = PRAW::ParallelHyperedgePartitioning_he_stream(experiment_name,partitioning,comm_cost_matrix, hgraph_name, num_vertices,&hedge_ptr,vtx_wgt,max_iterations, imbalance_tolerance,save_partitioning_history);
-            
-            // alternative using HDRF flipping the hgraph (minimising replication of hyperedges, therefore reducing cut)
-            // if store partitioning history we would get vertex replication factor as hyperedge replication factor
-            *iterations = PRAW::ParallelHDRF(experiment_name,partitioning, comm_cost_matrix, hgraph_file, vtx_wgt, max_iterations, imbalance_tolerance, save_partitioning_history,false);
-        } else {
-            if(process_id == 0) {
-                *iterations = PRAW::SequentialVertexPartitioning(experiment_name,partitioning, num_processes, comm_cost_matrix, hgraph_name, vtx_wgt, max_iterations, imbalance_tolerance,ta_refinement,reset_partitioning,stopping_condition,save_partitioning_history);
-            } 
-            MPI_Barrier(MPI_COMM_WORLD);
-            // share new partitioning with other processes
-            MPI_Bcast(partitioning,num_vertices,MPI_LONG,0,MPI_COMM_WORLD);
-        }
-
+        *iterations = PRAW::ParallelHDRF(experiment_name,partitioning, comm_cost_matrix, hgraph_file, vtx_wgt, max_iterations, imbalance_tolerance, save_partitioning_history,false,sync_batch_size);
+        
         // clean up operations
         for(int ii=0; ii < num_processes; ii++) {
             free(comm_cost_matrix[ii]);
         }
         free(comm_cost_matrix);
-
-        // clean up operations
         free(vtx_wgt);
 
         // remove graph file
@@ -131,6 +114,7 @@ private:
     bool proportional_comm_cost = false;
     float ta_refinement;
     bool save_partitioning_history; 
+    int sync_batch_size = 1;
 };
 
 
