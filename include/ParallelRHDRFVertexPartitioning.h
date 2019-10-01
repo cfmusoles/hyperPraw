@@ -87,6 +87,8 @@ public:
             
         }
         fclose(fp);
+        hedge_ptr.clear();
+        hedge_ptr.swap(hedge_ptr);
         ///////////////////////////
 
         *iterations = PRAW::ParallelHDRF(experiment_name,partitioning, comm_cost_matrix, hgraph_file, vtx_wgt, max_iterations, imbalance_tolerance, save_partitioning_history,false,sync_batch_size);

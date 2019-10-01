@@ -219,7 +219,7 @@ public:
 				char* token = strtok(str, " "); 
 				hg.vtxedge_ptr[local_hedge_index] = hg.npins;
 				while (token != NULL) { 
-					hg.obj_wgts[local_hedge_index] += 1;
+					//hg.obj_wgts[local_hedge_index] += 1;
 					int vtx = atoi(token) - 1;
 					pin_GID.push_back(vtx);
 					hg.npins++;
