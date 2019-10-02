@@ -84,12 +84,12 @@ do
 	run_experiment "sparsine.mtx.hgr" $SEED 2 2
 	
 	#large graphs
-	run_experiment "pdb1HYS.mtx.hgr" $SEED 2 1 #
-	run_experiment "sat14_10pipe_q0_k.cnf.primal.hgr" $SEED 2 1 
+	run_experiment "pdb1HYS.mtx.hgr" $SEED 2 2 #
+	run_experiment "sat14_10pipe_q0_k.cnf.primal.hgr" $SEED 2 2
 	run_experiment "sat14_E02F22.cnf.hgr" $SEED 2 2
-	run_experiment "webbase-1M.mtx.hgr" $SEED 2 1
-	run_experiment "ship_001.mtx.hgr" $SEED 2 1
-	run_experiment "sat14_atco_enc1_opt1_05_21.cnf.dual.hgr" $SEED 2 1
+	run_experiment "webbase-1M.mtx.hgr" $SEED 2 2
+	run_experiment "ship_001.mtx.hgr" $SEED 2 2
+	run_experiment "sat14_atco_enc1_opt1_05_21.cnf.dual.hgr" $SEED 2 2
 	
 	
 done
