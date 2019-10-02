@@ -249,6 +249,8 @@ public:
 
 		
 		/* OLD METHOD, TOO HEAVY IN MEMORY */
+		// This is actually not correct, as it uses vertex id as pins!!
+		
 		/*
 		// Assign unique vertices to partitions
 		hg.numMyVertices = 0;
