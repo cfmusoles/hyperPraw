@@ -108,13 +108,9 @@ public:
 private:
     char* experiment_name = NULL;
     char* comm_bandwidth_filename = NULL;
-    bool isParallel = false;
     bool use_bandwidth_file = false;
     int max_iterations;
-    int stopping_condition;
-    bool reset_partitioning = false;
     bool proportional_comm_cost = false;
-    float ta_refinement;
     bool save_partitioning_history; 
     int sync_batch_size = 1;
 };

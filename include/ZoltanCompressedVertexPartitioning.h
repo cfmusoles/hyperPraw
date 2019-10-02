@@ -167,6 +167,7 @@ public:
 		
 		*iterations = 1;
 
+		
 		hg.process_id = process_id; 
 
 		// Assign unique vertices to partitions
@@ -187,8 +188,7 @@ public:
 		// Assign local hyperedges to each partition
 		// round robin allocation based on hedge id
 		hg.numMyVertices = num_vertices / num_processes + (num_vertices % num_processes > process_id ? 1 : 0);
-		hg.npins = 0;
-
+		
 		std::vector<ZOLTAN_ID_TYPE> pin_GID;
 
         std::string line;
@@ -224,6 +224,7 @@ public:
 		
 		// build structures
 		int local_vtx_index = 0;
+		hg.npins = 0;
 		for(int vtx=0; vtx < num_vertices; vtx++) {
 			if(vtx % num_processes == process_id) {
 				hg.vtxGID[local_vtx_index] = vtx;
@@ -239,7 +240,7 @@ public:
 		hg.vtxedge_ptr[hg.numMyVertices] = hg.npins;	
 		
 		hg.pin_GID = &(pin_GID[0]);
-
+		
 		
 
 
@@ -252,8 +253,7 @@ public:
 		// Assign unique vertices to partitions
 		hg.numMyVertices = 0;
 		for(int ii=0; ii < num_vertices; ii++) {
-            partitioning[ii] = (double)rand() / (double)RAND_MAX * num_processes;
-            if(partitioning[ii] == num_processes) partitioning[ii] -= 1;
+            partitioning[ii] = ii % num_processes;
 			if(partitioning[ii] == process_id) hg.numMyVertices++;
         }
         
@@ -320,9 +320,9 @@ public:
 			}
 		}
 		//free(total_vtx_wgts_v);
-
 		*/
 		
+		printf("%i: %i\n",process_id,hg.npins);
 		
 
 		// 3 Do partitioning
