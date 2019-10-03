@@ -91,7 +91,7 @@ public:
         hedge_ptr.swap(hedge_ptr);
         ///////////////////////////
 
-        *iterations = PRAW::ParallelHDRF(experiment_name,partitioning, comm_cost_matrix, hgraph_file, vtx_wgt, max_iterations, imbalance_tolerance, save_partitioning_history,false,sync_batch_size);
+        *iterations = PRAW::ParallelHDRF(experiment_name,partitioning, comm_cost_matrix, hgraph_file, vtx_wgt, max_iterations, imbalance_tolerance, save_partitioning_history,true,sync_batch_size);
         
         // clean up operations
         for(int ii=0; ii < num_processes; ii++) {

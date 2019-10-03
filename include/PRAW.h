@@ -1845,7 +1845,7 @@ namespace PRAW {
 
         // create shared data structures (partitions workload, list of replica destinations for each vertex, partial degree for each vertex)
         long int* part_load = (long int*)calloc(num_processes, sizeof(long int));
-        double max_comm_cost = 0;
+        /*double max_comm_cost = 0;
         for(int ff=0; ff < num_processes; ff++) {
             double current_max_cost = 0;
             for(int tt=0; tt < num_processes; tt++) {
@@ -1854,7 +1854,7 @@ namespace PRAW {
             if(current_max_cost > max_comm_cost) {
                 max_comm_cost = current_max_cost;
             }
-        }
+        }*/
 
         std::string history_file = experiment_name;
         
@@ -1940,8 +1940,8 @@ namespace PRAW {
             // store the Vertex in a std::unordered_map (hashmap) of Vertex* of length num_vertices (vertex id is given by the index)
             std::unordered_map<int,pin_data> seen_pins;
 
-            // read reminder of file (one line per hyperedge)
-            int element_id = 0; // current hyperedge
+            // read reminder of file (one line per elemennt)
+            int element_id = 0; // current elemennt
             int element_mapping = -1; // mapping of current he (to partition)
             std::vector<int> local_pins; // list of hyperedges and vertices seen in the current batch that belong to process
 
@@ -1971,9 +1971,12 @@ namespace PRAW {
                         normalised_part_degrees[ii] = std::max(seen_pins[pin_id].partial_degree,1); // if vertex is newly seen, it will be counted in the next sync. But count it here too
                         total_degrees += normalised_part_degrees[ii];
                     }
-                    for(int ii=0; ii < local_pins.size(); ii++) {
-                        normalised_part_degrees[ii] /= total_degrees;                
-                    }
+                    std::transform(normalised_part_degrees,normalised_part_degrees+local_pins.size(),normalised_part_degrees,
+                        [total_degrees] (double value) {  
+                            return value / total_degrees;
+                        }  
+                    );
+
                     // calculate C_rep(he) per partition per vertex
                     //      sum 1 + (1-norm_part_degree(v)) if p exists in A(v)
                     // calculate C_bal(he) per partition

@@ -103,7 +103,7 @@ do
 	#run_experiment "kkt_power.mtx.hgr" $SEED 1 1
 	#run_experiment "sat14_velev-vliw-uns-2.0-uq5.cnf.dual.hgr" $SEED 1 1
 
-	run_experiment "sat14_itox_vc1130.cnf.dual.hgr" $SEED 2 2
+	run_experiment "sat14_itox_vc1130.cnf.dual.hgr" $SEED 1 10
 	run_experiment "2cubes_sphere.mtx.hgr" $SEED 4 3
 	run_experiment "ABACUS_shell_hd.mtx.hgr" $SEED 50 40
 	run_experiment "sparsine.mtx.hgr" $SEED 2 2
