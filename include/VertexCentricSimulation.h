@@ -5,6 +5,8 @@
 #ifndef VERTEXCENTRICSIMULATION__H
 #define VERTEXCENTRICSIMULATION__H
 
+#define STORE_SIM_STATS
+
 #include <mpi.h>
 #include <cstdio>
 #include <stdlib.h>
@@ -201,7 +203,7 @@ namespace VertexCentricSimulation {
             //    simulation time
             //    communication time
             //    partitioning stats (hedge cut, SOED, absorption)
-            
+#ifdef STORE_SIM_STATS
             if(process_id == 0) {
                 printf("%i: Edge simulation time (%i steps): %f secs, Hedge simulation time: %f secs\n",process_id,edge_sim_steps,total_edge_sim_time,total_hedge_sim_time);
                 // used to calculate the theoretical cost of communication
@@ -258,6 +260,7 @@ namespace VertexCentricSimulation {
                 }
                 free(comm_cost_matrix);
             }
+#endif
 
             // clean up
             free(buffer);

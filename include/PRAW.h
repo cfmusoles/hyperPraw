@@ -1967,7 +1967,6 @@ namespace PRAW {
                     long int total_degrees = 0;
                     for(int ii=0; ii < local_pins.size(); ii++) {
                         int pin_id = local_pins[ii];
-                        //local_pins.push_back(pin_id);
                         normalised_part_degrees[ii] = std::max(seen_pins[pin_id].partial_degree,1); // if vertex is newly seen, it will be counted in the next sync. But count it here too
                         total_degrees += normalised_part_degrees[ii];
                     }
@@ -1986,7 +1985,7 @@ namespace PRAW {
                     // TODO: can we avoid having to do two passes across all processes?
                     // can we avoid having these two datastructures?
                     float* c_total = (float*)calloc(num_processes,sizeof(float));
-                    double* c_comms = (double*)calloc(num_processes,sizeof(double));
+                    double* c_comms = (double*)calloc(num_processes,sizeof(double));   
                     float comm_min = std::numeric_limits<float>::max();
                     float comm_max = 0;
                     for(int pp=0; pp < num_processes; pp++) {
@@ -2005,17 +2004,18 @@ namespace PRAW {
                                 c_comm += comm_cost_matrix[pp][part];
                             }
                             c_rep += present_in_partition ? 1 + (1 - normalised_part_degrees[vv]) : 0;
+                            
                         }
                         // c_rep and c_comm must be normalised to avoid them dominating the final equation
                         c_comms[pp] = c_comm;
                         if(c_comm > comm_max) comm_max = c_comm;
                         if(c_comm < comm_min) comm_min = c_comm;
 
-                        c_rep = c_rep/(local_pins.size()*2);
+                        c_rep = c_rep/(local_pins.size()+1);
 
                         float c_bal = lambda * (maxsize - part_load[pp]) / (0.1 + maxsize - minsize);
 
-                        c_total[pp] = c_bal + c_rep;
+                        c_total[pp] = c_bal+ c_rep;
 
                     }
 

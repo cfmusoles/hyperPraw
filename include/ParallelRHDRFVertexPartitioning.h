@@ -21,7 +21,7 @@ Each line represents a vertex and the hyperedge_id it  belongs to.
 class ParallelRHDRFVertexPartitioning : public Partitioning {
 public:
 	
-	ParallelRHDRFVertexPartitioning(char* experimentName, char* graph_file, float imbalance_tolerance, int iterations, char* comm_bandwidth_file, bool useBandwidth, bool proportionalCommCost, bool saveHistory, int syncBatchSize) : Partitioning(graph_file,imbalance_tolerance) {
+	ParallelRHDRFVertexPartitioning(char* experimentName, char* graph_file, char* streamFile, float imbalance_tolerance, int iterations, char* comm_bandwidth_file, bool useBandwidth, bool proportionalCommCost, bool saveHistory, int syncBatchSize) : Partitioning(graph_file,imbalance_tolerance) {
 		experiment_name = experimentName;
         comm_bandwidth_filename = comm_bandwidth_file;
         use_bandwidth_file = useBandwidth;
@@ -29,8 +29,68 @@ public:
         proportional_comm_cost = proportionalCommCost;
         save_partitioning_history = saveHistory;
         sync_batch_size = syncBatchSize;
+        stream_file = streamFile;
+
+        split_stream();
+
 	}
 	virtual ~ParallelRHDRFVertexPartitioning() {}
+
+    void split_stream() {
+        int process_id;
+        MPI_Comm_rank(MPI_COMM_WORLD,&process_id);
+        int num_processes;
+        MPI_Comm_size(MPI_COMM_WORLD,&num_processes); 
+
+        // divide original hMetis file into as many streams as processes
+        std::string hgraph_file = stream_file;
+        hgraph_file += "_";
+        char str_int[16];
+        sprintf(str_int,"%i",num_processes);
+        hgraph_file += str_int;
+        hgraph_file += "_";
+        sprintf(str_int,"%i",process_id);
+        hgraph_file += str_int;
+        hgraph_file += ".hgr";
+        hgraph_part_file = hgraph_file;
+
+        PRINTF("%i: Storing model in file %s\n",process_id,hgraph_file.c_str());
+        FILE *fp = fopen(hgraph_file.c_str(), "w+");
+        
+        // load and parse full graph
+        std::ifstream istream(stream_file);
+        
+        if(!istream) {
+            printf("Error while opening hMETIS file %s\n",stream_file);
+            return;
+        }
+
+        std::string line;
+        // ignore header
+        std::getline(istream,line);
+        // write header: NUM_HYPEREDGES NUM_VERTICES (inverted because this is rHDRF)
+        fprintf(fp,"%i %i",num_vertices,num_hyperedges);
+        fprintf(fp,"\n");
+
+        // read reminder of file (one line per vertex)
+        int counter = 0;
+        while(std::getline(istream,line)) {
+            if(counter % num_processes == process_id) {
+                char str[line.length() + 1]; 
+                strcpy(str, line.c_str()); 
+                char* token = strtok(str, " "); 
+                while (token != NULL) { 
+                    fprintf(fp,"%i ",atoi(token));
+                    token = strtok(NULL, " "); 
+                }
+                fprintf(fp,"\n");
+            }
+            counter++;
+            
+        }
+        istream.close();
+        fclose(fp);
+    }
 	
 	virtual void perform_partitioning(int num_processes,int process_id, int* iterations) {
 		if(num_processes <= 1) {
@@ -55,44 +115,8 @@ public:
             vtx_wgt[ii] = 1;
         }
 
-        // Transform hgraph format
-        // From: each line contains the vertices belonging to a hyperedge
-        // To: each line contains the hyperedges a vertex belongs to
-        std::vector<std::vector<int> > hedge_ptr;
-        PRAW::load_hedge_ptr_from_file_dist_CSR(hgraph_name, &hedge_ptr, process_id, num_processes, partitioning);
+        *iterations = PRAW::ParallelHDRF(experiment_name,partitioning, comm_cost_matrix, hgraph_part_file.c_str(), vtx_wgt, max_iterations, imbalance_tolerance, save_partitioning_history,false,sync_batch_size);
 
-        std::string hgraph_file = hgraph_name;
-        hgraph_file += "_";
-        char str_int[16];
-        sprintf(str_int,"%i",num_processes);
-        hgraph_file += str_int;
-        hgraph_file += "_";
-        sprintf(str_int,"%i",process_id);
-        hgraph_file += str_int;
-        hgraph_file += ".hgr";
-
-        PRINTF("%i: Storing model in file %s\n",process_id,hgraph_file.c_str());
-        FILE *fp = fopen(hgraph_file.c_str(), "w+");
-        
-        // write header: NUM_HYPEREDGES NUM_VERTICES
-        fprintf(fp,"%i %i",num_vertices,num_hyperedges); // this needs reversing because each line represents a vertex, not a hyperedge
-        fprintf(fp,"\n");
-
-        // write reminder of hyperedges per vertex
-        for(int ii=0; ii < hedge_ptr.size(); ii++) {
-            for(int he=0; he < hedge_ptr[ii].size(); he++) {
-                fprintf(fp,"%i ",hedge_ptr[ii][he]);
-            }
-            fprintf(fp,"\n");
-            
-        }
-        fclose(fp);
-        hedge_ptr.clear();
-        hedge_ptr.swap(hedge_ptr);
-        ///////////////////////////
-
-        *iterations = PRAW::ParallelHDRF(experiment_name,partitioning, comm_cost_matrix, hgraph_file, vtx_wgt, max_iterations, imbalance_tolerance, save_partitioning_history,true,sync_batch_size);
-        
         // clean up operations
         for(int ii=0; ii < num_processes; ii++) {
             free(comm_cost_matrix[ii]);
@@ -101,8 +125,8 @@ public:
         free(vtx_wgt);
 
         // remove graph file
-        if( remove(hgraph_file.c_str()) != 0 )
-            printf( "Error deleting temporary hgraph file %s\n",hgraph_file.c_str() );
+        if( remove(hgraph_part_file.c_str()) != 0 )
+            printf( "Error deleting temporary hgraph file %s\n",hgraph_part_file.c_str() );
 	}
 
 private:
@@ -113,6 +137,8 @@ private:
     bool proportional_comm_cost = false;
     bool save_partitioning_history; 
     int sync_batch_size = 1;
+    char* stream_file = NULL;
+    std::string hgraph_part_file;
 };
 
 

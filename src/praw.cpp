@@ -101,12 +101,13 @@ int main(int argc, char** argv) {
     int fake_compute_std = 0;
     bool store_partitioning = false;
     int sync_batch_size = 1;
+    char* stream_file = NULL;
 
     // getting command line parameters
     extern char *optarg;
 	extern int optind, opterr, optopt;
 	int c;
-	while( (c = getopt(argc,argv,"n:h:i:m:b:Ws:p:t:k:o:c:r:Hq:x:f:u:Pg:")) != -1 ) {
+	while( (c = getopt(argc,argv,"n:h:i:m:b:Ws:p:t:k:o:c:r:Hq:x:f:u:Pg:e:")) != -1 ) {
 		switch(c) {
 			case 'n': // test name
 				experiment_name = optarg;
@@ -168,14 +169,19 @@ int main(int argc, char** argv) {
             case 'g': // synch batch size for parallel HDRF
 				sync_batch_size = atoi(optarg);
 				break;
+            case 'e': // name of the stream file (if different from graph file)
+				stream_file = optarg;
+				break;
 		}
 	}
+    // for rHDRF the graph file and the stream file are different
+    // graph file hMETIS format (list of hyperedges)
+    // stream file hedge ptr format (list of vertices)
+    if(stream_file == NULL) stream_file = graph_file;
 
     // set and propagate random seed
     MPI_Bcast(&rand_seed, 1, MPI_INT, 0, MPI_COMM_WORLD);
     srand(rand_seed);
-
-    double partition_timer = MPI_Wtime();
 
     bool isVertexCentric = true;
     // Create partition object to hold connections and partitioning information across processes
@@ -190,7 +196,7 @@ int main(int argc, char** argv) {
         isVertexCentric = false;
 	} else if(strcmp(part_method,"rHDRF") == 0) {  
 		PRINTF("%i: Partitioning: parallel rHDRF vertex hyperPRAW\n",process_id);
-        partition = new ParallelRHDRFVertexPartitioning(experiment_name,graph_file,imbalance_tolerance,max_iterations,bandwidth_file,use_bandwidth_in_partitioning,proportional_comm_cost,save_partitioning_history,sync_batch_size);
+        partition = new ParallelRHDRFVertexPartitioning(experiment_name,graph_file,stream_file,imbalance_tolerance,max_iterations,bandwidth_file,use_bandwidth_in_partitioning,proportional_comm_cost,save_partitioning_history,sync_batch_size);
         isVertexCentric = true;
 	} else if(strcmp(part_method,"sequentialVertex") == 0) {  
 		PRINTF("%i: Partitioning: sequential vertex partitioning\n",process_id);
@@ -211,7 +217,10 @@ int main(int argc, char** argv) {
 	}
     srand(rand_seed);
     int partition_iterations;
-	partition->perform_partitioning(num_processes,process_id,&partition_iterations);
+    
+	double partition_timer = MPI_Wtime();
+    
+    partition->perform_partitioning(num_processes,process_id,&partition_iterations);
 
     partition_timer = MPI_Wtime() - partition_timer;
 
@@ -232,7 +241,7 @@ int main(int argc, char** argv) {
         filename += "_partitioning__";
         filename +=  str_int;
         bool fileexists = access(filename.c_str(), F_OK) != -1;
-        FILE *fp = fopen(filename.c_str(), "ab+");
+        FILE *fp = fopen(filename.c_str(), "w");
         if(fp == NULL) {
             printf("Error when storing partitioning into file\n");
         } else {

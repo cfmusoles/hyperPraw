@@ -6,17 +6,17 @@ import seaborn as sns
 import pandas as pd
 import numpy as np
 
-# Todo: extend it to produce the plot for multiple graphs at once
 
-hgraphs_folder = '../resources/'
-hgraph_files = ['sparsine.mtx.hgr','2cubes_sphere.mtx.hgr']
-experiment_prefix = '../test_default_'
-partition = 'zoltanVertex'
+hgraphs_folder = 'resources/'
+#hgraph_files = ["atmosmodj.mtx.hgr","kkt_power.mtx.hgr","sat14_velev-vliw-uns-2.0-uq5.cnf.dual.hgr"]
+hgraph_files = ["sat14_itox_vc1130.cnf.dual.hgr","2cubes_sphere.mtx.hgr","ABACUS_shell_hd.mtx.hgr","sparsine.mtx.hgr","pdb1HYS.mtx.hgr","sat14_10pipe_q0_k.cnf.primal.hgr","sat14_E02F22.cnf.hgr","webbase-1M.mtx.hgr"]
+experiment_prefix = 'test_default_'
+partition = 'rHDRF'
 num_processes = 12
 
 storePlot = False
 image_format = 'pdf'
-image_names = ["a" + str(i) for i,v in enumerate(hgraph_files)]
+image_names = ["rHDRF_" + str(i) for i,v in enumerate(hgraph_files)]
 
 for i,hgraph in enumerate(hgraph_files):
     hgraph_file = hgraphs_folder + hgraph
@@ -45,7 +45,8 @@ for i,hgraph in enumerate(hgraph_files):
 
     df = pd.DataFrame({'Pin degrees' : pin_degrees, 'Replicated' : replicated})
 
-    sns.catplot( x="Replicated", y="Pin degrees", data=df, legend=False, kind='violin')
+    g = sns.catplot( x="Replicated", y="Pin degrees", data=df, legend=False, kind='violin')
+    #ax = g.fig.get_axes()[0].set_yscale('log')
 
     if storePlot:
         plt.savefig(image_names[i]+ image_format,format=image_format,dpi=1000)
