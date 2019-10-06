@@ -208,7 +208,7 @@ int main(int argc, char** argv) {
 	    isVertexCentric = true;
 	} else if(strcmp(part_method,"parallelHDRF") == 0) {  
 		PRINTF("%i: Partitioning: parallel hyperedge partitioning\n",process_id);
-		partition = new HyperedgePartitioning(experiment_name,graph_file,max_iterations,imbalance_tolerance,bandwidth_file,use_bandwidth_in_partitioning,true,save_partitioning_history);
+		partition = new HyperedgePartitioning(experiment_name,graph_file,max_iterations,imbalance_tolerance,bandwidth_file,use_bandwidth_in_partitioning,save_partitioning_history);
 	    isVertexCentric = false;
 	} else { // default is random
 		PRINTF("%i: Partitioning: random\n",process_id);

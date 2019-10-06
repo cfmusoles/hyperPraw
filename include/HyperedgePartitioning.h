@@ -14,10 +14,9 @@
 class HyperedgePartitioning : public Partitioning {
 public:
 	
-	HyperedgePartitioning(char* experimentName, char* graph_file, int iterations, float imbalance_tolerance, char* comm_bandwidth_file, bool parallel, bool useBandwidth, bool saveHistory) : Partitioning(graph_file,imbalance_tolerance,false) {
+	HyperedgePartitioning(char* experimentName, char* graph_file, int iterations, float imbalance_tolerance, char* comm_bandwidth_file, bool useBandwidth, bool saveHistory) : Partitioning(graph_file,imbalance_tolerance,false) {
 		experiment_name = experimentName;
         comm_bandwidth_filename = comm_bandwidth_file;
-        isParallel = parallel;
         use_bandwidth_file = useBandwidth;
         save_partitioning_history = saveHistory;
         max_iterations = iterations;
@@ -124,7 +123,6 @@ public:
 private:
     char* experiment_name = NULL;
     char* comm_bandwidth_filename = NULL;
-    bool isParallel = false;
     bool use_bandwidth_file = false;
     bool save_partitioning_history; 
     int max_iterations;
