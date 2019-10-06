@@ -71,21 +71,25 @@ run_experiment() {
 	#aprun -n $PROCESSES hyperPraw -n $EXPERIMENT_NAME"__parallelHyperedge" -h $HYPERGRAPH_FILE -i 100 -m 1200 -p parallelHyperedge -t $E_SIM_STEPS -x $H_SIM_STEPS -s $SEED -k $MESSAGE_SIZE -o 2 -b $BM_FILE -W -c 0 -r 950
 	#sleep 1
 	
-	aprun -n $PROCESSES hyperPraw -n $EXPERIMENT_NAME"_zoltanVertex" -h $HYPERGRAPH_FILE -i 100 -m 1200 -p zoltanVertex -t $E_SIM_STEPS -x $H_SIM_STEPS -s $SEED -k $MESSAGE_SIZE -b $BM_FILE
-	sleep 1
-	#aprun -n $PROCESSES hyperPraw -n $EXPERIMENT_NAME"_zoltanHyperedge" -h $HYPERGRAPH_FILE -i 100 -m 1200 -p zoltanHyperedge -t $E_SIM_STEPS -x $H_SIM_STEPS -s $SEED -k $MESSAGE_SIZE -b $BM_FILE
+	#aprun -n $PROCESSES hyperPraw -n $EXPERIMENT_NAME"_zoltanVertex" -h $HYPERGRAPH_FILE -i 100 -m 1200 -p zoltanVertex -t $E_SIM_STEPS -x $H_SIM_STEPS -s $SEED -k $MESSAGE_SIZE -b $BM_FILE
 	#sleep 1
+	aprun -n $PROCESSES hyperPraw -n $EXPERIMENT_NAME"_zoltanHyperedge" -h $HYPERGRAPH_FILE -i 100 -m 1200 -p zoltanHyperedge -t $E_SIM_STEPS -x $H_SIM_STEPS -s $SEED -k $MESSAGE_SIZE -b $BM_FILE
+	sleep 1
 
 	#aprun -n $PROCESSES hyperPraw -n $EXPERIMENT_NAME"_sequential_default" -h $HYPERGRAPH_FILE -i 100 -m 1200 -p sequentialVertex -t $E_SIM_STEPS -x $H_SIM_STEPS -s $SEED -k $MESSAGE_SIZE -H -b $BM_FILE
 	#sleep 1
 	#aprun -n $PROCESSES hyperPraw -n $EXPERIMENT_NAME"_sequential_bandwidth" -h $HYPERGRAPH_FILE -i 100 -m 1200 -p sequentialVertex -t $E_SIM_STEPS -x $H_SIM_STEPS -s $SEED -k $MESSAGE_SIZE -H -W -b $BM_FILE
 	#sleep 1
 
-	aprun -n $PROCESSES hyperPraw -n $EXPERIMENT_NAME"_simpleParallelVertex" -h $HYPERGRAPH_FILE -i 100 -m 1200 -p simpleParallelVertex -t $E_SIM_STEPS -x $H_SIM_STEPS -s $SEED -k $MESSAGE_SIZE -W -H -b $BM_FILE
+	#aprun -n $PROCESSES hyperPraw -n $EXPERIMENT_NAME"_simpleParallelVertex" -h $HYPERGRAPH_FILE -i 100 -m 1200 -p simpleParallelVertex -t $E_SIM_STEPS -x $H_SIM_STEPS -s $SEED -k $MESSAGE_SIZE -W -H -b $BM_FILE
+	#sleep 1
+	#aprun -n $PROCESSES hyperPraw -n $EXPERIMENT_NAME"_rHDRF_bandwidth" -h $HYPERGRAPH_FILE -i 100 -m 1200 -p rHDRF -t $E_SIM_STEPS -x $H_SIM_STEPS -s $SEED -k $MESSAGE_SIZE -W -H -b $BM_FILE -e $GRAPH_STREAM
+	#sleep 1
+	#aprun -n $PROCESSES hyperPraw -n $EXPERIMENT_NAME"_rHDRF_default" -h $HYPERGRAPH_FILE -i 100 -m 1200 -p rHDRF -t $E_SIM_STEPS -x $H_SIM_STEPS -s $SEED -k $MESSAGE_SIZE -H -b $BM_FILE -e $GRAPH_STREAM
+	#sleep 1
+	aprun -n $PROCESSES hyperPraw -n $EXPERIMENT_NAME"_HDRF_bandwidth" -h $HYPERGRAPH_FILE -i 100 -m 1200 -p parallelHDRF -t $E_SIM_STEPS -x $H_SIM_STEPS -s $SEED -k $MESSAGE_SIZE -W -H -b $BM_FILE
 	sleep 1
-	aprun -n $PROCESSES hyperPraw -n $EXPERIMENT_NAME"_rHDRF_bandwidth" -h $HYPERGRAPH_FILE -i 100 -m 1200 -p rHDRF -t $E_SIM_STEPS -x $H_SIM_STEPS -s $SEED -k $MESSAGE_SIZE -W -H -b $BM_FILE -e $GRAPH_STREAM
-	sleep 1
-	aprun -n $PROCESSES hyperPraw -n $EXPERIMENT_NAME"_rHDRF_default" -h $HYPERGRAPH_FILE -i 100 -m 1200 -p rHDRF -t $E_SIM_STEPS -x $H_SIM_STEPS -s $SEED -k $MESSAGE_SIZE -H -b $BM_FILE -e $GRAPH_STREAM
+	aprun -n $PROCESSES hyperPraw -n $EXPERIMENT_NAME"_HDRF_default" -h $HYPERGRAPH_FILE -i 100 -m 1200 -p parallelHDRF -t $E_SIM_STEPS -x $H_SIM_STEPS -s $SEED -k $MESSAGE_SIZE -H -b $BM_FILE
 	sleep 1
 }
 
@@ -101,20 +105,20 @@ do
 	#run_experiment "sat14_q_query_3_L200_coli.sat.cnf.dual.hgr" $SEED 0 0
 
 	#medium graphs (> 800K)
-	run_experiment "atmosmodj.mtx.hgr" $SEED 5 5
-	run_experiment "kkt_power.mtx.hgr" $SEED 5 5
-	run_experiment "sat14_velev-vliw-uns-2.0-uq5.cnf.dual.hgr" $SEED 5 5
+	#run_experiment "atmosmodj.mtx.hgr" $SEED 5 5
+	#run_experiment "kkt_power.mtx.hgr" $SEED 5 5
+	#run_experiment "sat14_velev-vliw-uns-2.0-uq5.cnf.dual.hgr" $SEED 5 5
 
-	#run_experiment "sat14_itox_vc1130.cnf.dual.hgr" $SEED 1 10
-	#run_experiment "2cubes_sphere.mtx.hgr" $SEED 4 3
-	#run_experiment "ABACUS_shell_hd.mtx.hgr" $SEED 50 40
-	#run_experiment "sparsine.mtx.hgr" $SEED 2 2
+	run_experiment "sat14_itox_vc1130.cnf.dual.hgr" $SEED 1 10
+	run_experiment "2cubes_sphere.mtx.hgr" $SEED 4 3
+	run_experiment "ABACUS_shell_hd.mtx.hgr" $SEED 50 40
+	run_experiment "sparsine.mtx.hgr" $SEED 2 2
 	
 	#large graphs
-	#run_experiment "pdb1HYS.mtx.hgr" $SEED 2 2 #
-	#run_experiment "sat14_10pipe_q0_k.cnf.primal.hgr" $SEED 2 2
-	#run_experiment "sat14_E02F22.cnf.hgr" $SEED 2 2
-	#run_experiment "webbase-1M.mtx.hgr" $SEED 2 2
+	run_experiment "pdb1HYS.mtx.hgr" $SEED 2 2 #
+	run_experiment "sat14_10pipe_q0_k.cnf.primal.hgr" $SEED 2 2
+	run_experiment "sat14_E02F22.cnf.hgr" $SEED 2 2
+	run_experiment "webbase-1M.mtx.hgr" $SEED 2 2
 	#run_experiment "ship_001.mtx.hgr" $SEED 2 2
 	#run_experiment "sat14_atco_enc1_opt1_05_21.cnf.dual.hgr" $SEED 2 2
 done
