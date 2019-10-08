@@ -1778,7 +1778,7 @@ namespace PRAW {
 
 
     // Stream from multiple files / streams
-    int ParallelHDRF(char* experiment_name, idx_t* partitioning, double** comm_cost_matrix, std::string hypergraph_filename, int* element_wgt, int max_iterations, float imbalance_tolerance, bool save_partitioning_history, bool local_replica_degree_updates_only = false, int sync_batch_size = 1) {
+    int ParallelHDRF(char* experiment_name, idx_t* partitioning, double** comm_cost_matrix, std::string hypergraph_filename, int* element_wgt, int max_iterations, float imbalance_tolerance, bool save_partitioning_history, bool local_replica_degree_updates_only = false, int sync_batch_size = 1, bool use_max_expected_workload = true) {
         // Parallel Hyperedge Partitioning based algorithm
         // Because it can be applied to both vertex and hyperedge partitionings, we adopt the following nomenclature:
         //      element: what each line in the stream represent
@@ -1832,7 +1832,7 @@ namespace PRAW {
         //      Partial degree? (experiment with and without)
 
         // Parameters (from HDRF, Petroni 2015)
-        float lambda = 1.0f;
+        float lambda = use_max_expected_workload ? 0.1f : 1.0f;
         // own parameters
         float lambda_update = 1.1f;
         float lambda_refinement = 0.95f;
@@ -1905,6 +1905,16 @@ namespace PRAW {
             } 
             num_pins = tokens[1];
             num_elements = tokens[0];
+
+            // used to force all solutions to be within imbalance tolerance
+            // currently uses full graph knowledge (just number of elements)
+            // assumes all elements have same workload (1)
+            long int max_expected_workload = num_elements / num_processes * imbalance_tolerance - num_processes;
+            if(use_max_expected_workload && max_expected_workload < 1) {
+                PRINTF("Graph is too small! Too many processes (max expected workload limit is %li)\n",max_expected_workload);
+                return 0;
+            }
+       
             
             PRINTF("Found in file: Pins: %i; elements %i:\n",num_pins,num_elements);
 
@@ -1989,6 +1999,9 @@ namespace PRAW {
                     float comm_min = std::numeric_limits<float>::max();
                     float comm_max = 0;
                     for(int pp=0; pp < num_processes; pp++) {
+                        if(use_max_expected_workload && part_load[pp] >= max_expected_workload) {
+                            continue;
+                        }
                         double c_rep = 0;
                         double c_comm = 0;
                         for(int vv=0; vv < local_pins.size(); vv++) {
@@ -2021,7 +2034,10 @@ namespace PRAW {
 
                     float max_value = 0;
                     int best_partition = 0;
-                    for(int pp=0; pp < num_processes; pp++) {    
+                    for(int pp=0; pp < num_processes; pp++) {   
+                        if(use_max_expected_workload && part_load[pp] >= max_expected_workload) {
+                            continue;
+                        } 
                         // normalise c_comms
                         c_comms[pp] = (comm_max - c_comms[pp]) / (0.1 + comm_max - comm_min);
                         
@@ -2107,7 +2123,6 @@ namespace PRAW {
                         for(int el_order=0; el_order < sync_batch_size; el_order++) {
                             int current_pin_length = remote_pins_size[ii*sync_batch_size+el_order];
                             int dest_partition = recvbuffer[displs[ii] + current_element_index];
-
                             int current_element = element_id - (num_processes * (sync_batch_size - el_order)) + ii;
                             if(current_element >= num_elements) break;
                             part_load[dest_partition] += element_wgt[current_element];
@@ -2133,14 +2148,16 @@ namespace PRAW {
                     local_pins_size.clear();  
 
                     // update workload limits
-                    long int max = part_load[0];
+                    /*long int max = part_load[0];
                     long int min = part_load[0];
                     for(int pp=0; pp < num_processes; pp++) {
                         if(part_load[pp] > max) max = part_load[pp];
                         if(part_load[pp] < min) min = part_load[pp];
                     }
                     minsize = min;
-                    maxsize = max;  
+                    maxsize = max;*/
+                    minsize = *std::min_element(part_load, part_load + num_processes);
+                    maxsize = *std::max_element(part_load, part_load + num_processes);
                 }
 
             }
@@ -2178,6 +2195,7 @@ namespace PRAW {
                 }
                 lambda *= lambda_update;
             } else {
+                if(use_max_expected_workload) break;
                 lambda *= lambda_refinement;
                 check_overfit = true;
                 if(process_id == MASTER_NODE) {

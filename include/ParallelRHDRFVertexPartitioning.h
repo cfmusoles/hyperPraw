@@ -21,7 +21,7 @@ Each line represents a vertex and the hyperedge_id it  belongs to.
 class ParallelRHDRFVertexPartitioning : public Partitioning {
 public:
 	
-	ParallelRHDRFVertexPartitioning(char* experimentName, char* graph_file, char* streamFile, float imbalance_tolerance, int iterations, char* comm_bandwidth_file, bool useBandwidth, bool proportionalCommCost, bool saveHistory, int syncBatchSize) : Partitioning(graph_file,imbalance_tolerance) {
+	ParallelRHDRFVertexPartitioning(char* experimentName, char* graph_file, char* streamFile, float imbalance_tolerance, int iterations, char* comm_bandwidth_file, bool useBandwidth, bool proportionalCommCost, bool saveHistory, int syncBatchSize, bool use_expected_workload) : Partitioning(graph_file,imbalance_tolerance) {
 		experiment_name = experimentName;
         comm_bandwidth_filename = comm_bandwidth_file;
         use_bandwidth_file = useBandwidth;
@@ -30,6 +30,7 @@ public:
         save_partitioning_history = saveHistory;
         sync_batch_size = syncBatchSize;
         stream_file = streamFile;
+        use_max_expected_workload = use_expected_workload;
 
         split_stream();
 
@@ -115,7 +116,7 @@ public:
             vtx_wgt[ii] = 1;
         }
 
-        *iterations = PRAW::ParallelHDRF(experiment_name,partitioning, comm_cost_matrix, hgraph_part_file.c_str(), vtx_wgt, max_iterations, imbalance_tolerance, save_partitioning_history,false,sync_batch_size);
+        *iterations = PRAW::ParallelHDRF(experiment_name,partitioning, comm_cost_matrix, hgraph_part_file.c_str(), vtx_wgt, max_iterations, imbalance_tolerance, save_partitioning_history,false,sync_batch_size,use_max_expected_workload);
 
         // clean up operations
         for(int ii=0; ii < num_processes; ii++) {
@@ -139,6 +140,7 @@ private:
     int sync_batch_size = 1;
     char* stream_file = NULL;
     std::string hgraph_part_file;
+    bool use_max_expected_workload = false;
 };
 
 
