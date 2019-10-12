@@ -111,16 +111,16 @@ do
 	#run_experiment "kkt_power.mtx.hgr" $SEED 5 5
 	#run_experiment "sat14_velev-vliw-uns-2.0-uq5.cnf.dual.hgr" $SEED 5 5
 
-	run_experiment "sat14_itox_vc1130.cnf.dual.hgr" $SEED 10 10
+	run_experiment "sat14_itox_vc1130.cnf.dual.hgr" $SEED 1 1
 	run_experiment "2cubes_sphere.mtx.hgr" $SEED 40 30
 	run_experiment "ABACUS_shell_hd.mtx.hgr" $SEED 500 40
 	run_experiment "sparsine.mtx.hgr" $SEED 20 20
 	
 	#large graphs
-	run_experiment "pdb1HYS.mtx.hgr" $SEED 20 20 #
-	run_experiment "sat14_10pipe_q0_k.cnf.primal.hgr" $SEED 20 20
-	run_experiment "sat14_E02F22.cnf.hgr" $SEED 20 20
-	run_experiment "webbase-1M.mtx.hgr" $SEED 20 20
+	run_experiment "pdb1HYS.mtx.hgr" $SEED 2 2 #
+	run_experiment "sat14_10pipe_q0_k.cnf.primal.hgr" $SEED 2 2
+	run_experiment "sat14_E02F22.cnf.hgr" $SEED 2 2
+	run_experiment "webbase-1M.mtx.hgr" $SEED 2 2
 	#run_experiment "ship_001.mtx.hgr" $SEED 20 2
 	#run_experiment "sat14_atco_enc1_opt1_05_21.cnf.dual.hgr" $SEED 2 2
 done

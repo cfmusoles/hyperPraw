@@ -21,7 +21,7 @@ Each line represents a vertex and the hyperedge_id it  belongs to.
 class ParallelRHDRFVertexPartitioning : public Partitioning {
 public:
 	
-	ParallelRHDRFVertexPartitioning(char* experimentName, char* graph_file, char* streamFile, float imbalance_tolerance, int iterations, char* comm_bandwidth_file, bool useBandwidth, bool proportionalCommCost, bool saveHistory, int syncBatchSize, bool use_expected_workload) : Partitioning(graph_file,imbalance_tolerance) {
+	ParallelRHDRFVertexPartitioning(char* experimentName, char* graph_file, char* streamFile, float imbalance_tolerance, int iterations, char* comm_bandwidth_file, bool useBandwidth, bool proportionalCommCost, bool saveHistory, int syncBatchSize, bool use_expected_workload, bool input_order) : Partitioning(graph_file,imbalance_tolerance) {
 		experiment_name = experimentName;
         comm_bandwidth_filename = comm_bandwidth_file;
         use_bandwidth_file = useBandwidth;
@@ -31,6 +31,7 @@ public:
         sync_batch_size = syncBatchSize;
         stream_file = streamFile;
         use_max_expected_workload = use_expected_workload;
+        input_order_round_robin = input_order;
 
         split_stream();
 
@@ -74,9 +75,18 @@ public:
         fprintf(fp,"\n");
 
         // read reminder of file (one line per vertex)
+        int local_stream_size = num_vertices / num_processes + ((num_vertices % num_processes > process_id) ? 0 : 1);
+        int first_element_in_stream = (num_vertices / num_processes + std::min(num_vertices % num_processes,process_id)) * process_id;
         int counter = 0;
         while(std::getline(istream,line)) {
-            if(counter % num_processes == process_id) {
+            // Choice between round robin or bulk first //
+            bool own_element;
+            if(input_order_round_robin) {
+                own_element = counter % num_processes == process_id;
+            } else {
+                own_element = counter < (first_element_in_stream + local_stream_size) && counter >= first_element_in_stream;
+            }
+            if(own_element) {
                 char str[line.length() + 1]; 
                 strcpy(str, line.c_str()); 
                 char* token = strtok(str, " "); 
@@ -116,7 +126,7 @@ public:
             vtx_wgt[ii] = 1;
         }
 
-        *iterations = PRAW::ParallelHDRF(experiment_name,partitioning, comm_cost_matrix, hgraph_part_file.c_str(), vtx_wgt, max_iterations, imbalance_tolerance, save_partitioning_history,false,sync_batch_size,use_max_expected_workload);
+        *iterations = PRAW::ParallelHDRF(experiment_name,partitioning, comm_cost_matrix, hgraph_part_file.c_str(), vtx_wgt, max_iterations, imbalance_tolerance, save_partitioning_history,false,sync_batch_size,use_max_expected_workload,input_order_round_robin);
 
         // clean up operations
         for(int ii=0; ii < num_processes; ii++) {
@@ -141,6 +151,7 @@ private:
     char* stream_file = NULL;
     std::string hgraph_part_file;
     bool use_max_expected_workload = false;
+    bool input_order_round_robin = true;
 };
 
 

@@ -103,12 +103,13 @@ int main(int argc, char** argv) {
     int sync_batch_size = 1;
     char* stream_file = NULL;
     bool use_max_expected_workload = false;
+    bool input_order_round_robin = true;
 
     // getting command line parameters
     extern char *optarg;
 	extern int optind, opterr, optopt;
 	int c;
-	while( (c = getopt(argc,argv,"n:h:i:m:b:Ws:p:t:k:o:c:r:Hq:x:f:u:Pg:e:E")) != -1 ) {
+	while( (c = getopt(argc,argv,"n:h:i:m:b:Ws:p:t:k:o:c:r:Hq:x:f:u:Pg:e:EB")) != -1 ) {
 		switch(c) {
 			case 'n': // test name
 				experiment_name = optarg;
@@ -176,6 +177,9 @@ int main(int argc, char** argv) {
             case 'E': // store partitioning
 				use_max_expected_workload = true;
 				break;
+            case 'B': // input order as bulk
+				input_order_round_robin = false;
+				break;
 		}
 	}
     // for rHDRF the graph file and the stream file are different
@@ -200,7 +204,7 @@ int main(int argc, char** argv) {
         isVertexCentric = false;
 	} else if(strcmp(part_method,"rHDRF") == 0) {  
 		PRINTF("%i: Partitioning: parallel rHDRF vertex hyperPRAW\n",process_id);
-        partition = new ParallelRHDRFVertexPartitioning(experiment_name,graph_file,stream_file,imbalance_tolerance,max_iterations,bandwidth_file,use_bandwidth_in_partitioning,proportional_comm_cost,save_partitioning_history,sync_batch_size,use_max_expected_workload);
+        partition = new ParallelRHDRFVertexPartitioning(experiment_name,graph_file,stream_file,imbalance_tolerance,max_iterations,bandwidth_file,use_bandwidth_in_partitioning,proportional_comm_cost,save_partitioning_history,sync_batch_size,use_max_expected_workload,input_order_round_robin);
         isVertexCentric = true;
 	} else if(strcmp(part_method,"sequentialVertex") == 0) {  
 		PRINTF("%i: Partitioning: sequential vertex partitioning\n",process_id);

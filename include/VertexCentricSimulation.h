@@ -36,7 +36,6 @@ namespace VertexCentricSimulation {
         std::vector<std::vector<int> > hedge_ptr;
         PRAW::load_hypergraph_from_file_dist_CSR(graph_file, &hyperedges, &hedge_ptr, process_id, partitioning);
 
-
         ////////////////////////////////////////////////////////
         // repeat simulation with same partitioning distribution
         ////////////////////////////////////////////////////////
