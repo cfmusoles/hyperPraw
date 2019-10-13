@@ -29,7 +29,6 @@ public:
         proportional_comm_cost = proportionalCommCost;
         sync_batch_size = syncBatchSize;
         stream_file = streamFile;
-        use_max_expected_workload = use_expected_workload;
         input_order_round_robin = input_order;
 
         split_stream();
@@ -125,7 +124,7 @@ public:
             vtx_wgt[ii] = 1;
         }
 
-        *iterations = PRAW::ParallelHDRF(experiment_name,partitioning, comm_cost_matrix, hgraph_part_file.c_str(), vtx_wgt, max_iterations, imbalance_tolerance,false,sync_batch_size,use_max_expected_workload,input_order_round_robin);
+        *iterations = PRAW::ParallelHDRF(experiment_name,partitioning, comm_cost_matrix, hgraph_part_file.c_str(), vtx_wgt, max_iterations, imbalance_tolerance,false,sync_batch_size,input_order_round_robin);
 
         // clean up operations
         for(int ii=0; ii < num_processes; ii++) {
@@ -148,7 +147,6 @@ private:
     int sync_batch_size = 1;
     char* stream_file = NULL;
     std::string hgraph_part_file;
-    bool use_max_expected_workload = false;
     bool input_order_round_robin = true;
 };
 

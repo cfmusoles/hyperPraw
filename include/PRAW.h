@@ -1867,7 +1867,7 @@ namespace PRAW {
 
     
     // Stream from multiple files / streams
-    int ParallelHDRF(char* experiment_name, idx_t* partitioning, double** comm_cost_matrix, std::string hypergraph_filename, int* element_wgt, int max_iterations, float imbalance_tolerance, bool local_replica_degree_updates_only = false, int window_size = 1, bool use_max_expected_workload = true, bool input_order_round_robin = true) {
+    int ParallelHDRF(char* experiment_name, idx_t* partitioning, double** comm_cost_matrix, std::string hypergraph_filename, int* element_wgt, int max_iterations, float imbalance_tolerance, bool local_replica_degree_updates_only = false, int window_size = 1, bool input_order_round_robin = true) {
         // Parallel Hyperedge Partitioning based algorithm
         // Because it can be applied to both vertex and hyperedge partitionings, we adopt the following nomenclature:
         //      element: what each line in the stream represent
@@ -1967,7 +1967,7 @@ namespace PRAW {
         // assumes all elements have same workload (1)
         // TODO@ needs to account for batch sync update
         long int max_expected_workload = num_elements / num_processes * imbalance_tolerance - num_processes * window_size;
-        if(use_max_expected_workload && max_expected_workload < 1) {
+        if(max_expected_workload < 1) {
             PRINTF("Graph is too small! Too many processes (max expected workload limit is %li)\n",max_expected_workload);
             return 0;
         }
@@ -2088,7 +2088,7 @@ namespace PRAW {
                 float comm_min = std::numeric_limits<float>::max();
                 float comm_max = 0;
                 for(int pp=0; pp < num_processes; pp++) {
-                    if(use_max_expected_workload && part_load[pp] >= max_expected_workload) {
+                    if(part_load[pp] >= max_expected_workload) {
                         continue;
                     }
                     double c_rep = 0;
@@ -2119,7 +2119,7 @@ namespace PRAW {
                 double max_value = 0;
                 int best_partition = 0;
                 for(int pp=0; pp < num_processes; pp++) {   
-                    if(use_max_expected_workload && part_load[pp] >= max_expected_workload) {
+                    if(part_load[pp] >= max_expected_workload) {
                         continue;
                     } 
                     // normalise c_comms
