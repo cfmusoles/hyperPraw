@@ -203,33 +203,37 @@ namespace VertexCentricSimulation {
             //    communication time
             //    partitioning stats (hedge cut, SOED, absorption)
 #ifdef STORE_SIM_STATS
-            if(process_id == 0) {
-                printf("%i: Edge simulation time (%i steps): %f secs, Hedge simulation time: %f secs\n",process_id,edge_sim_steps,total_edge_sim_time,total_hedge_sim_time);
-                // used to calculate the theoretical cost of communication
-                // if bandwidth file is not provided, then assumes all costs are equal
-                // initialise comm cost matrix (for theoretical cost analysis)
-                double** comm_cost_matrix = (double**)malloc(sizeof(double*) * num_processes);
-                for(int ii=0; ii < num_processes; ii++) {
-                    comm_cost_matrix[ii] = (double*)calloc(num_processes,sizeof(double));
-                }
-                PRAW::get_comm_cost_matrix_from_bandwidth(bandwidth_file,comm_cost_matrix,num_processes,proportional_comm_cost);
+
+            // calculate partitioning stats
+            float hyperedges_cut_ratio;
+            float edges_cut_ratio;
+            int soed;
+            float absorption;
+            float max_imbalance;
+            double total_edge_comm_cost;
+            double total_hedge_comm_cost;
+            double* vrf = NULL;
+            
+            std::string filename = graph_file;
+
+            // used to calculate the theoretical cost of communication
+            // if bandwidth file is not provided, then assumes all costs are equal
+            // initialise comm cost matrix (for theoretical cost analysis)
+            double** comm_cost_matrix = (double**)malloc(sizeof(double*) * num_processes);
+            for(int ii=0; ii < num_processes; ii++) {
+                comm_cost_matrix[ii] = (double*)calloc(num_processes,sizeof(double));
+            }
+            PRAW::get_comm_cost_matrix_from_bandwidth(bandwidth_file,comm_cost_matrix,num_processes,proportional_comm_cost);
+            
+            PRAW::getVertexCentricPartitionStatsFromFile_parallel(partitioning, num_processes, process_id, filename, NULL,comm_cost_matrix,
+                                    &hyperedges_cut_ratio, &edges_cut_ratio, &soed, &absorption, &max_imbalance, &total_edge_comm_cost,&total_hedge_comm_cost,vrf); 
                     
-                // calculate partitioning stats
-                float hyperedges_cut_ratio;
-                float edges_cut_ratio;
-                int soed;
-                float absorption;
-                float max_imbalance;
-                double total_edge_comm_cost;
-                double total_hedge_comm_cost;
-                float vertex_replication_factor;
+            if(process_id == 0) {
+                double vertex_replication_factor = vrf != NULL ? *vrf : -1;
                 
-                std::string filename = graph_file;
+                printf("%i: Edge simulation time (%i steps): %f secs, Hedge simulation time: %f secs\n",process_id,edge_sim_steps,total_edge_sim_time,total_hedge_sim_time);
                 
-                PRAW::getVertexCentricPartitionStatsFromFile(partitioning, num_processes, filename, NULL,comm_cost_matrix,
-                                        &hyperedges_cut_ratio, &edges_cut_ratio, &soed, &absorption, &max_imbalance, &total_edge_comm_cost,&total_hedge_comm_cost,&vertex_replication_factor);
-                
-                printf("Partition time %.2fs\nHedgecut, %.3f, %.3f (cut net), %i (SOED), %.1f (absorption) %.3f (max imbalance), %.0f (edge comm cost), %.0f (hedge comm cost)\nEdgesim messages sent %li,Hedgesim messages sent %li, Vertex replication factor %.3f\n",partition_timer,hyperedges_cut_ratio,edges_cut_ratio,soed,absorption,max_imbalance,total_edge_comm_cost,total_hedge_comm_cost,total_edge_messages_sent,total_hedge_messages_sent,vertex_replication_factor);
+                printf("Partition time %.2fs\nHedgecut, %.3f, %.3f (cut net), %i (SOED), %.1f (absorption) %.3f (max imbalance), %.0f (edge comm cost), %.0f (hedge comm cost)\nEdgesim messages sent %li,Hedgesim messages sent %li, Pin replication factor %.3f\n",partition_timer,hyperedges_cut_ratio,edges_cut_ratio,soed,absorption,max_imbalance,total_edge_comm_cost,total_hedge_comm_cost,total_edge_messages_sent,total_hedge_messages_sent,vertex_replication_factor);
                 
                 // store stats in file
                 filename = experiment_name;
@@ -248,7 +252,7 @@ namespace VertexCentricSimulation {
                     printf("Error when storing results into file\n");
                 } else {
                     if(!fileexists) // file does not exist, add header
-                        fprintf(fp,"%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s\n","Partition time","Edge Sim time","Hedge sim time","Hedge cut ratio","Cut net","SOED","Absorption","Max imbalance","Edge Comm cost","Hedge comm cost","Edgesim Messages sent","Hedgesim Messages sent","Vertex replication factor","Partition time per iteration");
+                        fprintf(fp,"%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s\n","Partition time","Edge Sim time","Hedge sim time","Hedge cut ratio","Cut net","SOED","Absorption","Max imbalance","Edge Comm cost","Hedge comm cost","Edgesim Messages sent","Hedgesim Messages sent","Pin replication factor","Partition time per iteration");
                     fprintf(fp,"%.3f,%.3f,%.3f,%.3f,%.3f,%i,%.1f,%.3f,%.0f,%.0f,%li,%li,%.3f,%.3f\n",partition_timer,total_edge_sim_time,total_hedge_sim_time,hyperedges_cut_ratio,edges_cut_ratio,soed,absorption,max_imbalance,total_edge_comm_cost,total_hedge_comm_cost,total_edge_messages_sent,total_hedge_messages_sent,vertex_replication_factor,partition_timer/partition_iterations);
                 }
                 fclose(fp);

@@ -21,13 +21,12 @@ Each line represents a vertex and the hyperedge_id it  belongs to.
 class ParallelRHDRFVertexPartitioning : public Partitioning {
 public:
 	
-	ParallelRHDRFVertexPartitioning(char* experimentName, char* graph_file, char* streamFile, float imbalance_tolerance, int iterations, char* comm_bandwidth_file, bool useBandwidth, bool proportionalCommCost, bool saveHistory, int syncBatchSize, bool use_expected_workload, bool input_order) : Partitioning(graph_file,imbalance_tolerance) {
+	ParallelRHDRFVertexPartitioning(char* experimentName, char* graph_file, char* streamFile, float imbalance_tolerance, int iterations, char* comm_bandwidth_file, bool useBandwidth, bool proportionalCommCost, int syncBatchSize, bool use_expected_workload, bool input_order) : Partitioning(graph_file,imbalance_tolerance) {
 		experiment_name = experimentName;
         comm_bandwidth_filename = comm_bandwidth_file;
         use_bandwidth_file = useBandwidth;
         max_iterations = iterations;
         proportional_comm_cost = proportionalCommCost;
-        save_partitioning_history = saveHistory;
         sync_batch_size = syncBatchSize;
         stream_file = streamFile;
         use_max_expected_workload = use_expected_workload;
@@ -76,7 +75,7 @@ public:
 
         // read reminder of file (one line per vertex)
         int local_stream_size = num_vertices / num_processes + ((num_vertices % num_processes > process_id) ? 0 : 1);
-        int first_element_in_stream = (num_vertices / num_processes + std::min(num_vertices % num_processes,process_id)) * process_id;
+        int first_element_in_stream = (num_vertices / num_processes * process_id + std::min(num_vertices % num_processes,process_id));
         int counter = 0;
         while(std::getline(istream,line)) {
             // Choice between round robin or bulk first //
@@ -126,7 +125,7 @@ public:
             vtx_wgt[ii] = 1;
         }
 
-        *iterations = PRAW::ParallelHDRF(experiment_name,partitioning, comm_cost_matrix, hgraph_part_file.c_str(), vtx_wgt, max_iterations, imbalance_tolerance, save_partitioning_history,false,sync_batch_size,use_max_expected_workload,input_order_round_robin);
+        *iterations = PRAW::ParallelHDRF(experiment_name,partitioning, comm_cost_matrix, hgraph_part_file.c_str(), vtx_wgt, max_iterations, imbalance_tolerance,false,sync_batch_size,use_max_expected_workload,input_order_round_robin);
 
         // clean up operations
         for(int ii=0; ii < num_processes; ii++) {
@@ -146,7 +145,6 @@ private:
     bool use_bandwidth_file = false;
     int max_iterations;
     bool proportional_comm_cost = false;
-    bool save_partitioning_history; 
     int sync_batch_size = 1;
     char* stream_file = NULL;
     std::string hgraph_part_file;

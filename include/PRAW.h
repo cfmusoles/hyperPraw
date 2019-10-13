@@ -70,7 +70,7 @@ namespace PRAW {
         float max_imbalance = 0;
         float expected_work = total_workload / num_processes;
         for(int ii=0; ii < num_processes; ii++) {
-            PRINTF("%i: %li\n",ii,workload[ii]);
+            //PRINTF("%i: %li\n",ii,workload[ii]);
             float imbalance = (workload[ii] / expected_work);
             if(imbalance > max_imbalance)
                 max_imbalance = imbalance;
@@ -398,7 +398,7 @@ namespace PRAW {
     // imbalance
     // sim comm cost
     void getVertexCentricPartitionStatsFromFile(idx_t* partitioning, int num_processes, std::string hgraph_filename, int* vtx_wgt,double** comm_cost_matrix, // input
-                            float* hyperedges_cut_ratio, float* edges_cut_ratio, int* soed, float* absorption, float* max_imbalance, double* total_edge_comm_cost, double* total_hedge_comm_cost,float* vertex_replication_factor) { // output
+                            float* hyperedges_cut_ratio, float* edges_cut_ratio, int* soed, float* absorption, float* max_imbalance, double* total_edge_comm_cost, double* total_hedge_comm_cost,double* vertex_replication_factor) { // output
 
         // take partitioning statistics directly from reading a graph file
         // loading the entire graph on a process should be avoided for scalability
@@ -524,8 +524,7 @@ namespace PRAW {
 
     // parallel version of the stats getter
     void getVertexCentricPartitionStatsFromFile_parallel(idx_t* partitioning, int num_processes, int process_id, std::string hgraph_filename, int* vtx_wgt,double** comm_cost_matrix, // input
-                            float* hyperedges_cut_ratio, float* edges_cut_ratio, int* soed, float* absorption, float* max_imbalance, double* total_edge_comm_cost, double* total_hedge_comm_cost) { // output
-
+                            float* hyperedges_cut_ratio, float* edges_cut_ratio, int* soed, float* absorption, float* max_imbalance, double* total_edge_comm_cost, double* total_hedge_comm_cost,double* vertex_replication_factor) { // output
         // take partitioning statistics directly from reading a graph file
         // loading the entire graph on a process should be avoided for scalability
         *hyperedges_cut_ratio=0;
@@ -534,6 +533,7 @@ namespace PRAW {
         *absorption=0;
         *max_imbalance=0;
         *total_edge_comm_cost=0;
+        if(vertex_replication_factor != NULL) *vertex_replication_factor=0;
         if(total_hedge_comm_cost != NULL) *total_hedge_comm_cost=0;
         
         //int* workload = (int*)calloc(num_processes,sizeof(int));
@@ -547,6 +547,9 @@ namespace PRAW {
         int total_vertices;
         int total_hyperedges;
         get_hypergraph_file_header(hgraph_filename,&total_vertices,&total_hyperedges);
+
+        // keep track of vertex replicas on each partition with a set per partition
+        std::vector<std::set<int> > vertex_replicas(num_processes);
         
         std::ifstream istream(hgraph_filename.c_str());
 
@@ -585,15 +588,19 @@ namespace PRAW {
                 int from = tokens[ff]-1;
                 connectivity.insert(partitioning[from]);
                 vertices_in_partition[partitioning[from]]++;
+                if(vertex_replication_factor != NULL) vertex_replicas[partitioning[from]].insert(from);
                 for(int tt=0; tt < tokens.size(); tt++) {
                     if(tt==ff) continue;
                     int to = tokens[tt]-1;
                     total_edges++;
                     int to_part = partitioning[to];
                     //vertices_in_partition[to_part]++;
+                    vertex_replicas[to_part].insert(to);
                     if(to_part != partitioning[from]) {
                         edgecut++;
                         connectivity.insert(to_part);
+                        if(vertex_replication_factor != NULL) vertex_replicas[to_part].insert(from);
+                        if(vertex_replication_factor != NULL) vertex_replicas[partitioning[from]].insert(to);
                     }
                     // this cost measures mainly edge cut
                     if(comm_cost_matrix != NULL) {
@@ -651,7 +658,18 @@ namespace PRAW {
             MPI_Allreduce(total_hedge_comm_cost,&total_hedgecost,1,MPI_DOUBLE,MPI_SUM,MPI_COMM_WORLD);
             *total_hedge_comm_cost = total_hedgecost;
         }
-
+        
+        if(vertex_replication_factor != NULL) {
+            for(int pin=0; pin < total_vertices; pin++) {
+                for(int pp=0; pp < num_processes; pp++) {
+                    int present = vertex_replicas[pp].find(pin) != vertex_replicas[pp].end() ? 1 : 0;
+                    int result;
+                    MPI_Allreduce(&present,&result,1,MPI_INT,MPI_MAX,MPI_COMM_WORLD);
+                    if(result > 0)*vertex_replication_factor += 1;
+                }
+            }
+            *vertex_replication_factor /= total_vertices;
+        }
 
         *hyperedges_cut_ratio=(float)hyperedges_cut/total_hyperedges;
         *edges_cut_ratio=(float)edgecut/total_edges;
@@ -1088,7 +1106,7 @@ namespace PRAW {
             float max_imbalance;
             double total_edge_comm_cost;
             double total_hedge_comm_cost;
-            float vertex_replicastion_factor;
+            double vertex_replicastion_factor;
             if(save_partitioning_history) {
                 PRAW::getVertexCentricPartitionStatsFromFile(partitioning, num_processes, hypergraph_filename, NULL,comm_cost_matrix,
                             &hyperedges_cut_ratio, &edges_cut_ratio, &soed, &absorption, &max_imbalance, 
@@ -1202,6 +1220,74 @@ namespace PRAW {
         free(part_load);
         free(current_neighbours_in_partition);
         //free(sum_all_bandwidth);
+
+        return 1;
+    }
+
+    int BaselineSequentialVertexPartitioning(char* experiment_name, idx_t* partitioning, int num_processes, std::string hypergraph_filename, int* vtx_wgt, float imbalance_tolerance) {
+        // This algorithm corresponds to a basic implementation of Alistairh's hypergraph partitioning
+        // From partitions that are not overloaded, select the one for which there is higher topic intersection (hyperedge intersection)
+
+        // get meta info (num vertices and hyperedges)
+        int num_vertices, num_hyperedges;
+        get_hypergraph_file_header(hypergraph_filename, &num_vertices, &num_hyperedges);
+        
+        // 2 - Divide the graph in a distributed CSR format (like ParMETIS)
+        //  compressed vertex or compressed hedge format? --> see zoltan
+        //  for each local vertex, store the list of vertices adjacent to it (belonging to same hedges)
+        std::vector<std::vector<int> > hyperedges;
+        std::vector<std::vector<int> > hedge_ptr;
+        load_hypergraph_from_file_dist_CSR(hypergraph_filename, &hyperedges, &hedge_ptr, MASTER_NODE, partitioning, true);        
+
+        long int* part_load = (long int*)calloc(num_processes,sizeof(long int));
+
+        memset(part_load,0,num_processes * sizeof(long int));
+        double total_workload = 0;
+        for(int ii=0; ii < num_vertices; ii++) {
+            total_workload += vtx_wgt[ii];
+        }
+        double max_workload = total_workload / num_processes * imbalance_tolerance;
+        
+        std::vector<std::set<int> > hyperedges_in_partition(num_processes);
+
+        // go through own vertex list and reassign
+        for(int vid=0; vid < num_vertices; vid++) {
+            // calculate hyperedge overlap for current vertex in all partitions
+            std::vector<int> overlap(num_processes,0);
+            for(int he = 0; he < hedge_ptr[vid].size(); he++) {
+                int he_id = hedge_ptr[vid][he];
+                for(int pp=0; pp < num_processes; pp++) {
+                    if(hyperedges_in_partition[pp].find(he_id) != hyperedges_in_partition[pp].end()) overlap[pp]++;
+                }
+            }
+
+            // allocate vertex to underloaded partitions
+            int max_value = 0;
+            int best_partition = 0;
+            for(int pp=0; pp < num_processes; pp++) {
+                if(part_load[pp] >= max_workload) continue;
+
+                int current_value = overlap[pp];
+                
+                if(current_value > max_value ||                                                     // best overlap value
+                        (current_value == max_value && part_load[best_partition] > part_load[pp])) {  // equal overlap but less loaded
+                    max_value = current_value;
+                    best_partition = pp;
+                } 
+            }
+            
+            // update intermediate workload and assignment values
+            part_load[best_partition] += vtx_wgt[vid];
+            // update partitioning assignment
+            partitioning[vid] = best_partition;
+            for(int he = 0; he < hedge_ptr[vid].size(); he++) {
+                int he_id = hedge_ptr[vid][he];
+                hyperedges_in_partition[best_partition].insert(he_id);
+            }
+        }
+        
+        // clean up
+        free(part_load);
 
         return 1;
     }
@@ -1411,11 +1497,13 @@ namespace PRAW {
             float max_imbalance;
             double total_edge_comm_cost;
             double total_hedge_comm_cost;
+            double total_vertex_replication_factor;
             if(save_partitioning_history) {
                 PRAW::getVertexCentricPartitionStatsFromFile_parallel(partitioning, num_processes,process_id,hypergraph_filename, NULL,comm_cost_matrix,
                             &hyperedges_cut_ratio, &edges_cut_ratio, &soed, &absorption, &max_imbalance, 
                             &total_edge_comm_cost,
-                            stopping_condition == 3 ? &total_hedge_comm_cost : NULL); // only check hedge cost if it's going to be used
+                            stopping_condition == 3 ? &total_hedge_comm_cost : NULL, // only check hedge cost if it's going to be used
+                            &total_vertex_replication_factor); 
                 if(process_id == MASTER_NODE) {
                     FILE *fp = fopen(history_file.c_str(), "ab+");
                     if(fp == NULL) {
@@ -1747,10 +1835,11 @@ namespace PRAW {
                 float max_imbalance;
                 double total_edge_comm_cost;
                 double total_hedge_comm_cost;
+                double total_vertex_replication_factor;
                 // store partition history
                 PRAW::getVertexCentricPartitionStatsFromFile_parallel(partitioning, num_processes,process_id,hypergraph_filename, vtx_wgt,comm_cost_matrix,
                             &hyperedges_cut_ratio, &edges_cut_ratio, &soed, &absorption, &max_imbalance, 
-                            &total_edge_comm_cost,NULL);
+                            &total_edge_comm_cost,NULL,&total_vertex_replication_factor);
                 
                 if(process_id == MASTER_NODE) {
                     FILE *fp = fopen(history_file.c_str(), "ab+");
@@ -1778,7 +1867,7 @@ namespace PRAW {
 
     
     // Stream from multiple files / streams
-    int ParallelHDRF(char* experiment_name, idx_t* partitioning, double** comm_cost_matrix, std::string hypergraph_filename, int* element_wgt, int max_iterations, float imbalance_tolerance, bool save_partitioning_history, bool local_replica_degree_updates_only = false, int window_size = 1, bool use_max_expected_workload = true, bool input_order_round_robin = true) {
+    int ParallelHDRF(char* experiment_name, idx_t* partitioning, double** comm_cost_matrix, std::string hypergraph_filename, int* element_wgt, int max_iterations, float imbalance_tolerance, bool local_replica_degree_updates_only = false, int window_size = 1, bool use_max_expected_workload = true, bool input_order_round_robin = true) {
         // Parallel Hyperedge Partitioning based algorithm
         // Because it can be applied to both vertex and hyperedge partitionings, we adopt the following nomenclature:
         //      element: what each line in the stream represent
@@ -1788,19 +1877,19 @@ namespace PRAW {
         //          for vertex partitioning, they are vertices that the hyperedge contain
         //          for hedge partitioning, they are hyperedges the vertex belongs to
 
-        // The goal is to assign hyperedges to partitions   
+        // The goal is to assign elements to partitions   
         // Minimisation goal: 
-        //      replication factor (sum of vertex replicas)
+        //      replication factor (sum of pin replicas)
         //      reducing communication cost (taking comm cost matrix into account)
         // Constraint: keep load balance amongst partitions (weighed sum of hyperedges per partition = sum of vertices per partition?)
         // It can be a restreaming approach, in which in the first stream we use partial info (partial degree) and full info afterwards
         //      particularly when incorporating comm cost into the objective function
 
         // Input: 
-        //      hypergraph, in a stream (one hyperedge at a time)
+        //      hypergraph, in a stream (one element at a time)
         //      number of partitions
         //      communication cost matrix
-        // Output: hyperedge assignment to partitions
+        // Output: element assignment to partitions
 
         // Algorithm employed: a variety of HDRF (High Degree Replicated First, Petroni). 
         // standalone implementation of HDRF https://github.com/fabiopetroni/VGP
@@ -1830,12 +1919,6 @@ namespace PRAW {
         //      A(v)
         //      workload (experiment with and without)
         //      Partial degree? (experiment with and without)
-
-        // Parameters (from HDRF, Petroni 2015)
-        float lambda = use_max_expected_workload ? 0.1f : 1.0f;
-        // own parameters
-        float lambda_update = 1.1f;
-        float lambda_refinement = 0.95f;
             
         
         int process_id;
@@ -1856,328 +1939,304 @@ namespace PRAW {
         //    }
         //}
 
-        std::string history_file = experiment_name;
-        
-        if(save_partitioning_history && process_id == 0) {
-            history_file += "_";
-            history_file += getFileName(hypergraph_filename);
-            history_file += "_partition_history__";
-            char str_int[16];
-            sprintf(str_int,"%i",num_processes);
-            history_file +=  str_int;
-            // remove history file if exists
-            FILE *fp = fopen(history_file.c_str(), "w");
-            if(fp == NULL) {
-                printf("Error when storing partitioning history into file\n");
-            } else {
-                fprintf(fp,"%s\n","Iteration, Lambda, Vertex replication factor, Hedge imbalance");
-            }
-            fclose(fp);
-        }
-
         int num_pins;
         int num_elements;
+    
+        // Open stream
+        std::ifstream istream(hypergraph_filename.c_str());
+        
+        if(!istream) {
+            printf("Error while opening hMETIS file %s\n",hypergraph_filename.c_str());
+        }
+        std::string line;
+        // process header
+        std::getline(istream,line);
+        char str[line.length() + 1]; 
+        strcpy(str, line.c_str()); 
+        char* token = strtok(str, " "); 
+        std::vector<int> tokens;
+        while (token != NULL) { 
+            tokens.push_back(atoi(token)); 
+            token = strtok(NULL, " "); 
+        } 
+        num_pins = tokens[1];
+        num_elements = tokens[0];
 
-        // avoid overfitting variables
-        bool check_overfit = false;
-        bool rollback = false;
-        idx_t* last_partitioning = NULL;
+        // used to force all solutions to be within imbalance tolerance
+        // currently uses full graph knowledge (just number of elements)
+        // assumes all elements have same workload (1)
+        // TODO@ needs to account for batch sync update
+        long int max_expected_workload = num_elements / num_processes * imbalance_tolerance - num_processes * window_size;
+        if(use_max_expected_workload && max_expected_workload < 1) {
+            PRINTF("Graph is too small! Too many processes (max expected workload limit is %li)\n",max_expected_workload);
+            return 0;
+        }
+    
+        
+        PRINTF("Found in file: Pins: %i; elements %i:\n",num_pins,num_elements);
 
-        int iter = 0;
-        for(iter=0; iter < max_iterations; iter++) {
+        // initialise workload
+        // workload starts empty across all partitions
+        long int total_workload = 0;
+        memset(part_load,0,num_processes * sizeof(long int));
 
-            // Open stream
-            std::ifstream istream(hypergraph_filename.c_str());
+        // Check balance guarantee 
+        // The parallel algorithm is guaranteed to reach load imbalance tolerance if the hypergraphs safisfies:
+        //      total_workload * imbalance_tolerance > total_workload +  average_cardinality * p
+        //      that translates to:
+        //      num_hyperedges * (average_cardinality / num_processes) * imbalance_tolerance > num_hyperedges * average_cardinality / num_processes + average_cardinality * num_processes
+        //      which simplifies to, when solved for num_processes to: (average_cardinality is cancelled out)
+        //      num_processes < floor(sqrt(num_hyperedges * imbalance_tolerance - num_hyperedges))
+        if(num_processes >= floor(sqrt(num_elements * imbalance_tolerance - num_elements))) {
+            int p = num_processes;
+            float h = num_elements;
+            float i = imbalance_tolerance;
+            int max_processes_for_guarantee = floor(sqrt(h * i - h));
+            int min_graph_size = pow(p,2) / (i - 1);
+            printf("WARNING: Current run is not guaranteed to reach load imbalance tolerance. Decrease the number of processes to %i.\nWith %i processes, %i elements are required for guarantee\n",
+                            max_processes_for_guarantee,p,min_graph_size);
+        }      
+
+        // HOW DO WE STORE AND COORDINATE THE DATASTRUCTURES? Balance between memory and communication
+        // create an object Vertex that contains two variables
+        //      int partial_degree --> store the current partial degree
+        //      std::vector<int> A --> store the list of partitions that have a replica of the vertex
+        // store the Vertex in a std::unordered_map (hashmap) of Vertex* of length num_vertices (vertex id is given by the index)
+        std::unordered_map<int,pin_data> seen_pins;
+
+        // read reminder of file (one line per elemennt)
+        int element_id = 0; // current elemennt
+        int element_mapping = -1; // mapping of current he (to partition)
+        //std::vector<int> local_pins; // list of hyperedges and vertices seen in the current batch that belong to process
+
+        
+        int max_stream_size = num_elements / num_processes + ((num_elements % num_processes > 0) ? 0 : 1);
+        while(element_id < max_stream_size) {
+            int actual_window_size = 0;
             
-            if(!istream) {
-                printf("Error while opening hMETIS file %s\n",hypergraph_filename.c_str());
+            // data structures for batch synchronisation
+            std::vector<int> local_pins_size(window_size,0);
+            std::vector<std::vector<int> > new_replicas(window_size);
+            
+            // Load a batch of elements and their pins
+            std::vector<std::vector<int> > batch_elements;
+            for(int ww=0; ww < window_size; ww++) {
+                if(std::getline(istream,line)) {
+                    char str[line.length() + 1]; 
+                    strcpy(str, line.c_str()); 
+                    char* token = strtok(str, " "); 
+                    std::vector<int> current_line;
+                    while (token != NULL) { 
+                        current_line.push_back(atoi(token)-1);
+                        token = strtok(NULL, " "); 
+                    }
+                    actual_window_size++;
+                    batch_elements.push_back(current_line);
+                }
             }
-            std::string line;
-            // process header
-            std::getline(istream,line);
-            char str[line.length() + 1]; 
-            strcpy(str, line.c_str()); 
-            char* token = strtok(str, " "); 
-            std::vector<int> tokens;
-            while (token != NULL) { 
-                tokens.push_back(atoi(token)); 
-                token = strtok(NULL, " "); 
-            } 
-            num_pins = tokens[1];
-            num_elements = tokens[0];
-
-            // used to force all solutions to be within imbalance tolerance
-            // currently uses full graph knowledge (just number of elements)
-            // assumes all elements have same workload (1)
-            // TODO@ needs to account for batch sync update
-            long int max_expected_workload = num_elements / num_processes * imbalance_tolerance - num_processes * window_size;
-            if(use_max_expected_workload && max_expected_workload < 1) {
-                PRINTF("Graph is too small! Too many processes (max expected workload limit is %li)\n",max_expected_workload);
-                return 0;
+            // prioritise elements based on count of already seen pins
+            std::vector<int> element_priority(actual_window_size);
+            for(int el=0; el < actual_window_size; el++) {
+                int score = 0;
+                for(int pin=1; pin < batch_elements[el].size(); pin++) {
+                    int pin_id = batch_elements[el][pin];
+                    score += seen_pins[pin_id].partial_degree;
+                }
+                element_priority[el] = score;
             }
-       
-            
-            PRINTF("Found in file: Pins: %i; elements %i:\n",num_pins,num_elements);
-
-            // initialise workload
-            // workload starts empty across all partitions
-            long int total_workload = 0;
-            memset(part_load,0,num_processes * sizeof(long int));
-            
-            long int maxsize = part_load[0]; // used for c_bal
-            long int minsize = part_load[0]; // used for c_bal
-
-            // Check balance guarantee 
-            // The parallel algorithm is guaranteed to reach load imbalance tolerance if the hypergraphs safisfies:
-            //      total_workload * imbalance_tolerance > total_workload +  average_cardinality * p
-            //      that translates to:
-            //      num_hyperedges * (average_cardinality / num_processes) * imbalance_tolerance > num_hyperedges * average_cardinality / num_processes + average_cardinality * num_processes
-            //      which simplifies to, when solved for num_processes to: (average_cardinality is cancelled out)
-            //      num_processes < floor(sqrt(num_hyperedges * imbalance_tolerance - num_hyperedges))
-            if(num_processes >= floor(sqrt(num_elements * imbalance_tolerance - num_elements))) {
-                int p = num_processes;
-                float h = num_elements;
-                float i = imbalance_tolerance;
-                int max_processes_for_guarantee = floor(sqrt(h * i - h));
-                int min_graph_size = pow(p,2) / (i - 1);
-                printf("WARNING: Current run is not guaranteed to reach load imbalance tolerance. Decrease the number of processes to %i.\nWith %i processes, %i elements are required for guarantee\n",
-                                max_processes_for_guarantee,p,min_graph_size);
-            }      
-
-            // HOW DO WE STORE AND COORDINATE THE DATASTRUCTURES? Balance between memory and communication
-            // create an object Vertex that contains two variables
-            //      int partial_degree --> store the current partial degree
-            //      std::vector<int> A --> store the list of partitions that have a replica of the vertex
-            // store the Vertex in a std::unordered_map (hashmap) of Vertex* of length num_vertices (vertex id is given by the index)
-            std::unordered_map<int,pin_data> seen_pins;
-
-            // read reminder of file (one line per elemennt)
-            int element_id = 0; // current elemennt
-            int element_mapping = -1; // mapping of current he (to partition)
-            std::vector<int> local_pins; // list of hyperedges and vertices seen in the current batch that belong to process
-
-            
-            int local_stream_size = num_elements / num_processes + ((num_elements % num_processes > 0) ? 0 : 1);
-            while(element_id < local_stream_size) {
-                int actual_window_size = 0;
-                
-                // data structures for batch synchronisation
-                std::vector<int> local_pins_size(window_size,0);
-                std::vector<std::vector<int> > new_replicas(window_size);
-                
-                // Load a batch of elements and their pins
-                std::vector<std::vector<int> > batch_elements;
-                for(int ww=0; ww < window_size; ww++) {
-                    if(std::getline(istream,line)) {
-                        char str[line.length() + 1]; 
-                        strcpy(str, line.c_str()); 
-                        char* token = strtok(str, " "); 
-                        std::vector<int> current_line;
-                        while (token != NULL) { 
-                            current_line.push_back(atoi(token)-1);
-                            token = strtok(NULL, " "); 
-                        }
-                        actual_window_size++;
-                        batch_elements.push_back(current_line);
-                    }
+            // sort batch_elements according to their score
+            std::vector<int> index(actual_window_size, 0);
+            for (int i = 0 ; i < actual_window_size ; i++) {
+                index[i] = i;
+            }
+            // TODO: test both sortings (highest to lowest and viceversa)
+            sort(index.begin(), index.end(),
+                [&](const int& a, const int& b) {
+                    return (element_priority[a] > element_priority[b]); // from highest to lowest
+                    //return (element_priority[a] < element_priority[b]); // from lowest to highest
                 }
-                // prioritise elements based on count of already seen pins
-                std::vector<int> element_priority(actual_window_size);
-                for(int el=0; el < actual_window_size; el++) {
-                    int score = 0;
-                    for(int pin=1; pin < batch_elements[el].size(); pin++) {
-                        int pin_id = batch_elements[el][pin];
-                        score += seen_pins[pin_id].partial_degree;
-                    }
-                    element_priority[el] = score;
+            );
+            // process each batched element in order
+            for(int el=0; el < actual_window_size; el++) {
+                int idx = index[el];
+                //printf("%i: (%i) %i\n",process_id,el,element_priority[idx]);
+                ////// local_pins is batch_elements[idx]
+                ////// element_id is element_id + idx
+            
+            
+                // local hyperedge, process and assign it
+                // calculate norm_part_degree for each vertex
+                double normalised_part_degrees[batch_elements[idx].size()];
+                long int total_degrees = 0;
+                for(int ii=0; ii < batch_elements[idx].size(); ii++) {
+                    int pin_id = batch_elements[idx][ii];
+                    normalised_part_degrees[ii] = std::max(seen_pins[pin_id].partial_degree,1); // if vertex is newly seen, it will be counted in the next sync. But count it here too
+                    total_degrees += normalised_part_degrees[ii];
                 }
-                // sort batch_elements according to their score
-                std::vector<int> index(actual_window_size, 0);
-                for (int i = 0 ; i < actual_window_size ; i++) {
-                    index[i] = i;
-                }
-                sort(index.begin(), index.end(),
-                    [&](const int& a, const int& b) {
-                        return (element_priority[a] < element_priority[b]);
-                    }
+                std::transform(normalised_part_degrees,normalised_part_degrees+batch_elements[idx].size(),normalised_part_degrees,
+                    [total_degrees] (double value) {  
+                        return value / total_degrees;
+                    }  
                 );
-                // process each batched element in order
-                for(int el=0; el < actual_window_size; el++) {
-                    int idx = index[el];
-                    ////// local_pins is batch_elements[idx]
-                    ////// element_id is element_id + idx
-                
-                
-                    // local hyperedge, process and assign it
-                    // calculate norm_part_degree for each vertex
-                    double normalised_part_degrees[batch_elements[idx].size()];
-                    long int total_degrees = 0;
-                    for(int ii=0; ii < batch_elements[idx].size(); ii++) {
-                        int pin_id = batch_elements[idx][ii];
-                        normalised_part_degrees[ii] = std::max(seen_pins[pin_id].partial_degree,1); // if vertex is newly seen, it will be counted in the next sync. But count it here too
-                        total_degrees += normalised_part_degrees[ii];
+
+                // calculate C_rep(he) per partition per vertex
+                //      sum 1 + (1-norm_part_degree(v)) if p exists in A(v)
+                // TODO: can we avoid having to do two passes across all processes?
+                // can we avoid having these two datastructures?
+                double* c_total = (double*)calloc(num_processes,sizeof(double));
+                double* c_comms = (double*)calloc(num_processes,sizeof(double));   
+                float comm_min = std::numeric_limits<float>::max();
+                float comm_max = 0;
+                for(int pp=0; pp < num_processes; pp++) {
+                    if(use_max_expected_workload && part_load[pp] >= max_expected_workload) {
+                        continue;
                     }
-                    std::transform(normalised_part_degrees,normalised_part_degrees+batch_elements[idx].size(),normalised_part_degrees,
-                        [total_degrees] (double value) {  
-                            return value / total_degrees;
-                        }  
-                    );
-
-                    // calculate C_rep(he) per partition per vertex
-                    //      sum 1 + (1-norm_part_degree(v)) if p exists in A(v)
-                    // calculate C_bal(he) per partition
-                    //      lambda * (maxsize - |p|) / (e + maxsize - minsize)
-                    //      lambda --> > 1
-                    //      e --> required to avoid dividing by 0 if maxsize == minsize
-                    // TODO: can we avoid having to do two passes across all processes?
-                    // can we avoid having these two datastructures?
-                    float* c_total = (float*)calloc(num_processes,sizeof(float));
-                    double* c_comms = (double*)calloc(num_processes,sizeof(double));   
-                    float comm_min = std::numeric_limits<float>::max();
-                    float comm_max = 0;
-                    for(int pp=0; pp < num_processes; pp++) {
-                        if(use_max_expected_workload && part_load[pp] >= max_expected_workload) {
-                            continue;
+                    double c_rep = 0;
+                    double c_comm = 0;
+                    for(int vv=0; vv < batch_elements[idx].size(); vv++) {
+                        int pin_id = batch_elements[idx][vv];
+                        bool present_in_partition = false;
+                        std::set<int>::iterator it;
+                        for (it = seen_pins[pin_id].A.begin(); it != seen_pins[pin_id].A.end(); ++it)
+                        {
+                            int part = *it;
+                            present_in_partition |= part == pp;
+                            // communication should be proportional to the duplication of pins
+                            // if a pin is duplicated in two partitions, then communication will happen across those partitions
+                            c_comm += comm_cost_matrix[pp][part];
                         }
-                        double c_rep = 0;
-                        double c_comm = 0;
-                        for(int vv=0; vv < batch_elements[idx].size(); vv++) {
-                            int pin_id = batch_elements[idx][vv];
-                            bool present_in_partition = false;
-                            std::set<int>::iterator it;
-                            for (it = seen_pins[pin_id].A.begin(); it != seen_pins[pin_id].A.end(); ++it)
-                            {
-                                int part = *it;
-                                present_in_partition |= part == pp;
-                                // communication should be proportional to the duplication of pins
-                                // if a pin is duplicated in two partitions, then communication will happen across those partitions
-                                c_comm += comm_cost_matrix[pp][part];
-                            }
-                            c_rep += present_in_partition ? 1 + (1 - normalised_part_degrees[vv]) : 0;
-                            
-                        }
-                        // c_rep and c_comm must be normalised to avoid them dominating the final equation
-                        c_comms[pp] = c_comm;
-                        if(c_comm > comm_max) comm_max = c_comm;
-                        if(c_comm < comm_min) comm_min = c_comm;
-
-                        c_rep = c_rep/(local_pins.size()+1);
-
-                        float c_bal = lambda * (maxsize - part_load[pp]) / (0.1 + maxsize - minsize);
+                        c_rep += present_in_partition ? 1 + (1 - normalised_part_degrees[vv]) : 0;
                         
-                        c_total[pp] = c_bal+ c_rep;
                     }
-
-                    float max_value = 0;
-                    int best_partition = 0;
-                    for(int pp=0; pp < num_processes; pp++) {   
-                        if(use_max_expected_workload && part_load[pp] >= max_expected_workload) {
-                            continue;
-                        } 
-                        // normalise c_comms
-                        c_comms[pp] = (comm_max - c_comms[pp]) / (0.1 + comm_max - comm_min);
-                        
-                        // assign to partition that maximises C_rep + C_bal + C_comm
-                        float current_value = c_total[pp] + c_comms[pp];
-                        if(current_value > max_value) {
-                            max_value = current_value;
-                            best_partition = pp;
-                        }
-                    }
-                    element_mapping = best_partition;
+                    // c_rep and c_comm must be normalised to avoid them dominating the final equation
+                    c_comms[pp] = c_comm;
+                    if(c_comm > comm_max) comm_max = c_comm;
+                    if(c_comm < comm_min) comm_min = c_comm;
                     
-                    free(c_comms);
-                    free(c_total);
+                    c_total[pp] = c_rep/(batch_elements[idx].size()+1);
+                }
 
-                    // synchronise data
-                    // ***** 
-                    //  TODO: test just synchronising partition sizes, not vertex degree
-                    //  assumption: if pins are sufficiently shuffled, partial local degree may be enough and saves data shared
-                    // *****
-                    // ***** 
-                    //  TODO: Batch synchronisation requres testing. Are we saving time? Are results correct?
-                    //  issues: tradeoff between less comm overhead and quality of partition (potentially higher graph size requirements as partition load is not updated often)
-                    // *****
-                    new_replicas[idx].push_back(element_mapping); // add in front the partition selected
-                    int new_pins = 0;
-                    for(int ii=0; ii < batch_elements[idx].size(); ii++) {
-                        int pin_id = batch_elements[idx][ii];
-                        // TODO:: must update seen_pins data structure as it goes along
-                        // then during remote sync avoid double counting local pins
-                        if(!local_replica_degree_updates_only) {
+                double max_value = 0;
+                int best_partition = 0;
+                for(int pp=0; pp < num_processes; pp++) {   
+                    if(use_max_expected_workload && part_load[pp] >= max_expected_workload) {
+                        continue;
+                    } 
+                    // normalise c_comms
+                    c_comms[pp] = (comm_max - c_comms[pp]) / (0.1 + comm_max - comm_min);
+                    
+                    // assign to partition that maximises C_rep + C_bal + C_comm
+                    double current_value = c_total[pp] + c_comms[pp];
+                    // Select new partition if obj function value is higher, or if it is equal but partition is less loaded
+                    if(current_value > max_value ||                                                 
+                                current_value == max_value && part_load[best_partition] > part_load[pp]) {
+                        max_value = current_value;
+                        best_partition = pp;
+                    }
+                }
+                element_mapping = best_partition;
+                
+                free(c_comms);
+                free(c_total);
+
+                // synchronise data
+                // ***** 
+                //  TODO: test just synchronising partition sizes, not vertex degree
+                //  assumption: if pins are sufficiently shuffled, partial local degree may be enough and saves data shared
+                // *****
+                // ***** 
+                //  TODO: Batch synchronisation requres testing. Are we saving time? Are results correct?
+                //  issues: tradeoff between less comm overhead and quality of partition (potentially higher graph size requirements as partition load is not updated often)
+                // *****
+                new_replicas[idx].push_back(element_mapping); // add in front the partition selected
+                part_load[element_mapping] += 1; //  TODO: not really the element id  !!
+                int new_pins = 0;
+                for(int ii=0; ii < batch_elements[idx].size(); ii++) {
+                    int pin_id = batch_elements[idx][ii];
+                    // must update seen_pins data structure as it goes along
+                    // then during remote sync avoid double counting local pins
+                    seen_pins[pin_id].partial_degree += 1;
+                    seen_pins[pin_id].A.insert(element_mapping);
+                    
+                    if(!local_replica_degree_updates_only) {
+                        new_replicas[idx].push_back(pin_id);
+                        new_pins++;
+                    } else {
+                        // TODO: test performance degradation when only updating partial degree with local info
+                        if(seen_pins[pin_id].partial_degree == 0) {
+                            // if the pin has not been seen before
+                            new_replicas[idx].push_back(pin_id);
+                            new_pins++;
+                        } else if(seen_pins[pin_id].A.find(element_mapping) == seen_pins[pin_id].A.end()) {
+                            // if it has been seen but it's the first replica on new partition
                             new_replicas[idx].push_back(pin_id);
                             new_pins++;
                         } else {
-                            // TODO: test performance degradation when only updating partial degree with local info
-                            if(seen_pins[pin_id].partial_degree == 0) {
-                                // if the pin has not been seen before
-                                new_replicas[idx].push_back(pin_id);
-                                new_pins++;
-                            } else if(seen_pins[pin_id].A.find(element_mapping) == seen_pins[pin_id].A.end()) {
-                                // if it has been seen but it's the first replica on new partition
-                                new_replicas[idx].push_back(pin_id);
-                                new_pins++;
-                            } else {
-                                seen_pins[pin_id].partial_degree += 1;
-                            }
+                            seen_pins[pin_id].partial_degree += 1;
                         }
                     }
-                    local_pins_size[idx] = new_pins;                    
                 }
+                local_pins_size[idx] = new_pins;                    
+            }
 
-                element_id += window_size;//num_processes;
+            element_id += window_size;//num_processes;
 
-                // batch synchronisation
-                // synchronise length of pins list to be sent
-                int total_pins_size = window_size * num_processes;
-                int* remote_pins_size = (int*)malloc(sizeof(int) * total_pins_size);
+            // batch synchronisation
+            // synchronise length of pins list to be sent
+            int* remote_pins_size = (int*)malloc(sizeof(int) * window_size * num_processes);
 
-                MPI_Allgather(&local_pins_size[0],window_size,MPI_INT,remote_pins_size,window_size,MPI_INT,MPI_COMM_WORLD);
-                
-                // synchronise list of pins
-                // share send buffer size with other processes
-                // size = number of new replicas + 1 (the partition selected)
-                // flatten new_replicas first
-                std::vector<int> new_replicas_sync;
-                
-                for(int idx = 0; idx < window_size; idx++) {
-                    new_replicas_sync.insert(new_replicas_sync.end(),new_replicas[idx].begin(),new_replicas[idx].end());
-                }
-                int* recvcounts = (int*)malloc(num_processes * sizeof(int));
-                int send_size = new_replicas_sync.size();
-                
-                MPI_Allgather(&send_size,1,MPI_INT,recvcounts,1,MPI_INT,MPI_COMM_WORLD);
-                
-                // share partition selected and new replicas list to all
-                int counter = 0;
-                int* displs = (int*)malloc(sizeof(int) * num_processes);
-                for(int ii=0; ii < num_processes; ii++) {
-                    displs[ii] = counter;
-                    counter += recvcounts[ii]; 
-                }
-                int* recvbuffer = (int*)malloc(sizeof(int) * counter);
-                MPI_Allgatherv(&new_replicas_sync[0],send_size,MPI_INT,recvbuffer,recvcounts,displs,MPI_INT,MPI_COMM_WORLD);
-                
-                // process new replicas and add them to local datastructures
-                for(int ii=0; ii < num_processes; ii++)  {
-                    int current_element_index = 0;
-                    for(int el_order=0; el_order < window_size; el_order++) {
-                        int current_pin_length = remote_pins_size[ii*window_size+el_order];
-                        int dest_partition = recvbuffer[displs[ii] + current_element_index];
-                        // Choice between round robin or bulk first //
-                        int current_element;
-                        if(input_order_round_robin) {
-                            current_element = element_id * num_processes - (num_processes * (window_size - el_order)) + ii;
-                        } else {
-                            int first_element_in_stream = num_elements / num_processes * ii + std::min(num_elements % num_processes,ii);
-                            current_element = first_element_in_stream + element_id - (window_size - el_order);
-                        }
-                        
+            MPI_Allgather(&local_pins_size[0],window_size,MPI_INT,remote_pins_size,window_size,MPI_INT,MPI_COMM_WORLD);
+            
+            // synchronise list of pins
+            // share send buffer size with other processes
+            // size = number of new replicas + 1 (the partition selected)
+            // flatten new_replicas first
+            std::vector<int> new_replicas_sync;
+            
+            for(int idx = 0; idx < window_size; idx++) {
+                if(idx >= actual_window_size) continue;
+                new_replicas_sync.insert(new_replicas_sync.end(),new_replicas[idx].begin(),new_replicas[idx].end());
+            }
+            int* recvcounts = (int*)malloc(num_processes * sizeof(int));
+            int send_size = new_replicas_sync.size();
+            
+            MPI_Allgather(&send_size,1,MPI_INT,recvcounts,1,MPI_INT,MPI_COMM_WORLD);
+            
+            // share partition selected and new replicas list to all
+            int counter = 0;
+            int* displs = (int*)malloc(sizeof(int) * num_processes);
+            for(int ii=0; ii < num_processes; ii++) {
+                displs[ii] = counter;
+                counter += recvcounts[ii]; 
+            }
+            int* recvbuffer = (int*)malloc(sizeof(int) * counter);
+            MPI_Allgatherv(&new_replicas_sync[0],send_size,MPI_INT,recvbuffer,recvcounts,displs,MPI_INT,MPI_COMM_WORLD);
+            
+            // process new replicas and add them to local datastructures
+            for(int ii=0; ii < num_processes; ii++)  {
+                int current_element_index = 0;
+                for(int el_order=0; el_order < window_size; el_order++) {
+                    // Choice between round robin or bulk first //
+                    int current_element;
+                    if(input_order_round_robin) {
+                        current_element = element_id * num_processes - (num_processes * (window_size - el_order)) + ii;
+                        // check expected limits for global element id
                         if(current_element >= num_elements) break;
-                        total_workload += element_wgt[current_element];
-                        partitioning[current_element] = dest_partition;
+                    } else {
+                        int first_element_in_stream = num_elements / num_processes * ii + std::min(num_elements % num_processes,ii);
+                        current_element = first_element_in_stream + element_id - (window_size - el_order);
+                        // check expected limits for current process id
+                        int current_stream_size = num_elements / num_processes + ((num_elements % num_processes > ii) ? 0 : 1);
+                        if(current_element >= first_element_in_stream + current_stream_size) break;
+                    }
+                    int current_pin_length = remote_pins_size[ii*window_size+el_order];
+                    int dest_partition = recvbuffer[displs[ii] + current_element_index];
+                    
+                    total_workload += element_wgt[current_element];
+                    partitioning[current_element] = dest_partition;
+                    if(ii != process_id) {
+                        // only update pins from remote processes (they were accounted for during local streaming)
                         part_load[dest_partition] += element_wgt[current_element];
-                        // only update pins from remote processes
                         for(int jj=0; jj < current_pin_length; jj++) {
                             int pin_id = recvbuffer[displs[ii] + current_element_index + 1 + jj];
                             
@@ -2185,93 +2244,28 @@ namespace PRAW {
                             seen_pins[pin_id].partial_degree += 1;
                             seen_pins[pin_id].A.insert(dest_partition);                  
                         }
-                        current_element_index += current_pin_length+1;
                     }
-
+                    current_element_index += current_pin_length+1;
                 }
-                free(recvcounts);
-                free(displs);
-                free(recvbuffer);
-                free(remote_pins_size);
-
-                // update workload limits
-                //long int max = part_load[0];
-                //long int min = part_load[0];
-                //for(int pp=0; pp < num_processes; pp++) {
-                //    if(part_load[pp] > max) max = part_load[pp];
-                //    if(part_load[pp] < min) min = part_load[pp];
-                //}
-                //minsize = min;
-                //maxsize = max;
-                minsize = *std::min_element(part_load, part_load + num_processes);
-                maxsize = *std::max_element(part_load, part_load + num_processes);
-            
 
             }
-            istream.close();
+            free(recvcounts);
+            free(displs);
+            free(recvbuffer);
+            free(remote_pins_size);            
 
-            // check for termination condition (tolerance imbalance reached)   
-            float max_imbalance = ((float)maxsize) / ((float)total_workload/num_processes);
-            PRINTF("***Imbalance: %.3f, current lambda: %f\n",max_imbalance,lambda);                            
-
-            if(save_partitioning_history && process_id == MASTER_NODE) {
-                // store partition history
-                float pin_replication_factor;
-                PRAW::getEdgeCentricReplicationFactor(&seen_pins,num_pins,
-                                        &pin_replication_factor);
-
-                FILE *fp = fopen(history_file.c_str(), "ab+");
-                if(fp == NULL) {
-                    printf("Error when storing partitioning history into file\n");
-                } else {
-                    fprintf(fp,"%i,%.2f, %.3f,%.3f\n",iter,lambda,pin_replication_factor,max_imbalance);
-                }
-                fclose(fp);
-            }
-
-            // update lambda (importance of load balancing)
-            // keep searching until the algorithm has dipped into tolerance imbalance and gone out once
-            // then return last partitioning that was within tolerance imbalance
-            if(max_imbalance > imbalance_tolerance) {
-                if(check_overfit) {
-                    // exit and return previous partitioning
-                    rollback = true;
-                    break;
-                }
-                lambda *= lambda_update;
-            } else {
-                if(use_max_expected_workload) break;
-                lambda *= lambda_refinement;
-                check_overfit = true;
-                if(process_id == MASTER_NODE) {
-                    if(last_partitioning == NULL) {
-                        last_partitioning = (idx_t*)malloc(num_elements*sizeof(idx_t));
-                    }
-                    memcpy(last_partitioning,partitioning,num_elements * sizeof(idx_t));
-                }
-            }
         }
+        istream.close();
 
-        // roll back to last partitioning that was inside imbalance tolerance
-        if(rollback) {
-            if(process_id == MASTER_NODE) {
-                // share last partitioning with all
-                memcpy(partitioning,last_partitioning,num_elements * sizeof(idx_t));
-                free(last_partitioning);
-                for(int dest=0; dest < num_processes; dest++) {
-                    if(dest == MASTER_NODE) continue;
-                    MPI_Send(partitioning,num_elements,MPI_LONG,dest,0,MPI_COMM_WORLD);
-                }
-            } else {
-                // update partitioning from 0
-                MPI_Recv(partitioning,num_elements,MPI_LONG,MASTER_NODE,0,MPI_COMM_WORLD,MPI_STATUS_IGNORE);
-            }
-        }
+        // check for termination condition (tolerance imbalance reached)   
+        long int maxsize = *std::max_element(part_load, part_load + num_processes);
+        double max_imbalance = ((double)maxsize) / ((double)total_workload/num_processes);
+        PRINTF("***Imbalance: %.3f\n",max_imbalance);     
 
         // clean up
         free(part_load);
 
-        return iter+1;
+        return 1;
 
     }
     

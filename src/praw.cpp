@@ -15,6 +15,7 @@
 #include "ParallelRHDRFVertexPartitioning.h"
 #include "SimpleParallelVertexPartitioning.h"
 #include "SequentialVertexPartitioning.h"
+#include "BaselineSequentialVertexPartitioning.h"
 #include "HyperedgePartitioning.h"
 #include <iterator>
 #include <numeric>
@@ -204,11 +205,15 @@ int main(int argc, char** argv) {
         isVertexCentric = false;
 	} else if(strcmp(part_method,"rHDRF") == 0) {  
 		PRINTF("%i: Partitioning: parallel rHDRF vertex hyperPRAW\n",process_id);
-        partition = new ParallelRHDRFVertexPartitioning(experiment_name,graph_file,stream_file,imbalance_tolerance,max_iterations,bandwidth_file,use_bandwidth_in_partitioning,proportional_comm_cost,save_partitioning_history,sync_batch_size,use_max_expected_workload,input_order_round_robin);
+        partition = new ParallelRHDRFVertexPartitioning(experiment_name,graph_file,stream_file,imbalance_tolerance,max_iterations,bandwidth_file,use_bandwidth_in_partitioning,proportional_comm_cost,sync_batch_size,use_max_expected_workload,input_order_round_robin);
         isVertexCentric = true;
 	} else if(strcmp(part_method,"sequentialVertex") == 0) {  
 		PRINTF("%i: Partitioning: sequential vertex partitioning\n",process_id);
 		partition = new SequentialVertexPartitioning(experiment_name,graph_file,imbalance_tolerance,ta_refinement,max_iterations,bandwidth_file,use_bandwidth_in_partitioning,true,stopping_condition,proportional_comm_cost,save_partitioning_history);
+	    isVertexCentric = true;
+	} else if(strcmp(part_method,"baselineSequential") == 0) {  
+		PRINTF("%i: Partitioning: baseline Alistairh sequential vertex partitioning\n",process_id);
+		partition = new BaselineSequentialVertexPartitioning(experiment_name,graph_file,imbalance_tolerance);
 	    isVertexCentric = true;
 	} else if(strcmp(part_method,"simpleParallelVertex") == 0) {  
 		PRINTF("%i: Partitioning: simple parallel vertex partitioning\n",process_id);
