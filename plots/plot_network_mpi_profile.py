@@ -35,13 +35,13 @@ show_title = False
 # xenon2.mtx.hgr
 # IMDB.mtx.hgr
 
-folder = "../results/parPRAW/"
+folder = "../results/baseline/"
 bandwidth_send_experiment_name = 'results_mpi_send_bandwidth_1_' + str(num_processes)
-graph_name = "sat14_itox_vc1130.cnf.dual.hgr"
+graph_name = "2cubes_sphere.mtx.hgr"
 partitioning = 'rHDRF'
-test_name = 'parPRAW_rHDRF_bandwidth'
+test_name = 'baseline_rHDRF_bandwidth_1'
 
-sim_sent_experiment = test_name + '_' + graph_name + '_' + partitioning + '_hedgeSim_comm_cost__' + str(num_processes)
+sim_sent_experiment = test_name + '_' + graph_name + '_' + partitioning + '_edgeSim_comm_cost__' + str(num_processes)
 #sim_sent_experiment = test_name + '_' + partitioning + '_comm_matrix_' + str(num_processes)
 
 xlabel = "Process"

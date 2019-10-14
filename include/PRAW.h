@@ -2035,6 +2035,7 @@ namespace PRAW {
                 }
             }
             // prioritise elements based on count of already seen pins
+            // similar to ADWISE (delay uninformed decisions)
             std::vector<int> element_priority(actual_window_size);
             for(int el=0; el < actual_window_size; el++) {
                 int score = 0;
@@ -2066,18 +2067,21 @@ namespace PRAW {
             
                 // local hyperedge, process and assign it
                 // calculate norm_part_degree for each vertex
+                // similar to Petroni HDRF
                 double normalised_part_degrees[batch_elements[idx].size()];
                 long int total_degrees = 0;
                 for(int ii=0; ii < batch_elements[idx].size(); ii++) {
                     int pin_id = batch_elements[idx][ii];
-                    normalised_part_degrees[ii] = std::max(seen_pins[pin_id].partial_degree,1); // if vertex is newly seen, it will be counted in the next sync. But count it here too
+                    normalised_part_degrees[ii] = std::max(seen_pins[pin_id].partial_degree,0); // if vertex is newly seen, it will be counted in the next sync. But count it here too
                     total_degrees += normalised_part_degrees[ii];
                 }
-                std::transform(normalised_part_degrees,normalised_part_degrees+batch_elements[idx].size(),normalised_part_degrees,
-                    [total_degrees] (double value) {  
-                        return value / total_degrees;
-                    }  
-                );
+                if(total_degrees > 0) {
+                    std::transform(normalised_part_degrees,normalised_part_degrees+batch_elements[idx].size(),normalised_part_degrees,
+                        [total_degrees] (double value) {  
+                            return value / total_degrees;
+                        }  
+                    );
+                }
 
                 // calculate C_rep(he) per partition per vertex
                 //      sum 1 + (1-norm_part_degree(v)) if p exists in A(v)
@@ -2113,7 +2117,7 @@ namespace PRAW {
                     if(c_comm > comm_max) comm_max = c_comm;
                     if(c_comm < comm_min) comm_min = c_comm;
                     
-                    c_total[pp] = c_rep/(batch_elements[idx].size()+1);
+                    c_total[pp] = c_rep/(batch_elements[idx].size()*2);
                 }
 
                 double max_value = 0;
@@ -2128,8 +2132,8 @@ namespace PRAW {
                     // assign to partition that maximises C_rep + C_bal + C_comm
                     double current_value = c_total[pp] + c_comms[pp];
                     // Select new partition if obj function value is higher, or if it is equal but partition is less loaded
-                    if(current_value > max_value ||                                                 
-                                current_value == max_value && part_load[best_partition] > part_load[pp]) {
+                    if(current_value >= max_value /*||                                                 
+                                current_value == max_value && part_load[best_partition] > part_load[pp]*/) {
                         max_value = current_value;
                         best_partition = pp;
                     }
