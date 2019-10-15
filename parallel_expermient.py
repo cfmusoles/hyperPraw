@@ -89,10 +89,10 @@ run_experiment() {
 	sleep 1
 	aprun -n $PROCESSES hyperPraw -n $EXPERIMENT_NAME"_rHDRF_default_1" -h $HYPERGRAPH_FILE -i 100 -m 1200 -p rHDRF -t $E_SIM_STEPS -x $H_SIM_STEPS -s $SEED -k $MESSAGE_SIZE -H -b $BM_FILE -e $GRAPH_STREAM
 	sleep 1
-	aprun -n $PROCESSES hyperPraw -n $EXPERIMENT_NAME"_rHDRF_bandwidth_4" -h $HYPERGRAPH_FILE -i 100 -m 1200 -p rHDRF -t $E_SIM_STEPS -x $H_SIM_STEPS -s $SEED -k $MESSAGE_SIZE -W -H -b $BM_FILE -e $GRAPH_STREAM -g 4
-	sleep 1
-	aprun -n $PROCESSES hyperPraw -n $EXPERIMENT_NAME"_rHDRF_default_4" -h $HYPERGRAPH_FILE -i 100 -m 1200 -p rHDRF -t $E_SIM_STEPS -x $H_SIM_STEPS -s $SEED -k $MESSAGE_SIZE -H -b $BM_FILE -e $GRAPH_STREAM -g 4
-	sleep 1
+	#aprun -n $PROCESSES hyperPraw -n $EXPERIMENT_NAME"_rHDRF_bandwidth_4" -h $HYPERGRAPH_FILE -i 100 -m 1200 -p rHDRF -t $E_SIM_STEPS -x $H_SIM_STEPS -s $SEED -k $MESSAGE_SIZE -W -H -b $BM_FILE -e $GRAPH_STREAM -g 4
+	#sleep 1
+	#aprun -n $PROCESSES hyperPraw -n $EXPERIMENT_NAME"_rHDRF_default_4" -h $HYPERGRAPH_FILE -i 100 -m 1200 -p rHDRF -t $E_SIM_STEPS -x $H_SIM_STEPS -s $SEED -k $MESSAGE_SIZE -H -b $BM_FILE -e $GRAPH_STREAM -g 4
+	#sleep 1
 	#aprun -n $PROCESSES hyperPraw -n $EXPERIMENT_NAME"_HDRF_bandwidth" -h $HYPERGRAPH_FILE -i 100 -m 1200 -p parallelHDRF -t $E_SIM_STEPS -x $H_SIM_STEPS -s $SEED -k $MESSAGE_SIZE -W -H -b $BM_FILE
 	#sleep 1
 	#aprun -n $PROCESSES hyperPraw -n $EXPERIMENT_NAME"_HDRF_default" -h $HYPERGRAPH_FILE -i 100 -m 1200 -p parallelHDRF -t $E_SIM_STEPS -x $H_SIM_STEPS -s $SEED -k $MESSAGE_SIZE -H -b $BM_FILE
@@ -117,8 +117,8 @@ do
 
 	run_experiment "sat14_itox_vc1130.cnf.dual.hgr" $SEED 1 40
 	run_experiment "2cubes_sphere.mtx.hgr" $SEED 8 80
-	run_experiment "ABACUS_shell_hd.mtx.hgr" $SEED 300 500
-	run_experiment "sparsine.mtx.hgr" $SEED 3 40
+	#run_experiment "ABACUS_shell_hd.mtx.hgr" $SEED 300 500
+	#run_experiment "sparsine.mtx.hgr" $SEED 3 40
 	
 	#large graphs
 	#run_experiment "pdb1HYS.mtx.hgr" $SEED 2 2 #
@@ -126,7 +126,7 @@ do
 	#run_experiment "sat14_E02F22.cnf.hgr" $SEED 2 2
 	run_experiment "webbase-1M.mtx.hgr" $SEED 1 2
 	#run_experiment "ship_001.mtx.hgr" $SEED 20 2
-	#run_experiment "sat14_atco_enc1_opt1_05_21.cnf.dual.hgr" $SEED 2 2
+	run_experiment "sat14_atco_enc1_opt1_05_21.cnf.dual.hgr" $SEED 1 2
 done
 
 

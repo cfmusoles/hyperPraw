@@ -1919,7 +1919,9 @@ namespace PRAW {
         //      A(v)
         //      workload (experiment with and without)
         //      Partial degree? (experiment with and without)
-            
+
+        // Parameters (from HDRF, Petroni 2015)
+        float lambda = 1.0f;
         
         int process_id;
         MPI_Comm_rank(MPI_COMM_WORLD,&process_id);
@@ -1979,6 +1981,8 @@ namespace PRAW {
         // workload starts empty across all partitions
         long int total_workload = 0;
         memset(part_load,0,num_processes * sizeof(long int));
+        long int maxsize = part_load[0]; // used for c_bal
+        long int minsize = part_load[0]; // used for c_bal
 
         // Check balance guarantee 
         // The parallel algorithm is guaranteed to reach load imbalance tolerance if the hypergraphs safisfies:
@@ -2072,7 +2076,7 @@ namespace PRAW {
                 long int total_degrees = 0;
                 for(int ii=0; ii < batch_elements[idx].size(); ii++) {
                     int pin_id = batch_elements[idx][ii];
-                    normalised_part_degrees[ii] = std::max(seen_pins[pin_id].partial_degree,0); // if vertex is newly seen, it will be counted in the next sync. But count it here too
+                    normalised_part_degrees[ii] = seen_pins[pin_id].partial_degree; // if vertex is newly seen, it will be counted in the next sync
                     total_degrees += normalised_part_degrees[ii];
                 }
                 if(total_degrees > 0) {
@@ -2116,8 +2120,10 @@ namespace PRAW {
                     c_comms[pp] = c_comm;
                     if(c_comm > comm_max) comm_max = c_comm;
                     if(c_comm < comm_min) comm_min = c_comm;
+
+                    float c_bal = lambda * (maxsize - part_load[pp]) / (0.1 + maxsize - minsize);
                     
-                    c_total[pp] = c_rep/(batch_elements[idx].size()*2);
+                    c_total[pp] = c_bal + c_rep/(batch_elements[idx].size()*2);
                 }
 
                 double max_value = 0;
@@ -2132,7 +2138,7 @@ namespace PRAW {
                     // assign to partition that maximises C_rep + C_bal + C_comm
                     double current_value = c_total[pp] + c_comms[pp];
                     // Select new partition if obj function value is higher, or if it is equal but partition is less loaded
-                    if(current_value >= max_value /*||                                                 
+                    if(current_value > max_value /*||                                                 
                                 current_value == max_value && part_load[best_partition] > part_load[pp]*/) {
                         max_value = current_value;
                         best_partition = pp;
@@ -2256,13 +2262,17 @@ namespace PRAW {
             free(recvcounts);
             free(displs);
             free(recvbuffer);
-            free(remote_pins_size);            
+            free(remote_pins_size);      
+
+            
+            minsize = *std::min_element(part_load, part_load + num_processes);
+            maxsize = *std::max_element(part_load, part_load + num_processes);      
 
         }
         istream.close();
 
         // check for termination condition (tolerance imbalance reached)   
-        long int maxsize = *std::max_element(part_load, part_load + num_processes);
+        maxsize = *std::max_element(part_load, part_load + num_processes);
         double max_imbalance = ((double)maxsize) / ((double)total_workload/num_processes);
         PRINTF("***Imbalance: %.3f\n",max_imbalance);     
 

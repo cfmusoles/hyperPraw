@@ -37,11 +37,11 @@ show_title = False
 
 folder = "../results/baseline/"
 bandwidth_send_experiment_name = 'results_mpi_send_bandwidth_1_' + str(num_processes)
-graph_name = "2cubes_sphere.mtx.hgr"
+graph_name = "webbase-1M.mtx.hgr"
 partitioning = 'rHDRF'
 test_name = 'baseline_rHDRF_bandwidth_1'
 
-sim_sent_experiment = test_name + '_' + graph_name + '_' + partitioning + '_edgeSim_comm_cost__' + str(num_processes)
+sim_sent_experiment = test_name + '_' + graph_name + '_' + partitioning + '_hedgeSim_comm_cost__' + str(num_processes)
 #sim_sent_experiment = test_name + '_' + partitioning + '_comm_matrix_' + str(num_processes)
 
 xlabel = "Process"
