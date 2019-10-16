@@ -1921,7 +1921,7 @@ namespace PRAW {
         //      Partial degree? (experiment with and without)
 
         // Parameters (from HDRF, Petroni 2015)
-        float lambda = 1.0f;
+        float lambda = 0.1f;
         
         int process_id;
         MPI_Comm_rank(MPI_COMM_WORLD,&process_id);
@@ -1931,15 +1931,15 @@ namespace PRAW {
         // create shared data structures (partitions workload, list of replica destinations for each vertex, partial degree for each vertex)
         long int* part_load = (long int*)calloc(num_processes, sizeof(long int));
         double max_comm_cost = 0;
-        //for(int ff=0; ff < num_processes; ff++) {
-        //    double current_max_cost = 0;
-        //    for(int tt=0; tt < num_processes; tt++) {
-        //        current_max_cost += comm_cost_matrix[ff][tt];
-        //    }
-        //    if(current_max_cost > max_comm_cost) {
-        //        max_comm_cost = current_max_cost;
-        //    }
-        //}
+        for(int ff=0; ff < num_processes; ff++) {
+           double current_max_cost = 0;
+           for(int tt=0; tt < num_processes; tt++) {
+               current_max_cost += comm_cost_matrix[ff][tt];
+           }
+           if(current_max_cost > max_comm_cost) {
+               max_comm_cost = current_max_cost;
+           }
+        }
 
         int num_pins;
         int num_elements;
@@ -2064,6 +2064,7 @@ namespace PRAW {
             // process each batched element in order
             for(int el=0; el < actual_window_size; el++) {
                 int idx = index[el];
+                int num_pins = batch_elements[idx].size();
                 //printf("%i: (%i) %i\n",process_id,el,element_priority[idx]);
                 ////// local_pins is batch_elements[idx]
                 ////// element_id is element_id + idx
@@ -2072,15 +2073,15 @@ namespace PRAW {
                 // local hyperedge, process and assign it
                 // calculate norm_part_degree for each vertex
                 // similar to Petroni HDRF
-                double normalised_part_degrees[batch_elements[idx].size()];
+                double normalised_part_degrees[num_pins];
                 long int total_degrees = 0;
-                for(int ii=0; ii < batch_elements[idx].size(); ii++) {
+                for(int ii=0; ii < num_pins; ii++) {
                     int pin_id = batch_elements[idx][ii];
                     normalised_part_degrees[ii] = seen_pins[pin_id].partial_degree; // if vertex is newly seen, it will be counted in the next sync
                     total_degrees += normalised_part_degrees[ii];
                 }
                 if(total_degrees > 0) {
-                    std::transform(normalised_part_degrees,normalised_part_degrees+batch_elements[idx].size(),normalised_part_degrees,
+                    std::transform(normalised_part_degrees,normalised_part_degrees+num_pins,normalised_part_degrees,
                         [total_degrees] (double value) {  
                             return value / total_degrees;
                         }  
@@ -2089,19 +2090,15 @@ namespace PRAW {
 
                 // calculate C_rep(he) per partition per vertex
                 //      sum 1 + (1-norm_part_degree(v)) if p exists in A(v)
-                // TODO: can we avoid having to do two passes across all processes?
-                // can we avoid having these two datastructures?
-                double* c_total = (double*)calloc(num_processes,sizeof(double));
-                double* c_comms = (double*)calloc(num_processes,sizeof(double));   
-                float comm_min = std::numeric_limits<float>::max();
-                float comm_max = 0;
+                double max_value = 0;
+                int best_partition = 0;
                 for(int pp=0; pp < num_processes; pp++) {
                     if(part_load[pp] >= max_expected_workload) {
                         continue;
                     }
                     double c_rep = 0;
                     double c_comm = 0;
-                    for(int vv=0; vv < batch_elements[idx].size(); vv++) {
+                    for(int vv=0; vv < num_pins; vv++) {
                         int pin_id = batch_elements[idx][vv];
                         bool present_in_partition = false;
                         std::set<int>::iterator it;
@@ -2117,27 +2114,13 @@ namespace PRAW {
                         
                     }
                     // c_rep and c_comm must be normalised to avoid them dominating the final equation
-                    c_comms[pp] = c_comm;
-                    if(c_comm > comm_max) comm_max = c_comm;
-                    if(c_comm < comm_min) comm_min = c_comm;
+                    c_comm = 1- c_comm/(max_comm_cost * num_pins);
+                    c_rep /= (num_pins*2);
 
                     float c_bal = lambda * (maxsize - part_load[pp]) / (0.1 + maxsize - minsize);
-                    
-                    c_total[pp] = c_bal + c_rep/(batch_elements[idx].size()*2);
-                }
 
-                double max_value = 0;
-                int best_partition = 0;
-                for(int pp=0; pp < num_processes; pp++) {   
-                    if(part_load[pp] >= max_expected_workload) {
-                        continue;
-                    } 
-                    // normalise c_comms
-                    c_comms[pp] = (comm_max - c_comms[pp]) / (0.1 + comm_max - comm_min);
-                    
-                    // assign to partition that maximises C_rep + C_bal + C_comm
-                    double current_value = c_total[pp] + c_comms[pp];
-                    // Select new partition if obj function value is higher, or if it is equal but partition is less loaded
+                    double current_value = c_bal + c_rep + c_comm;
+
                     if(current_value > max_value /*||                                                 
                                 current_value == max_value && part_load[best_partition] > part_load[pp]*/) {
                         max_value = current_value;
@@ -2145,9 +2128,6 @@ namespace PRAW {
                     }
                 }
                 element_mapping = best_partition;
-                
-                free(c_comms);
-                free(c_total);
 
                 // synchronise data
                 // ***** 

@@ -5,7 +5,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.patches as mpatches
 
-num_processes = 48
+num_processes = 144
 
 show_error = True
 as_bar_plot = True
@@ -27,8 +27,8 @@ show_annotations = False
 
 folder = "../results/baseline/"
 experiment_name = "baseline"
-graphs = ["sat14_itox_vc1130.cnf.dual.hgr","2cubes_sphere.mtx.hgr","sparsine.mtx.hgr","sat14_10pipe_q0_k.cnf.primal.hgr","webbase-1M.mtx.hgr"]
-graph_names = ["sat14 itox","2cubes","sparsine","sat14 atco dual","sat14 10pipe primal","webbase-1M"]
+graphs = ["sat14_itox_vc1130.cnf.dual.hgr","2cubes_sphere.mtx.hgr","ABACUS_shell_hd.mtx.hgr","sparsine.mtx.hgr","pdb1HYS.mtx.hgr","sat14_atco_enc1_opt1_05_21.cnf.dual.hgr","sat14_10pipe_q0_k.cnf.primal.hgr","sat14_E02F22.cnf.hgr","webbase-1M.mtx.hgr","ship_001.mtx.hgr"]
+graph_names = ["sat14 itox","2cubes","ABACUS","sparsine","pdb1HYS","sat14 atco dual","sat14 10pipe primal","sat14 E02F22","webbase-1M","ship 001"]
 #graphs = ["BenElechi1.mtx.hgr","webbase-1M.mtx.hgr","xenon2.mtx.hgr"]
 #graph_names = ["benelechi","webbase","xenon2"]
 # each element on the following arrays corresponds to an experiment run (collection of files)
