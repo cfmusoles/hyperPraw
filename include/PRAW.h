@@ -1921,7 +1921,7 @@ namespace PRAW {
         //      Partial degree? (experiment with and without)
 
         // Parameters (from HDRF, Petroni 2015)
-        float lambda = 0.1f;
+        float lambda = 1.0f;
         
         int process_id;
         MPI_Comm_rank(MPI_COMM_WORLD,&process_id);
@@ -2090,7 +2090,7 @@ namespace PRAW {
 
                 // calculate C_rep(he) per partition per vertex
                 //      sum 1 + (1-norm_part_degree(v)) if p exists in A(v)
-                double max_value = 0;
+                double max_value = std::numeric_limits<double>::lowest();
                 int best_partition = 0;
                 for(int pp=0; pp < num_processes; pp++) {
                     if(part_load[pp] >= max_expected_workload) {
@@ -2114,12 +2114,12 @@ namespace PRAW {
                         
                     }
                     // c_rep and c_comm must be normalised to avoid them dominating the final equation
-                    c_comm = 1- c_comm/(max_comm_cost * num_pins);
-                    c_rep /= (num_pins*2);
+                    //c_comm = 1- c_comm/(max_comm_cost * num_pins);
+                    //c_rep /= (num_pins*2);
 
                     float c_bal = lambda * (maxsize - part_load[pp]) / (0.1 + maxsize - minsize);
 
-                    double current_value = c_bal + c_rep + c_comm;
+                    double current_value = c_bal + c_rep - c_comm;
 
                     if(current_value > max_value /*||                                                 
                                 current_value == max_value && part_load[best_partition] > part_load[pp]*/) {
