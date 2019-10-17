@@ -2113,14 +2113,22 @@ namespace PRAW {
                         c_rep += present_in_partition ? 1 + (1 - normalised_part_degrees[vv]) : 0;
                         
                     }
-                    // c_rep and c_comm must be normalised to avoid them dominating the final equation
-                    //c_comm = 1- c_comm/(max_comm_cost * num_pins);
-                    //c_rep /= (num_pins*2);
+                    bool normalise = false;
+                    double current_value;
+                    if(normalise) {
+                        // c_rep and c_comm must be normalised to avoid them dominating the final equation
+                        c_comm = 1- c_comm/(max_comm_cost * num_pins);
+                        c_rep /= (num_pins*2);
 
-                    float c_bal = lambda * (maxsize - part_load[pp]) / (0.1 + maxsize - minsize);
+                        float c_bal = lambda * (maxsize - part_load[pp]) / (0.1 + maxsize - minsize);
 
-                    double current_value = c_bal + c_rep - c_comm;
+                        current_value = c_bal + c_rep - c_comm;
+                    } else {
+                        float c_bal = lambda * pow(part_load[pp],0.5f);
 
+                        current_value = -c_bal + c_rep - c_comm;
+                    }
+                    
                     if(current_value > max_value /*||                                                 
                                 current_value == max_value && part_load[best_partition] > part_load[pp]*/) {
                         max_value = current_value;
