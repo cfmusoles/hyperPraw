@@ -2040,14 +2040,14 @@ namespace PRAW {
             }
             // prioritise elements based on count of already seen pins
             // similar to ADWISE (delay uninformed decisions)
-            std::vector<int> element_priority(actual_window_size);
+            std::vector<float> element_priority(actual_window_size);
             for(int el=0; el < actual_window_size; el++) {
-                int score = 0;
+                float score = 0;
                 for(int pin=1; pin < batch_elements[el].size(); pin++) {
                     int pin_id = batch_elements[el][pin];
                     score += seen_pins[pin_id].partial_degree;
                 }
-                element_priority[el] = score;
+                element_priority[el] = score;//batch_elements[el].size(); // NORMALISE??
             }
             // sort batch_elements according to their score
             std::vector<int> index(actual_window_size, 0);
@@ -2124,9 +2124,9 @@ namespace PRAW {
 
                         current_value = c_bal + c_rep - c_comm;
                     } else {
-                        float c_bal = lambda * pow(part_load[pp],0.5f);
+                        float c_bal = lambda * (maxsize - part_load[pp]) / (0.1 + maxsize - minsize);//lambda * pow(part_load[pp],0.5f);
 
-                        current_value = -c_bal + c_rep - c_comm;
+                        current_value = c_bal + c_rep - c_comm;
                     }
                     
                     if(current_value > max_value /*||                                                 
