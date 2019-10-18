@@ -35,9 +35,12 @@ show_title = False
 # xenon2.mtx.hgr
 # IMDB.mtx.hgr
 
+# atmosmodj.mtx.hgr
+# kkt_power.mtx.hgr 
+
 folder = "../results/baseline/"
 bandwidth_send_experiment_name = 'results_mpi_send_bandwidth_1_' + str(num_processes)
-graph_name = "webbase-1M.mtx.hgr"
+graph_name = "atmosmodj.mtx.hgr"
 partitioning = 'rHDRF'
 test_name = 'baseline_rHDRF_bandwidth_1'
 

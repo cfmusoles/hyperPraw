@@ -113,7 +113,7 @@ do
 	#medium graphs (> 800K)
 	run_experiment "atmosmodj.mtx.hgr" $SEED 2 5
 	run_experiment "kkt_power.mtx.hgr" $SEED 2 5
-	run_experiment "sat14_velev-vliw-uns-2.0-uq5.cnf.dual.hgr" $SEED 2 5
+	#run_experiment "sat14_velev-vliw-uns-2.0-uq5.cnf.dual.hgr" $SEED 2 5
 
 	#run_experiment "sat14_itox_vc1130.cnf.dual.hgr" $SEED 1 40
 	#run_experiment "2cubes_sphere.mtx.hgr" $SEED 8 80

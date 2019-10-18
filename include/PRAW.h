@@ -2124,9 +2124,9 @@ namespace PRAW {
 
                         current_value = c_bal + c_rep - c_comm;
                     } else {
-                        float c_bal = lambda * (maxsize - part_load[pp]) / (0.1 + maxsize - minsize);//lambda * pow(part_load[pp],0.5f);
+                        float c_bal = 0*lambda * pow(part_load[pp],0.5f);
 
-                        current_value = c_bal + c_rep - c_comm;
+                        current_value = -c_bal + c_rep - c_comm;
                     }
                     
                     if(current_value > max_value /*||                                                 
