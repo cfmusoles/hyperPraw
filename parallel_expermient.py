@@ -85,18 +85,14 @@ run_experiment() {
 	#sleep 1
 	aprun -n $PROCESSES hyperPraw -n $EXPERIMENT_NAME"_baselineSequential" -h $HYPERGRAPH_FILE -i 100 -m 1200 -p baselineSequential -t $E_SIM_STEPS -x $H_SIM_STEPS -s $SEED -k $MESSAGE_SIZE -W -H -b $BM_FILE
 	sleep 1
-	aprun -n $PROCESSES hyperPraw -n $EXPERIMENT_NAME"_rHDRF_bandwidth_1" -h $HYPERGRAPH_FILE -i 100 -m 1200 -p rHDRF -t $E_SIM_STEPS -x $H_SIM_STEPS -s $SEED -k $MESSAGE_SIZE -W -H -b $BM_FILE -e $GRAPH_STREAM -P
+	aprun -n $PROCESSES hyperPraw -n $EXPERIMENT_NAME"_rHDRF_bandwidth_r" -h $HYPERGRAPH_FILE -i 100 -m 1200 -p rHDRF -t $E_SIM_STEPS -x $H_SIM_STEPS -s $SEED -k $MESSAGE_SIZE -W -H -b $BM_FILE -e $GRAPH_STREAM -P
 	sleep 1
-	aprun -n $PROCESSES hyperPraw -n $EXPERIMENT_NAME"_rHDRF_default_1" -h $HYPERGRAPH_FILE -i 100 -m 1200 -p rHDRF -t $E_SIM_STEPS -x $H_SIM_STEPS -s $SEED -k $MESSAGE_SIZE -H -b $BM_FILE -e $GRAPH_STREAM -P
+	aprun -n $PROCESSES hyperPraw -n $EXPERIMENT_NAME"_rHDRF_default_r" -h $HYPERGRAPH_FILE -i 100 -m 1200 -p rHDRF -t $E_SIM_STEPS -x $H_SIM_STEPS -s $SEED -k $MESSAGE_SIZE -H -b $BM_FILE -e $GRAPH_STREAM -P
 	sleep 1
-	#aprun -n $PROCESSES hyperPraw -n $EXPERIMENT_NAME"_rHDRF_bandwidth_4" -h $HYPERGRAPH_FILE -i 100 -m 1200 -p rHDRF -t $E_SIM_STEPS -x $H_SIM_STEPS -s $SEED -k $MESSAGE_SIZE -W -H -b $BM_FILE -e $GRAPH_STREAM -g 4
-	#sleep 1
-	#aprun -n $PROCESSES hyperPraw -n $EXPERIMENT_NAME"_rHDRF_default_4" -h $HYPERGRAPH_FILE -i 100 -m 1200 -p rHDRF -t $E_SIM_STEPS -x $H_SIM_STEPS -s $SEED -k $MESSAGE_SIZE -H -b $BM_FILE -e $GRAPH_STREAM -g 4
-	#sleep 1
-	#aprun -n $PROCESSES hyperPraw -n $EXPERIMENT_NAME"_HDRF_bandwidth" -h $HYPERGRAPH_FILE -i 100 -m 1200 -p parallelHDRF -t $E_SIM_STEPS -x $H_SIM_STEPS -s $SEED -k $MESSAGE_SIZE -W -H -b $BM_FILE
-	#sleep 1
-	#aprun -n $PROCESSES hyperPraw -n $EXPERIMENT_NAME"_HDRF_default" -h $HYPERGRAPH_FILE -i 100 -m 1200 -p parallelHDRF -t $E_SIM_STEPS -x $H_SIM_STEPS -s $SEED -k $MESSAGE_SIZE -H -b $BM_FILE
-	#sleep 1
+	aprun -n $PROCESSES hyperPraw -n $EXPERIMENT_NAME"_rHDRF_bandwidth_b" -h $HYPERGRAPH_FILE -i 100 -m 1200 -p rHDRF -t $E_SIM_STEPS -x $H_SIM_STEPS -s $SEED -k $MESSAGE_SIZE -W -H -b $BM_FILE -e $GRAPH_STREAM -P -B
+	sleep 1
+	aprun -n $PROCESSES hyperPraw -n $EXPERIMENT_NAME"_rHDRF_default_b" -h $HYPERGRAPH_FILE -i 100 -m 1200 -p rHDRF -t $E_SIM_STEPS -x $H_SIM_STEPS -s $SEED -k $MESSAGE_SIZE -H -b $BM_FILE -e $GRAPH_STREAM -P -B
+	sleep 1
 }
 
 for i in $(seq 1 $TEST_REPETITIONS)
