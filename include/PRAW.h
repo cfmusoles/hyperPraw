@@ -1250,22 +1250,46 @@ namespace PRAW {
         
         std::vector<std::set<int> > hyperedges_in_partition(num_processes);
 
+#ifdef DEBUG
+        long int first_time_pins = 0;
+        long int total_pins = 0;
+        long int partition_filled = 0;
+        bool filled_parts[num_processes];
+        for(int ii=0; ii<num_processes; ii++) {
+            filled_parts[ii] = false;
+        }  
+#endif
+
         // go through own vertex list and reassign
         for(int vid=0; vid < num_vertices; vid++) {
             // calculate hyperedge overlap for current vertex in all partitions
             std::vector<int> overlap(num_processes,0);
             for(int he = 0; he < hedge_ptr[vid].size(); he++) {
                 int he_id = hedge_ptr[vid][he];
+                bool seen = false;
                 for(int pp=0; pp < num_processes; pp++) {
-                    if(hyperedges_in_partition[pp].find(he_id) != hyperedges_in_partition[pp].end()) overlap[pp]++;
+                    if(hyperedges_in_partition[pp].find(he_id) != hyperedges_in_partition[pp].end()) {
+                        overlap[pp]++;
+                        seen = true;
+                    }
                 }
+#ifdef DEBUG
+                if(!seen) first_time_pins++;
+                total_pins++;
+#endif
             }
 
             // allocate vertex to underloaded partitions
             int max_value = 0;
             int best_partition = 0;
             for(int pp=0; pp < num_processes; pp++) {
-                if(part_load[pp] >= max_workload) continue;
+                if(part_load[pp] >= max_workload) {
+#ifdef DEBUG
+                    partition_filled++;
+                    filled_parts[pp] = true;
+#endif
+                    continue;
+                }
 
                 int current_value = overlap[pp];
                 
@@ -1288,6 +1312,18 @@ namespace PRAW {
         
         // clean up
         free(part_load);
+
+#ifdef DEBUG
+
+        PRINTF("Pins seen for first time: %li (%.2f %%)\n",first_time_pins,first_time_pins*1.0f/total_pins*100);
+
+        int parts_full = 0;
+        for(int ii=0; ii<num_processes; ii++) {
+            if(filled_parts[ii]) parts_full++;
+        }  
+
+        PRINTF("Partitions filled [%i]: %li (%.2f)\n",parts_full,partition_filled,partition_filled*1.0f/num_processes);
+#endif
 
         return 1;
     }
@@ -1927,7 +1963,7 @@ namespace PRAW {
         MPI_Comm_rank(MPI_COMM_WORLD,&process_id);
         int num_processes;
         MPI_Comm_size(MPI_COMM_WORLD,&num_processes); 
-
+        
         // create shared data structures (partitions workload, list of replica destinations for each vertex, partial degree for each vertex)
         long int* part_load = (long int*)calloc(num_processes, sizeof(long int));
         double max_comm_cost = 0;
@@ -1972,17 +2008,24 @@ namespace PRAW {
         if(max_expected_workload < 1) {
             PRINTF("Graph is too small! Too many processes (max expected workload limit is %li)\n",max_expected_workload);
             return 0;
-        }
-    
+        }    
         
         PRINTF("Found in file: Pins: %i; elements %i:\n",num_pins,num_elements);
 
         // initialise workload
         // workload starts empty across all partitions
         long int total_workload = 0;
-        memset(part_load,0,num_processes * sizeof(long int));
         long int maxsize = part_load[0]; // used for c_bal
         long int minsize = part_load[0]; // used for c_bal
+
+#ifdef DEBUG
+        // number of pins seen for the first time
+        long int first_time_pins = 0;
+        long int total_pins = 0;
+        long int partition_filled = 0;
+        bool filled_parts[num_processes];
+        for(int ii=0; ii < num_processes; ii++) filled_parts[ii] = false;
+#endif
 
         // Check balance guarantee 
         // The parallel algorithm is guaranteed to reach load imbalance tolerance if the hypergraphs safisfies:
@@ -2011,10 +2054,9 @@ namespace PRAW {
         // read reminder of file (one line per elemennt)
         int element_id = 0; // current elemennt
         int element_mapping = -1; // mapping of current he (to partition)
-        //std::vector<int> local_pins; // list of hyperedges and vertices seen in the current batch that belong to process
 
         
-        int max_stream_size = num_elements / num_processes + ((num_elements % num_processes > 0) ? 0 : 1);
+        int max_stream_size = num_elements / num_processes + ((num_elements % num_processes > 0) ? 1 : 0);
         while(element_id < max_stream_size) {
             int actual_window_size = 0;
             
@@ -2094,6 +2136,10 @@ namespace PRAW {
                 int best_partition = 0;
                 for(int pp=0; pp < num_processes; pp++) {
                     if(part_load[pp] >= max_expected_workload) {
+#ifdef DEBUG
+                        partition_filled++;
+                        filled_parts[pp] = true;
+#endif
                         continue;
                     }
                     double c_rep = 0;
@@ -2110,7 +2156,11 @@ namespace PRAW {
                             // if a pin is duplicated in two partitions, then communication will happen across those partitions
                             c_comm += comm_cost_matrix[pp][part];
                         }
-                        c_rep += present_in_partition ? 1 + (1 - normalised_part_degrees[vv]) : 0;
+#ifdef DEBUG
+                        if(seen_pins[pin_id].partial_degree == 0) first_time_pins++;
+                        total_pins++;
+#endif
+                        c_rep += present_in_partition ? (1 - normalised_part_degrees[vv]) : 0;
                         
                     }
                     bool normalise = false;
@@ -2122,20 +2172,22 @@ namespace PRAW {
 
                         float c_bal = lambda * (maxsize - part_load[pp]) / (0.1 + maxsize - minsize);
 
-                        current_value = c_bal + c_rep - c_comm;
+                        current_value = c_bal + c_rep + c_comm;
                     } else {
-                        float c_bal = 0*lambda * pow(part_load[pp],0.5f);
+                        float c_bal = lambda * pow(part_load[pp],0.5f);
 
-                        current_value = -c_bal + c_rep - c_comm;
+                        current_value = c_rep;//-c_bal + c_rep - c_comm;
                     }
                     
-                    if(current_value > max_value /*||                                                 
-                                current_value == max_value && part_load[best_partition] > part_load[pp]*/) {
+                    if(current_value > max_value ||                                                 
+                                current_value == max_value && part_load[best_partition] > part_load[pp]) {
                         max_value = current_value;
                         best_partition = pp;
                     }
                 }
+                // HOW CAN RESULTS BE DIFFERENT BEWTEEN round robin streaming and batch streaming if the assignment is done randomly??
                 element_mapping = best_partition;
+                //element_mapping = rand() % num_processes;
 
                 // synchronise data
                 // ***** 
@@ -2147,7 +2199,7 @@ namespace PRAW {
                 //  issues: tradeoff between less comm overhead and quality of partition (potentially higher graph size requirements as partition load is not updated often)
                 // *****
                 new_replicas[idx].push_back(element_mapping); // add in front the partition selected
-                part_load[element_mapping] += 1; //  TODO: not really the element id  !!
+                part_load[element_mapping] += 1; //  TODO: not really the element id  !! should be using element_wgt[current_element_id]
                 int new_pins = 0;
                 for(int ii=0; ii < batch_elements[idx].size(); ii++) {
                     int pin_id = batch_elements[idx][ii];
@@ -2224,11 +2276,13 @@ namespace PRAW {
                         int first_element_in_stream = num_elements / num_processes * ii + std::min(num_elements % num_processes,ii);
                         current_element = first_element_in_stream + element_id - (window_size - el_order);
                         // check expected limits for current process id
-                        int current_stream_size = num_elements / num_processes + ((num_elements % num_processes > ii) ? 0 : 1);
+                        int current_stream_size = num_elements / num_processes + ((num_elements % num_processes > ii) ? 1 : 0);
                         if(current_element >= first_element_in_stream + current_stream_size) break;
                     }
                     int current_pin_length = remote_pins_size[ii*window_size+el_order];
                     int dest_partition = recvbuffer[displs[ii] + current_element_index];
+                    // move current_element_index to start reading pins
+                    current_element_index++;
                     
                     total_workload += element_wgt[current_element];
                     partitioning[current_element] = dest_partition;
@@ -2236,14 +2290,16 @@ namespace PRAW {
                         // only update pins from remote processes (they were accounted for during local streaming)
                         part_load[dest_partition] += element_wgt[current_element];
                         for(int jj=0; jj < current_pin_length; jj++) {
-                            int pin_id = recvbuffer[displs[ii] + current_element_index + 1 + jj];
+                            int pin_id = recvbuffer[displs[ii] + current_element_index + jj];
                             
-                            // update vertex info
+                            // update remote vertex info
                             seen_pins[pin_id].partial_degree += 1;
-                            seen_pins[pin_id].A.insert(dest_partition);                  
+                            seen_pins[pin_id].A.insert(dest_partition);  
+                                    
                         }
                     }
-                    current_element_index += current_pin_length+1;
+                    // shift current_element_index to read the next element
+                    current_element_index += current_pin_length;
                 }
 
             }
@@ -2259,10 +2315,25 @@ namespace PRAW {
         }
         istream.close();
 
+        
+
+#ifdef DEBUG 
         // check for termination condition (tolerance imbalance reached)   
-        maxsize = *std::max_element(part_load, part_load + num_processes);
-        double max_imbalance = ((double)maxsize) / ((double)total_workload/num_processes);
-        PRINTF("***Imbalance: %.3f\n",max_imbalance);     
+        long int max_sz = *std::max_element(part_load, part_load + num_processes);
+        double max_imbalance = ((double)max_sz) / ((double)total_workload/num_processes);
+        
+        PRINTF("***Imbalance: %.3f\n",max_imbalance); 
+
+        PRINTF("%i: Pins seen for the first time: %li (%.2f %%)\n",process_id,first_time_pins,first_time_pins*1.0f/total_pins*100);
+
+        int parts_full = 0;
+        for(int ii=0; ii<num_processes; ii++) {
+            if(filled_parts[ii]) parts_full++;
+        }  
+
+        PRINTF("%i: partitions filled [%i]: %li (%li)\n",process_id,parts_full,partition_filled,partition_filled*num_processes);
+
+#endif
 
         // clean up
         free(part_load);

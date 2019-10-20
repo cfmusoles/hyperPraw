@@ -1,6 +1,7 @@
 // Test harness for SPAAW (Streaming parallel Partitioning Architecture AWare)
 #define VERBOSE                 // extra debug info printed out during runtime
 #define SAVE_COMM_COST      // store actual p2p communication based on partitioning
+//#define DEBUG
 
 #include <mpi.h>
 #include <cstdio>

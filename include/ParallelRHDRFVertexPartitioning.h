@@ -73,7 +73,7 @@ public:
         fprintf(fp,"\n");
 
         // read reminder of file (one line per vertex)
-        int local_stream_size = num_vertices / num_processes + ((num_vertices % num_processes > process_id) ? 0 : 1);
+        int local_stream_size = num_vertices / num_processes + ((num_vertices % num_processes > process_id) ? 1 : 0);
         int first_element_in_stream = (num_vertices / num_processes * process_id + std::min(num_vertices % num_processes,process_id));
         int counter = 0;
         while(std::getline(istream,line)) {
