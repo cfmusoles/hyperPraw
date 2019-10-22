@@ -2180,7 +2180,7 @@ namespace PRAW {
                     } else {
                         float c_bal = lambda * pow(part_load[pp],0.5f);
 
-                        current_value = c_rep;//-c_bal + c_rep - c_comm;
+                        current_value = -c_bal + c_rep - c_comm;
                     }
                     
                     if(current_value > max_value ||                                                 
