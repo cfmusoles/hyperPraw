@@ -25,6 +25,7 @@ namespace VertexCentricSimulation {
     
     void runSimulation(char* experiment_name, char* graph_file, char* part_method, char* bandwidth_file,  idx_t* partitioning, float partition_timer, int partition_iterations, int num_vertices, int simulation_iterations, int edge_sim_steps, int hedge_sim_steps, int fake_compute_time, float fake_compute_std, int message_size, bool proportional_comm_cost) {
 
+        
         int process_id;
         int num_processes;
         MPI_Comm_rank(MPI_COMM_WORLD,&process_id);

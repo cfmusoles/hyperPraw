@@ -1,7 +1,7 @@
 // Test harness for SPAAW (Streaming parallel Partitioning Architecture AWare)
 #define VERBOSE                 // extra debug info printed out during runtime
 #define SAVE_COMM_COST      // store actual p2p communication based on partitioning
-//#define DEBUG
+#define DEBUG
 
 #include <mpi.h>
 #include <cstdio>
@@ -106,12 +106,13 @@ int main(int argc, char** argv) {
     char* stream_file = NULL;
     bool use_max_expected_workload = false;
     bool input_order_round_robin = true;
+    int max_processes = num_processes;
 
     // getting command line parameters
     extern char *optarg;
 	extern int optind, opterr, optopt;
 	int c;
-	while( (c = getopt(argc,argv,"n:h:i:m:b:Ws:p:t:k:o:c:r:Hq:x:f:u:Pg:e:EB")) != -1 ) {
+	while( (c = getopt(argc,argv,"n:h:i:m:b:Ws:p:t:k:o:c:r:Hq:x:f:u:Pg:e:EBK:")) != -1 ) {
 		switch(c) {
 			case 'n': // test name
 				experiment_name = optarg;
@@ -182,6 +183,9 @@ int main(int argc, char** argv) {
             case 'B': // input order as bulk
 				input_order_round_robin = false;
 				break;
+            case 'K': // maximum number of processes to use for the partitioning algorithm (supported in rHDRF)
+				max_processes = atoi(optarg);
+				break;
 		}
 	}
     // for rHDRF the graph file and the stream file are different
@@ -206,7 +210,7 @@ int main(int argc, char** argv) {
         isVertexCentric = false;
 	} else if(strcmp(part_method,"rHDRF") == 0) {  
 		PRINTF("%i: Partitioning: parallel rHDRF vertex hyperPRAW\n",process_id);
-        partition = new ParallelRHDRFVertexPartitioning(experiment_name,graph_file,stream_file,imbalance_tolerance,max_iterations,bandwidth_file,use_bandwidth_in_partitioning,proportional_comm_cost,sync_batch_size,use_max_expected_workload,input_order_round_robin);
+        partition = new ParallelRHDRFVertexPartitioning(experiment_name,graph_file,stream_file,max_processes,imbalance_tolerance,max_iterations,bandwidth_file,use_bandwidth_in_partitioning,proportional_comm_cost,sync_batch_size,use_max_expected_workload,input_order_round_robin);
         isVertexCentric = true;
 	} else if(strcmp(part_method,"sequentialVertex") == 0) {  
 		PRINTF("%i: Partitioning: sequential vertex partitioning\n",process_id);
@@ -222,7 +226,7 @@ int main(int argc, char** argv) {
 	    isVertexCentric = true;
 	} else if(strcmp(part_method,"parallelHDRF") == 0) {  
 		PRINTF("%i: Partitioning: parallel hyperedge partitioning\n",process_id);
-		partition = new HyperedgePartitioning(experiment_name,graph_file,max_iterations,imbalance_tolerance,bandwidth_file,use_bandwidth_in_partitioning,save_partitioning_history);
+		partition = new HyperedgePartitioning(experiment_name,graph_file,max_processes,max_iterations,imbalance_tolerance,bandwidth_file,use_bandwidth_in_partitioning,save_partitioning_history,input_order_round_robin);
 	    isVertexCentric = false;
 	} else { // default is random
 		PRINTF("%i: Partitioning: random\n",process_id);

@@ -1903,7 +1903,7 @@ namespace PRAW {
 
     
     // Stream from multiple files / streams
-    int ParallelHDRF(char* experiment_name, idx_t* partitioning, double** comm_cost_matrix, std::string hypergraph_filename, int* element_wgt, int max_iterations, float imbalance_tolerance, bool local_replica_degree_updates_only = false, int window_size = 1, bool input_order_round_robin = true) {
+    int ParallelHDRF(char* experiment_name, idx_t* partitioning, int num_partitions, MPI_Comm partitioning_comm, double** comm_cost_matrix, std::string hypergraph_filename, int* element_wgt, int max_iterations, float imbalance_tolerance, bool local_replica_degree_updates_only = false, int window_size = 1, bool input_order_round_robin = true) {
         // Parallel Hyperedge Partitioning based algorithm
         // Because it can be applied to both vertex and hyperedge partitionings, we adopt the following nomenclature:
         //      element: what each line in the stream represent
@@ -1956,20 +1956,21 @@ namespace PRAW {
         //      workload (experiment with and without)
         //      Partial degree? (experiment with and without)
 
+        
         // Parameters (from HDRF, Petroni 2015)
         float lambda = 1.0f;
         
         int process_id;
-        MPI_Comm_rank(MPI_COMM_WORLD,&process_id);
+        MPI_Comm_rank(partitioning_comm,&process_id);
         int num_processes;
-        MPI_Comm_size(MPI_COMM_WORLD,&num_processes); 
+        MPI_Comm_size(partitioning_comm,&num_processes);
         
         // create shared data structures (partitions workload, list of replica destinations for each vertex, partial degree for each vertex)
-        long int* part_load = (long int*)calloc(num_processes, sizeof(long int));
+        long int* part_load = (long int*)calloc(num_partitions, sizeof(long int));
         double max_comm_cost = 0;
-        for(int ff=0; ff < num_processes; ff++) {
+        for(int ff=0; ff < num_partitions; ff++) {
            double current_max_cost = 0;
-           for(int tt=0; tt < num_processes; tt++) {
+           for(int tt=0; tt < num_partitions; tt++) {
                current_max_cost += comm_cost_matrix[ff][tt];
            }
            if(current_max_cost > max_comm_cost) {
@@ -2004,7 +2005,7 @@ namespace PRAW {
         // currently uses full graph knowledge (just number of elements)
         // assumes all elements have same workload (1)
         // TODO@ needs to account for batch sync update
-        long int max_expected_workload = num_elements / num_processes * imbalance_tolerance - num_processes * window_size;
+        long int max_expected_workload = num_elements / num_partitions * imbalance_tolerance - num_processes * window_size;
         if(max_expected_workload < 1) {
             PRINTF("Graph is too small! Too many processes (max expected workload limit is %li)\n",max_expected_workload);
             return 0;
@@ -2023,8 +2024,8 @@ namespace PRAW {
         long int first_time_pins = 0;
         long int total_pins = 0;
         long int partition_filled = 0;
-        bool filled_parts[num_processes];
-        for(int ii=0; ii < num_processes; ii++) filled_parts[ii] = false;
+        bool filled_parts[num_partitions];
+        for(int ii=0; ii < num_partitions; ii++) filled_parts[ii] = false;
 #endif
 
         // Check balance guarantee 
@@ -2073,7 +2074,10 @@ namespace PRAW {
                     char* token = strtok(str, " "); 
                     std::vector<int> current_line;
                     while (token != NULL) { 
-                        current_line.push_back(atoi(token)-1);
+                        int pin_id = atoi(token)-1;
+                        current_line.push_back(pin_id);
+                        // add it to local knowledge so it can be used in windowed partitioning
+                        seen_pins[pin_id].partial_degree += 1;
                         token = strtok(NULL, " "); 
                     }
                     actual_window_size++;
@@ -2082,14 +2086,14 @@ namespace PRAW {
             }
             // prioritise elements based on count of already seen pins
             // similar to ADWISE (delay uninformed decisions)
-            std::vector<float> element_priority(actual_window_size);
+            std::vector<int> element_priority(actual_window_size);
             for(int el=0; el < actual_window_size; el++) {
-                float score = 0;
+                int score = 0;
                 for(int pin=1; pin < batch_elements[el].size(); pin++) {
                     int pin_id = batch_elements[el][pin];
                     score += seen_pins[pin_id].partial_degree;
                 }
-                element_priority[el] = score;//batch_elements[el].size(); // NORMALISE??
+                element_priority[el] = score;
             }
             // sort batch_elements according to their score
             std::vector<int> index(actual_window_size, 0);
@@ -2134,7 +2138,7 @@ namespace PRAW {
                 //      sum 1 + (1-norm_part_degree(v)) if p exists in A(v)
                 double max_value = std::numeric_limits<double>::lowest();
                 int best_partition = 0;
-                for(int pp=0; pp < num_processes; pp++) {
+                for(int pp=0; pp < num_partitions; pp++) {
                     if(part_load[pp] >= max_expected_workload) {
 #ifdef DEBUG
                         partition_filled++;
@@ -2160,7 +2164,7 @@ namespace PRAW {
                         if(seen_pins[pin_id].partial_degree == 0) first_time_pins++;
                         total_pins++;
 #endif
-                        c_rep += present_in_partition ? (1 - normalised_part_degrees[vv]) : 0;
+                        c_rep += present_in_partition ? 1 + (1 - normalised_part_degrees[vv]) : 0;
                         
                     }
                     bool normalise = false;
@@ -2187,7 +2191,6 @@ namespace PRAW {
                 }
                 // HOW CAN RESULTS BE DIFFERENT BEWTEEN round robin streaming and batch streaming if the assignment is done randomly??
                 element_mapping = best_partition;
-                //element_mapping = rand() % num_processes;
 
                 // synchronise data
                 // ***** 
@@ -2205,7 +2208,7 @@ namespace PRAW {
                     int pin_id = batch_elements[idx][ii];
                     // must update seen_pins data structure as it goes along
                     // then during remote sync avoid double counting local pins
-                    seen_pins[pin_id].partial_degree += 1;
+                    // we already updated seen_pins[].part_degree when we read the stream
                     seen_pins[pin_id].A.insert(element_mapping);
                     
                     if(!local_replica_degree_updates_only) {
@@ -2229,13 +2232,13 @@ namespace PRAW {
                 local_pins_size[idx] = new_pins;                    
             }
 
-            element_id += window_size;//num_processes;
+            element_id += window_size;
 
             // batch synchronisation
             // synchronise length of pins list to be sent
             int* remote_pins_size = (int*)malloc(sizeof(int) * window_size * num_processes);
 
-            MPI_Allgather(&local_pins_size[0],window_size,MPI_INT,remote_pins_size,window_size,MPI_INT,MPI_COMM_WORLD);
+            MPI_Allgather(&local_pins_size[0],window_size,MPI_INT,remote_pins_size,window_size,MPI_INT,partitioning_comm);
             
             // synchronise list of pins
             // share send buffer size with other processes
@@ -2250,7 +2253,7 @@ namespace PRAW {
             int* recvcounts = (int*)malloc(num_processes * sizeof(int));
             int send_size = new_replicas_sync.size();
             
-            MPI_Allgather(&send_size,1,MPI_INT,recvcounts,1,MPI_INT,MPI_COMM_WORLD);
+            MPI_Allgather(&send_size,1,MPI_INT,recvcounts,1,MPI_INT,partitioning_comm);
             
             // share partition selected and new replicas list to all
             int counter = 0;
@@ -2260,7 +2263,7 @@ namespace PRAW {
                 counter += recvcounts[ii]; 
             }
             int* recvbuffer = (int*)malloc(sizeof(int) * counter);
-            MPI_Allgatherv(&new_replicas_sync[0],send_size,MPI_INT,recvbuffer,recvcounts,displs,MPI_INT,MPI_COMM_WORLD);
+            MPI_Allgatherv(&new_replicas_sync[0],send_size,MPI_INT,recvbuffer,recvcounts,displs,MPI_INT,partitioning_comm);
             
             // process new replicas and add them to local datastructures
             for(int ii=0; ii < num_processes; ii++)  {
@@ -2309,29 +2312,29 @@ namespace PRAW {
             free(remote_pins_size);      
 
             
-            minsize = *std::min_element(part_load, part_load + num_processes);
-            maxsize = *std::max_element(part_load, part_load + num_processes);      
+            minsize = *std::min_element(part_load, part_load + num_partitions);
+            maxsize = *std::max_element(part_load, part_load + num_partitions);      
 
         }
         istream.close();
-
+        
         
 
 #ifdef DEBUG 
         // check for termination condition (tolerance imbalance reached)   
-        long int max_sz = *std::max_element(part_load, part_load + num_processes);
-        double max_imbalance = ((double)max_sz) / ((double)total_workload/num_processes);
+        long int max_sz = *std::max_element(part_load, part_load + num_partitions);
+        double max_imbalance = ((double)max_sz) / ((double)total_workload/num_partitions);
         
         PRINTF("***Imbalance: %.3f\n",max_imbalance); 
 
         PRINTF("%i: Pins seen for the first time: %li (%.2f %%)\n",process_id,first_time_pins,first_time_pins*1.0f/total_pins*100);
 
         int parts_full = 0;
-        for(int ii=0; ii<num_processes; ii++) {
+        for(int ii=0; ii<num_partitions; ii++) {
             if(filled_parts[ii]) parts_full++;
         }  
 
-        PRINTF("%i: partitions filled [%i]: %li (%li)\n",process_id,parts_full,partition_filled,partition_filled*num_processes);
+        PRINTF("%i: partitions filled [%i]: %li (%li)\n",process_id,parts_full,partition_filled,partition_filled*num_partitions);
 
 #endif
 
