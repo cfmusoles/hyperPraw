@@ -2164,7 +2164,10 @@ namespace PRAW {
                         if(seen_pins[pin_id].partial_degree == 0) first_time_pins++;
                         total_pins++;
 #endif
-                        c_rep += present_in_partition ? 1 + (1 - normalised_part_degrees[vv]) : 0;
+                        // Use HDRF
+                        //c_rep += present_in_partition ? 1 + (1 - normalised_part_degrees[vv]) : 0;
+                        // or use overlap
+                        c_rep += present_in_partition ? 1 : 0;
                         
                     }
                     bool normalise = false;
@@ -2180,7 +2183,7 @@ namespace PRAW {
                     } else {
                         float c_bal = lambda * pow(part_load[pp],0.5f);
 
-                        current_value = -c_bal + c_rep - c_comm;
+                        current_value = c_rep;//-c_bal + c_rep - c_comm;
                     }
                     
                     if(current_value > max_value ||                                                 

@@ -7,12 +7,13 @@ import pandas as pd
 import numpy as np
 
 
-hgraphs_folder = 'resources/'
+hgraphs_folder = '../resources/'
 #hgraph_files = ["atmosmodj.mtx.hgr","kkt_power.mtx.hgr","sat14_velev-vliw-uns-2.0-uq5.cnf.dual.hgr"]
-hgraph_files = ["sat14_itox_vc1130.cnf.dual.hgr","2cubes_sphere.mtx.hgr","ABACUS_shell_hd.mtx.hgr","sparsine.mtx.hgr","pdb1HYS.mtx.hgr","sat14_10pipe_q0_k.cnf.primal.hgr","sat14_E02F22.cnf.hgr","webbase-1M.mtx.hgr"]
-experiment_prefix = 'test_default_'
+hgraph_files = ["2cubes_sphere.mtx.hgr","ABACUS_shell_hd.mtx.hgr","sparsine.mtx.hgr","sat14_10pipe_q0_k.cnf.primal.hgr","webbase-1M.mtx.hgr"]
+experiment_folder = "../results/stream/"
+experiment_prefix = 'stream_rHDRF_default_2'
 partition = 'rHDRF'
-num_processes = 12
+num_processes = 72
 
 storePlot = False
 image_format = 'pdf'
@@ -22,7 +23,7 @@ for i,hgraph in enumerate(hgraph_files):
     hgraph_file = hgraphs_folder + hgraph
 
     #load partitioning scheme
-    partitioning = np.genfromtxt(experiment_prefix + hgraph + '_' + partition + '_partitioning__' + str(num_processes),skip_header=0,delimiter=",")
+    partitioning = np.genfromtxt(experiment_folder + experiment_prefix + '_' + hgraph + '_' + partition + '_partitioning__' + str(num_processes),skip_header=0,delimiter=",")
     partitioning = [int(i)  for i in partitioning]
 
     # load pin degrees from hgraph file
