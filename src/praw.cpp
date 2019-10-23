@@ -242,7 +242,6 @@ int main(int argc, char** argv) {
 
     partition_timer = MPI_Wtime() - partition_timer;
 
-
     // store partitioning mapping to a file
     if(store_partitioning && process_id == 0) {
         int partitioning_length = isVertexCentric ? partition->num_vertices : partition->num_hyperedges;

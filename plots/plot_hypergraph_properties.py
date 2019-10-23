@@ -2,16 +2,14 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 import numpy as np
 
-folder = '../resources/large_hgraphs/'
+folder = '../resources/'
 hgraphs = ['sat14_itox_vc1130.cnf.dual.hgr','2cubes_sphere.mtx.hgr','ABACUS_shell_hd.mtx.hgr','sparsine.mtx.hgr',
             'pdb1HYS.mtx.hgr','sat14_10pipe_q0_k.cnf.primal.hgr','sat14_E02F22.cnf.hgr','webbase-1M.mtx.hgr',
             'ship_001.mtx.hgr','sat14_atco_enc1_opt1_05_21.cnf.dual.hgr']
 
 image_format = 'pdf'
 
-
-
-plot_graphs = False
+plot_graphs = True
 
 for hgraph_file in hgraphs:
     # data structure to hold hedge sizes: 1d list corresponding to each hedge size
@@ -33,10 +31,10 @@ for hgraph_file in hgraphs:
 
     if plot_graphs:
         # plotting size of hyperedges histogram
-        mybins=np.logspace(0,np.log10(max(hedge_sizes)),num=50)
+        mybins=np.linspace(1,max(hedge_sizes),num=max(hedge_sizes)-1)
         g = sns.distplot(hedge_sizes,kde=False,bins=mybins,hist_kws={'edgecolor':'black'})
-        g.set_xscale('log')
-        g.set_yscale('log')
+        g.set_xscale('linear')
+        g.set_yscale('linear')
         g.set_title("Hyperedges sizes")
         g.set_xlabel("Size of hyperedge")
         g.set_ylabel("Count")
@@ -45,10 +43,10 @@ for hgraph_file in hgraphs:
 
 
         # plotting vertex degrees histogram
-        mybins=np.logspace(0,np.log10(len(unique)),num=100)
+        mybins=np.linspace(1,max(vertex_counts),num=max(vertex_counts))
         g = sns.distplot(vertex_counts,kde=False,bins=mybins,hist_kws={'edgecolor':'black'})
-        g.set_xscale('log')
-        g.set_yscale('log')
+        g.set_xscale('linear')
+        g.set_yscale('linear')
         g.set_title("Vertex degrees")
         g.set_xlabel("Vertex degree")
         g.set_ylabel("Count")
