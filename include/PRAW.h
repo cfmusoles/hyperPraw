@@ -2076,6 +2076,10 @@ namespace PRAW {
                     while (token != NULL) { 
                         int pin_id = atoi(token)-1;
                         current_line.push_back(pin_id);
+#ifdef DEBUG
+                        if(seen_pins[pin_id].partial_degree == 0) first_time_pins++;
+                        total_pins++;
+#endif
                         // add it to local knowledge so it can be used in windowed partitioning
                         seen_pins[pin_id].partial_degree += 1;
                         token = strtok(NULL, " "); 
@@ -2160,10 +2164,7 @@ namespace PRAW {
                             // if a pin is duplicated in two partitions, then communication will happen across those partitions
                             c_comm += comm_cost_matrix[pp][part];
                         }
-#ifdef DEBUG
-                        if(seen_pins[pin_id].partial_degree == 0) first_time_pins++;
-                        total_pins++;
-#endif
+
                         // Use HDRF
                         //c_rep += present_in_partition ? 1 + (1 - normalised_part_degrees[vv]) : 0;
                         // or use overlap
