@@ -9,11 +9,11 @@ import numpy as np
 
 hgraphs_folder = '../resources/'
 #hgraph_files = ["atmosmodj.mtx.hgr","kkt_power.mtx.hgr","sat14_velev-vliw-uns-2.0-uq5.cnf.dual.hgr"]
-hgraph_files = ["2cubes_sphere.mtx.hgr","ABACUS_shell_hd.mtx.hgr","sparsine.mtx.hgr","sat14_10pipe_q0_k.cnf.primal.hgr","webbase-1M.mtx.hgr"]
-experiment_folder = "../results/stream/"
-experiment_prefix = 'stream_rHDRF_default_2'
+hgraph_files = ["random_power_law.hgr"]#["2cubes_sphere.mtx.hgr","ABACUS_shell_hd.mtx.hgr","sparsine.mtx.hgr","sat14_10pipe_q0_k.cnf.primal.hgr","webbase-1M.mtx.hgr"]
+experiment_folder = "../results/"
+experiment_prefix = 'test_overlap'
 partition = 'rHDRF'
-num_processes = 72
+num_processes = 12
 
 storePlot = False
 image_format = 'pdf'

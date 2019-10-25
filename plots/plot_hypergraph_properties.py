@@ -1,6 +1,7 @@
 import matplotlib.pyplot as plt
 import seaborn as sns
 import numpy as np
+import math
 
 folder = '../resources/'
 hgraphs = ['sat14_itox_vc1130.cnf.dual.hgr','2cubes_sphere.mtx.hgr','ABACUS_shell_hd.mtx.hgr','sparsine.mtx.hgr',
@@ -31,7 +32,7 @@ for hgraph_file in hgraphs:
 
     if plot_graphs:
         # plotting size of hyperedges histogram
-        mybins=np.linspace(1,max(hedge_sizes),num=max(hedge_sizes)-1)
+        mybins=np.linspace(min(hedge_sizes)-1,max(hedge_sizes)+1,num=max(hedge_sizes)-min(hedge_sizes)+2)
         g = sns.distplot(hedge_sizes,kde=False,bins=mybins,hist_kws={'edgecolor':'black'})
         g.set_xscale('linear')
         g.set_yscale('linear')
@@ -43,7 +44,8 @@ for hgraph_file in hgraphs:
 
 
         # plotting vertex degrees histogram
-        mybins=np.linspace(1,max(vertex_counts),num=max(vertex_counts))
+        mybins=np.linspace(min(vertex_counts)-1,max(vertex_counts)+1,num=max(vertex_counts)-min(vertex_counts)+2)
+        #mybins=np.logspace(1,math.log10(max(vertex_counts)),num=max(vertex_counts)-min(vertex_counts))
         g = sns.distplot(vertex_counts,kde=False,bins=mybins,hist_kws={'edgecolor':'black'})
         g.set_xscale('linear')
         g.set_yscale('linear')

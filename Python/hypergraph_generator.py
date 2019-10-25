@@ -13,18 +13,19 @@ import scipy.stats as stats
 import matplotlib.pyplot as plt
 
 # hypergraph parameters
-hypergraph_name = "random_power_law"
+hypergraph_name = "hedge_size_2_10"
 export_folder = '../resources/'
 num_vertices = 100000
 num_hyperedges = 100000
 num_clusters = 12
 cluster_density = [1.0/num_clusters for _ in range(num_clusters)]       # probability that a vertex belongs to each cluster
+#cluster_density = [0.05,0.05,0.05,0.05,0.05,0.05,0.1,0.05,0.20,0.25,0.05,0.05]
 p_intraconnectivity = 1.0
-hyperedge_gamma = 1.8                                # determines the skewness of the distribution (higher values more skewed to the left). Must be >= 0 (gamma == 0 is the uniform distribution)
+hyperedge_gamma = 1.8                             # determines the skewness of the distribution (higher values more skewed to the left). Must be >= 0 (gamma == 0 is the uniform distribution)
 max_hyperedge_degree = 100
 min_hyperedge_degree = 10
-vertex_degree_power_law = True          # whether drawing vertex ids is done using power law distribution (much slower)
-vertex_gamma = 1.1
+vertex_degree_power_law = False          # whether drawing vertex ids is done using power law distribution (much slower)
+vertex_gamma = 1.5                     # careful! high values of this may prevent the graph from finishing (since vertices cannot be added twice to the same hyperedge, the roll will be rolled and may always get the same most probable answers)
 show_distribution = True
 store_clustering = True
 
@@ -127,7 +128,7 @@ with open(export_folder + hypergraph_name,"w+") as f:
                         hypergraph.append(len(vertices))
 
 if show_distribution:
-        plt.hist(hypergraph, bins=np.arange(max_hyperedge_degree)+0.5)
+        plt.hist(hypergraph, bins=np.arange(max_hyperedge_degree+1)+0.5)
         plt.show()
 
 

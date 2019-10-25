@@ -7,12 +7,12 @@ import pandas as pd
 import numpy as np
 from sklearn.metrics.cluster import adjusted_rand_score, adjusted_mutual_info_score
 
-data_folder = '../results/'
-ground_truth_cluster = 'random_power_law.hgr_clustering'
+data_folder = '../results/hypergraph_generator/p_conn/'
+ground_truth_cluster = 'p_conn_1.0.hgr_clustering'
 num_clusters = 12
-experiment_prefix = 'test_default'
-hgraph = 'random_power_law.hgr'
-partitioning_candidates = ['rHDRF','zoltanVertex']
+experiment_prefix = 'p_conn'
+hgraph = 'p_conn_1.0.hgr'
+partitioning_candidates = ['zoltanVertex']
 
 
 # load ground truth
