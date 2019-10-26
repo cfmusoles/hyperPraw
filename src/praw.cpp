@@ -212,11 +212,11 @@ int main(int argc, char** argv) {
         partition = new ParallelHyperPRAWPartitioning(experiment_name,graph_file,stream_file,max_processes,imbalance_tolerance,max_iterations,bandwidth_file,use_bandwidth_in_partitioning,proportional_comm_cost,sync_batch_size,use_max_expected_workload,input_order_round_robin,true);
         isVertexCentric = true;
 	} else if(strcmp(part_method,"parallelVertex") == 0) {  
-		PRINTF("%i: Partitioning: parallel vertex streaming hyperPRAW\n",process_id);
+		PRINTF("%i: Partitioning: parallel vertex streaming\n",process_id);
         partition = new ParallelStreamingPartitioning(experiment_name,graph_file,stream_file,max_processes,imbalance_tolerance,sync_batch_size,input_order_round_robin,true);
         isVertexCentric = true;
 	} else if(strcmp(part_method,"parallelHyperedge") == 0) {  
-		PRINTF("%i: Partitioning: parallel vertex streaming hyperPRAW\n",process_id);
+		PRINTF("%i: Partitioning: parallel vertex streaming\n",process_id);
         partition = new ParallelStreamingPartitioning(experiment_name,graph_file,stream_file,max_processes,imbalance_tolerance,sync_batch_size,input_order_round_robin,false);
         isVertexCentric = false;
 	} else if(strcmp(part_method,"sequentialVertex") == 0) {  
@@ -229,7 +229,7 @@ int main(int argc, char** argv) {
 	    isVertexCentric = true;
 	} else if(strcmp(part_method,"hyperPrawHyperedge") == 0) {  
 		PRINTF("%i: Partitioning: parallel hyperedge hyperPRAW\n",process_id);
-        partition = new ParallelHyperPRAWPartition(experiment_name,graph_file,stream_file,max_processes,imbalance_tolerance,max_iterations,bandwidth_file,use_bandwidth_in_partitioning,proportional_comm_cost,sync_batch_size,use_max_expected_workload,input_order_round_robin,false);
+        partition = new ParallelHyperPRAWPartitioning(experiment_name,graph_file,stream_file,max_processes,imbalance_tolerance,max_iterations,bandwidth_file,use_bandwidth_in_partitioning,proportional_comm_cost,sync_batch_size,use_max_expected_workload,input_order_round_robin,false);
         isVertexCentric = false;
 	} else { // default is random
 		PRINTF("%i: Partitioning: random\n",process_id);
