@@ -1469,6 +1469,7 @@ namespace PRAW {
             }
             // prioritise elements based on count of already seen pins
             // similar to ADWISE (delay uninformed decisions)
+
             std::vector<int> element_priority(actual_window_size);
             for(int el=0; el < actual_window_size; el++) {
                 int score = 0;
@@ -1493,23 +1494,23 @@ namespace PRAW {
             // process each batched element in order
             for(int el=0; el < actual_window_size; el++) {
                 int idx = index[el];
-                int num_pins = batch_elements[idx].size();
+                int n_pins = batch_elements[idx].size();
                 //printf("%i: (%i) %i\n",process_id,el,element_priority[idx]);
                 ////// local_pins is batch_elements[idx]
                 ////// element_id is element_id + idx
 
                 // calculate norm_part_degree for each vertex ONLY FOR HDRF
                 // similar to Petroni HDRF
-                double normalised_part_degrees[num_pins];
+                double normalised_part_degrees[n_pins];
                 if(use_hdrf) {
                     long int total_degrees = 0;
-                    for(int ii=0; ii < num_pins; ii++) {
+                    for(int ii=0; ii < n_pins; ii++) {
                         int pin_id = batch_elements[idx][ii];
                         normalised_part_degrees[ii] = seen_pins[pin_id].partial_degree; // if vertex is newly seen, it will be counted in the next sync
                         total_degrees += normalised_part_degrees[ii];
                     }
                     if(total_degrees > 0) {
-                        std::transform(normalised_part_degrees,normalised_part_degrees+num_pins,normalised_part_degrees,
+                        std::transform(normalised_part_degrees,normalised_part_degrees+n_pins,normalised_part_degrees,
                             [total_degrees] (double value) {  
                                 return value / total_degrees;
                             }  
@@ -1531,7 +1532,7 @@ namespace PRAW {
                     }
                     double c_rep = 0;
                     double c_comm = 0;
-                    for(int vv=0; vv < num_pins; vv++) {
+                    for(int vv=0; vv < n_pins; vv++) {
                         int pin_id = batch_elements[idx][vv];
                         bool present_in_partition = false;
                         std::set<int>::iterator it;
@@ -1615,7 +1616,7 @@ namespace PRAW {
                 new_replicas_sync.insert(new_replicas_sync.end(),new_replicas[idx].begin(),new_replicas[idx].end());
             }
             int* recvcounts = (int*)malloc(num_processes * sizeof(int));
-            int send_size = new_replicas_sync.size();
+            int send_size = new_replicas_sync.size();                
             
             MPI_Allgather(&send_size,1,MPI_INT,recvcounts,1,MPI_INT,partitioning_comm);
             
@@ -1626,6 +1627,7 @@ namespace PRAW {
                 displs[ii] = counter;
                 counter += recvcounts[ii]; 
             }
+
             int* recvbuffer = (int*)malloc(sizeof(int) * counter);
             MPI_Allgatherv(&new_replicas_sync[0],send_size,MPI_INT,recvbuffer,recvcounts,displs,MPI_INT,partitioning_comm);
             

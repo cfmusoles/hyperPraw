@@ -216,7 +216,7 @@ int main(int argc, char** argv) {
         partition = new ParallelStreamingPartitioning(experiment_name,graph_file,stream_file,max_processes,imbalance_tolerance,sync_batch_size,input_order_round_robin,true);
         isVertexCentric = true;
 	} else if(strcmp(part_method,"parallelHyperedge") == 0) {  
-		PRINTF("%i: Partitioning: parallel vertex streaming\n",process_id);
+		PRINTF("%i: Partitioning: parallel hyperedge streaming\n",process_id);
         partition = new ParallelStreamingPartitioning(experiment_name,graph_file,stream_file,max_processes,imbalance_tolerance,sync_batch_size,input_order_round_robin,false);
         isVertexCentric = false;
 	} else if(strcmp(part_method,"sequentialVertex") == 0) {  

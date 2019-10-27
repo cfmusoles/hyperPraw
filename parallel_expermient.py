@@ -40,14 +40,17 @@ run_experiment() {
 	H_SIM_STEPS=0
 	GRAPH_STREAM="inverted_"$HYPERGRAPH_FILE
 
-	aprun -n $PARTITIONS hyperPraw -n $EXPERIMENT_NAME"_"$PART"_"$WINDOW_SIZE -h $HYPERGRAPH_FILE -i 100 -m 1200 -p $PART -t $E_SIM_STEPS -x $H_SIM_STEPS -s $SEED -k $MESSAGE_SIZE -H -b $BM_FILE -e $GRAPH_STREAM -P -K $MAX_PROCESSES -g $WINDOW_SIZE
+	aprun -n $PARTITIONS hyperPraw -n $EXPERIMENT_NAME"_"$PART"_"$MAX_PROCESSES"_"$WINDOW_SIZE -h $HYPERGRAPH_FILE -i 100 -m 1200 -p $PART -t $E_SIM_STEPS -x $H_SIM_STEPS -s $SEED -k $MESSAGE_SIZE -e $GRAPH_STREAM -P -K $MAX_PROCESSES -g $WINDOW_SIZE
 	sleep 1
 }
 
 # baseline strategy only run once
 SEED=$RANDOM
-run_experiment "small_dense_uniform.hgr" $SEED 1 "baselineSequential" 1
-run_experiment "small_dense_powerlaw.hgr" $SEED 1 "baselineSequential" 1
+#run_experiment "small_dense_uniform.hgr" $SEED 1 "baselineSequential" 1
+#run_experiment "small_dense_powerlaw.hgr" $SEED 1 "baselineSequential" 1
+run_experiment "2cubes_sphere.mtx.hgr" $SEED 1 "baselineSequential" 1
+run_experiment "ABACUS_shell_hd.mtx.hgr" $SEED 1 "baselineSequential" 1
+run_experiment "sparsine.mtx.hgr" $SEED 1 "baselineSequential" 1
 
 # run parallel versions
 NUM_PARALLEL_EXPERIMENTS=5
@@ -57,8 +60,11 @@ for p in $(seq 1 $NUM_PARALLEL_EXPERIMENTS)
 do
 	SEED=$RANDOM
 	#synthetic graphs
-	run_experiment "small_dense_uniform.hgr" $SEED $PROCESSES "parallelVertex" 1
-	run_experiment "small_dense_powerlaw.hgr" $SEED $PROCESSES "parallelVertex" 1
+	#run_experiment "small_dense_uniform.hgr" $SEED $PROCESSES "parallelVertex" 1
+	#run_experiment "small_dense_powerlaw.hgr" $SEED $PROCESSES "parallelVertex" 1
+	run_experiment "2cubes_sphere.mtx.hgr" $SEED 1 "parallelVertex" 1
+	run_experiment "ABACUS_shell_hd.mtx.hgr" $SEED 1 "parallelVertex" 1
+	run_experiment "sparsine.mtx.hgr" $SEED 1 "parallelVertex" 1
 
 	PROCESSES=$(($PROCESSES * $FACTOR))
 	
