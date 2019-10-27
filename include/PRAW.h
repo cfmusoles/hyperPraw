@@ -1330,7 +1330,7 @@ namespace PRAW {
 
 
     // Parallel version of Alistairh hypergraph streaming partitioning
-    int ParallelStreaming(char* experiment_name, idx_t* partitioning, int num_partitions, MPI_Comm partitioning_comm, std::string hypergraph_filename, int* element_wgt, float imbalance_tolerance, int window_size = 1, bool input_order_round_robin = true, bool use_hdrf = false) {
+    int ParallelStreaming(char* experiment_name, idx_t* partitioning, int num_partitions, MPI_Comm partitioning_comm, std::string hypergraph_filename, int* element_wgt, float imbalance_tolerance, bool local_replica_degree_updates_only = false, int window_size = 1, bool input_order_round_robin = true, bool use_hdrf = false) {
         // Parallel Hyperedge Partitioning based algorithm
         // Because it can be applied to both vertex and hyperedge partitionings, we adopt the following nomenclature:
         //      element: what each line in the stream represent
@@ -1556,9 +1556,7 @@ namespace PRAW {
                         
                     }
                     bool normalise = false;
-                    double current_value;
-                    
-                    current_value = c_rep;
+                    double current_value = c_rep;
                     
                     if(current_value > max_value ||                                                 
                                 current_value == max_value && part_load[best_partition] > part_load[pp]) {
@@ -1578,14 +1576,22 @@ namespace PRAW {
                 int new_pins = 0;
                 for(int ii=0; ii < batch_elements[idx].size(); ii++) {
                     int pin_id = batch_elements[idx][ii];
+                    if(!local_replica_degree_updates_only && use_hdrf) {
+                        new_replicas[idx].push_back(pin_id);
+                        new_pins++;
+                    } else {
+                        // TODO: test performance degradation when only updating partial degree with local info
+                        if(seen_pins[pin_id].A.find(element_mapping) == seen_pins[pin_id].A.end()) {
+                            // if it has been seen but it's the first replica on new partition
+                            new_replicas[idx].push_back(pin_id);
+                            new_pins++;
+                        } else {
+                            seen_pins[pin_id].partial_degree += 1;
+                        }
+                    }
                     // must update seen_pins data structure as it goes along
                     // then during remote sync avoid double counting local pins
                     // we already updated seen_pins[].part_degree when we read the stream
-                    if(seen_pins[pin_id].A.find(element_mapping) == seen_pins[pin_id].A.end()) {
-                        // if it's the first replica on new partition
-                        new_replicas[idx].push_back(pin_id);
-                        new_pins++;
-                    }
                     seen_pins[pin_id].A.insert(element_mapping);
                 }
                 local_pins_size[idx] = new_pins;                    

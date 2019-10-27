@@ -1,15 +1,6 @@
 # Create ARCHER job files based on parameters passed
 
-# parallel: This experiment compares praw sequential and parallel implementations. Should be able to compare quality of partitions and runtime impact
-# Strategies compared:
-	# prawS: serial architecture aware
-	# prawP: parallel architecture aware
-	# zoltan: multilevel partitioning benchmark
-# stable parameters
-	# imbalance tolerance 1.2 (zoltan has 1.070 since streaming tends to reduce the imbalance significantly under the tolerance)
-	# 100 max iterations
-	# total edge cost communication as stopping condition
-	# 0.95 tempering  refinement
+# parallel: This experiment compares baseline sequential hypergraph partitioning (Alistairh) to a parallelised version with multiple substreams
 	
 
 import sys
@@ -29,13 +20,8 @@ template_4='''
 #PBS -l walltime=6:00:0
 # budget code
 #PBS -A e582
-# bandwidth probing parameters
-SIZE=512
-ITERATIONS=20
-WINDOW=10
 
-TEST_REPETITIONS=1
-PROCESSES='''
+PARTITIONS='''
 template_5='''
 EXPERIMENT_NAME='''
 template_6='''
@@ -44,91 +30,40 @@ template_7='''
 # This shifts to the directory that you submitted the job from
 cd $PBS_O_WORKDIR
 
-# bandwidth matrix creation
-#renaming is necessary to avoid clashes between simultaneous jobs
-ORIGINAL_BM_FILE="results_mpi_send_bandwidth_"$PROCESSES
-aprun -n $PROCESSES mpi_perf $SIZE $ITERATIONS $WINDOW
-for p in $(seq 1 10)
-do
-	FILENAME="results_mpi_send_bandwidth_"$p"_"$PROCESSES
-	if [ ! -f $FILENAME ]; then
-	    BM_FILE="results_mpi_send_bandwidth_"$p"_"$PROCESSES
-	    break
-	fi
-done
-
-mv $ORIGINAL_BM_FILE $BM_FILE
-
 run_experiment() {
 	HYPERGRAPH_FILE="$1"
 	SEED="$2"
-	E_SIM_STEPS="$3"
-	H_SIM_STEPS="$4"
+	PROCESSES="$3"
+	PART="$4"
+	WINDOW_SIZE="$5"
+	E_SIM_STEPS=0
+	H_SIM_STEPS=0
 	GRAPH_STREAM="inverted_"$HYPERGRAPH_FILE
 
-	#aprun -n $PROCESSES hyperPraw -n $EXPERIMENT_NAME"_sequential" -h $HYPERGRAPH_FILE -i 100 -m 1200 -p sequential -t $E_SIM_STEPS -x $H_SIM_STEPS -s $SEED -k $MESSAGE_SIZE -o 2 -b $BM_FILE -W -c 0 -r 950
-	#sleep 1
-	#aprun -n $PROCESSES hyperPraw -n $EXPERIMENT_NAME"__parallelHyperedge" -h $HYPERGRAPH_FILE -i 100 -m 1200 -p parallelHyperedge -t $E_SIM_STEPS -x $H_SIM_STEPS -s $SEED -k $MESSAGE_SIZE -o 2 -b $BM_FILE -W -c 0 -r 950
-	#sleep 1
-	
-	#aprun -n $PROCESSES hyperPraw -n $EXPERIMENT_NAME"_zoltanVertex" -h $HYPERGRAPH_FILE -i 100 -m 1200 -p zoltanVertex -t $E_SIM_STEPS -x $H_SIM_STEPS -s $SEED -k $MESSAGE_SIZE -b $BM_FILE
-	#sleep 1
-	#aprun -n $PROCESSES hyperPraw -n $EXPERIMENT_NAME"_zoltanHyperedge" -h $HYPERGRAPH_FILE -i 100 -m 1200 -p zoltanHyperedge -t $E_SIM_STEPS -x $H_SIM_STEPS -s $SEED -k $MESSAGE_SIZE -b $BM_FILE
-	#sleep 1
-
-	#aprun -n $PROCESSES hyperPraw -n $EXPERIMENT_NAME"_sequential_default" -h $HYPERGRAPH_FILE -i 100 -m 1200 -p sequentialVertex -t $E_SIM_STEPS -x $H_SIM_STEPS -s $SEED -k $MESSAGE_SIZE -H -b $BM_FILE
-	#sleep 1
-	#aprun -n $PROCESSES hyperPraw -n $EXPERIMENT_NAME"_sequential_bandwidth" -h $HYPERGRAPH_FILE -i 100 -m 1200 -p sequentialVertex -t $E_SIM_STEPS -x $H_SIM_STEPS -s $SEED -k $MESSAGE_SIZE -H -W -b $BM_FILE
-	#sleep 1
-
-	#aprun -n $PROCESSES hyperPraw -n $EXPERIMENT_NAME"_simpleParallelVertex" -h $HYPERGRAPH_FILE -i 100 -m 1200 -p simpleParallelVertex -t $E_SIM_STEPS -x $H_SIM_STEPS -s $SEED -k $MESSAGE_SIZE -W -H -b $BM_FILE
-	#sleep 1
-	aprun -n $PROCESSES hyperPraw -n $EXPERIMENT_NAME"_baselineSequential" -h $HYPERGRAPH_FILE -i 100 -m 1200 -p baselineSequential -t $E_SIM_STEPS -x $H_SIM_STEPS -s $SEED -k $MESSAGE_SIZE -W -H -b $BM_FILE -P
-	sleep 1
-	#aprun -n $PROCESSES hyperPraw -n $EXPERIMENT_NAME"_rHDRF_bandwidth" -h $HYPERGRAPH_FILE -i 100 -m 1200 -p rHDRF -t $E_SIM_STEPS -x $H_SIM_STEPS -s $SEED -k $MESSAGE_SIZE -W -H -b $BM_FILE -e $GRAPH_STREAM -P
-	#sleep 1
-	aprun -n $PROCESSES hyperPraw -n $EXPERIMENT_NAME"_rHDRF_default_2" -h $HYPERGRAPH_FILE -i 100 -m 1200 -p rHDRF -t $E_SIM_STEPS -x $H_SIM_STEPS -s $SEED -k $MESSAGE_SIZE -H -b $BM_FILE -e $GRAPH_STREAM -P -K 2
-	sleep 1
-	aprun -n $PROCESSES hyperPraw -n $EXPERIMENT_NAME"_rHDRF_default_16" -h $HYPERGRAPH_FILE -i 100 -m 1200 -p rHDRF -t $E_SIM_STEPS -x $H_SIM_STEPS -s $SEED -k $MESSAGE_SIZE -H -b $BM_FILE -e $GRAPH_STREAM -P -K 16
-	sleep 1
-	aprun -n $PROCESSES hyperPraw -n $EXPERIMENT_NAME"_rHDRF_default_32" -h $HYPERGRAPH_FILE -i 100 -m 1200 -p rHDRF -t $E_SIM_STEPS -x $H_SIM_STEPS -s $SEED -k $MESSAGE_SIZE -H -b $BM_FILE -e $GRAPH_STREAM -P -K 32
-	sleep 1
-	aprun -n $PROCESSES hyperPraw -n $EXPERIMENT_NAME"_rHDRF_bandwidth_2" -h $HYPERGRAPH_FILE -i 100 -m 1200 -p rHDRF -t $E_SIM_STEPS -x $H_SIM_STEPS -s $SEED -k $MESSAGE_SIZE -W -H -b $BM_FILE -e $GRAPH_STREAM -P -K 2
-	sleep 1
-	aprun -n $PROCESSES hyperPraw -n $EXPERIMENT_NAME"_rHDRF_bandwidth_16" -h $HYPERGRAPH_FILE -i 100 -m 1200 -p rHDRF -t $E_SIM_STEPS -x $H_SIM_STEPS -s $SEED -k $MESSAGE_SIZE -W -H -b $BM_FILE -e $GRAPH_STREAM -P -K 16
-	sleep 1
-	aprun -n $PROCESSES hyperPraw -n $EXPERIMENT_NAME"_rHDRF_bandwidth_32" -h $HYPERGRAPH_FILE -i 100 -m 1200 -p rHDRF -t $E_SIM_STEPS -x $H_SIM_STEPS -s $SEED -k $MESSAGE_SIZE -W -H -b $BM_FILE -e $GRAPH_STREAM -P -K 32
+	aprun -n $PARTITIONS hyperPraw -n $EXPERIMENT_NAME"_"$PART"_"$WINDOW_SIZE -h $HYPERGRAPH_FILE -i 100 -m 1200 -p $PART -t $E_SIM_STEPS -x $H_SIM_STEPS -s $SEED -k $MESSAGE_SIZE -H -b $BM_FILE -e $GRAPH_STREAM -P -K $PROCESSES -g 1
 	sleep 1
 }
 
-for i in $(seq 1 $TEST_REPETITIONS)
+# baseline strategy only run once
+run_experiment "small_dense_uniform.hgr" $SEED $PROCESSES "baselineSequential" 1
+run_experiment "small_dense_powerlaw.hgr" $SEED $PROCESSES "baselineSequential" 1
+run_experiment "large_sparse_uniform.hgr" $SEED $PROCESSES "baselineSequential" 1
+run_experiment "large_sparse_powerlaw.hgr" $SEED $PROCESSES "baselineSequential" 1
+
+# run parallel versions
+NUM_PARALLEL_EXPERIMENTS=5
+PROCESSES="3"
+FACTOR="2"
+for p in $(seq 1 $NUM_PARALLEL_EXPERIMENTS)
 do
 	SEED=$RANDOM
-
-	#large graphs (> 3M)
-	#run_experiment "sat14_11pipe_k.cnf.dual.hgr" $SEED 0 0
-	#run_experiment "sat14_atco_enc3_opt1_04_50.cnf.hgr" $SEED 0 0
-	#run_experiment "sat14_blocks-blocks-37-1.130-NOTKNOWN.cnf.dual.hgr" $SEED 0 0
-	#run_experiment "sat14_SAT_dat.k100-24_1_rule_1.cnf.dual.hgr" $SEED 0 0
-	#run_experiment "sat14_q_query_3_L200_coli.sat.cnf.dual.hgr" $SEED 0 0
-
-	#medium graphs (> 800K)
-	#run_experiment "atmosmodj.mtx.hgr" $SEED 2 5
-	#run_experiment "kkt_power.mtx.hgr" $SEED 2 5
-	#run_experiment "sat14_velev-vliw-uns-2.0-uq5.cnf.dual.hgr" $SEED 2 5
-
-	#run_experiment "sat14_itox_vc1130.cnf.dual.hgr" $SEED 1 40
-	run_experiment "2cubes_sphere.mtx.hgr" $SEED 8 80
-	run_experiment "ABACUS_shell_hd.mtx.hgr" $SEED 300 500
-	run_experiment "sparsine.mtx.hgr" $SEED 3 40
+	#synthetic graphs
+	run_experiment "small_dense_uniform.hgr" $SEED $PROCESSES "parallelVertex" 1
+	run_experiment "small_dense_powerlaw.hgr" $SEED $PROCESSES "parallelVertex" 1
+	run_experiment "large_sparse_uniform.hgr" $SEED $PROCESSES "parallelVertex" 1
+	run_experiment "large_sparse_powerlaw.hgr" $SEED $PROCESSES "parallelVertex" 1
+	PROCESSES=$(($PROCESSES * $FACTOR))
 	
-	#large graphs
-	#run_experiment "pdb1HYS.mtx.hgr" $SEED 2 2 #
-	run_experiment "sat14_10pipe_q0_k.cnf.primal.hgr" $SEED 1 3
-	#run_experiment "sat14_E02F22.cnf.hgr" $SEED 2 2
-	run_experiment "webbase-1M.mtx.hgr" $SEED 1 5
-	#run_experiment "ship_001.mtx.hgr" $SEED 20 2
-	#run_experiment "sat14_atco_enc1_opt1_05_21.cnf.dual.hgr" $SEED 1 2
 done
 
 

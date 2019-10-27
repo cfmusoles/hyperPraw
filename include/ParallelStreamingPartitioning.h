@@ -133,8 +133,8 @@ public:
             for(int ii =0; ii < num_elements; ii++) {
                 element_wgt[ii] = 1;
             }
-
-            *iterations = PRAW::ParallelStreaming(experiment_name,partitioning, num_partitions, partitioning_comm, hgraph_part_file.c_str(), element_wgt, imbalance_tolerance,stream_window_size,input_order_round_robin, use_hdrf);
+            bool local_replica_degree_updates_only = false;
+            *iterations = PRAW::ParallelStreaming(experiment_name,partitioning, num_partitions, partitioning_comm, hgraph_part_file.c_str(), element_wgt, imbalance_tolerance,local_replica_degree_updates_only,stream_window_size,input_order_round_robin, use_hdrf);
 
             // clean up operations
             free(element_wgt);
