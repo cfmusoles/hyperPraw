@@ -45,10 +45,10 @@ run_experiment() {
 }
 
 # baseline strategy only run once
-run_experiment "small_dense_uniform.hgr" $SEED $PROCESSES "baselineSequential" 1
-run_experiment "small_dense_powerlaw.hgr" $SEED $PROCESSES "baselineSequential" 1
-run_experiment "large_sparse_uniform.hgr" $SEED $PROCESSES "baselineSequential" 1
-run_experiment "large_sparse_powerlaw.hgr" $SEED $PROCESSES "baselineSequential" 1
+run_experiment "small_dense_uniform.hgr" $SEED $PARTITIONS "baselineSequential" 1
+run_experiment "small_dense_powerlaw.hgr" $SEED $PARTITIONS "baselineSequential" 1
+run_experiment "large_sparse_uniform.hgr" $SEED $PARTITIONS "baselineSequential" 1
+run_experiment "large_sparse_powerlaw.hgr" $SEED $PARTITIONS "baselineSequential" 1
 
 # run parallel versions
 NUM_PARALLEL_EXPERIMENTS=5
