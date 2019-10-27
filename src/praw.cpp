@@ -1,7 +1,7 @@
 // Test harness for SPAAW (Streaming parallel Partitioning Architecture AWare)
 #define VERBOSE                 // extra debug info printed out during runtime
 #define SAVE_COMM_COST      // store actual p2p communication based on partitioning
-#define DEBUG
+//#define DEBUG
 
 #include <mpi.h>
 #include <cstdio>
@@ -272,7 +272,7 @@ int main(int argc, char** argv) {
         fclose(fp);
     }
     
-
+    
     if(isVertexCentric) {
         VertexCentricSimulation::runSimulation(experiment_name, graph_file, part_method, bandwidth_file, partition->partitioning, partition_timer, partition_iterations, partition->num_vertices, simulation_iterations, edge_sim_steps, hedge_sim_steps, fake_compute_time, fake_compute_std, message_size, proportional_comm_cost);
         

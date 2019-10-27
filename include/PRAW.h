@@ -1436,6 +1436,8 @@ namespace PRAW {
         
         int max_stream_size = num_elements / num_processes + ((num_elements % num_processes > 0) ? 1 : 0);
         while(element_id < max_stream_size) {
+            
+
             int actual_window_size = 0;
             
             // data structures for batch synchronisation
@@ -1546,12 +1548,10 @@ namespace PRAW {
                             {
                                 int part = *it;
                                 if(part == pp) {
-                                    present_in_partition = true;
+                                    c_rep += 1;
                                     break;
                                 }
                             }
-                            // or use overlap
-                            c_rep += present_in_partition ? 1 : 0;
                         }
                         
                     }
@@ -1594,7 +1594,7 @@ namespace PRAW {
                     // we already updated seen_pins[].part_degree when we read the stream
                     seen_pins[pin_id].A.insert(element_mapping);
                 }
-                local_pins_size[idx] = new_pins;                    
+                local_pins_size[idx] = new_pins;                   
             }
             element_id += window_size;
 

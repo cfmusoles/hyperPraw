@@ -145,6 +145,7 @@ public:
         }
         MPI_Barrier(MPI_COMM_WORLD);
 
+
         // broadcast results to not participating processes
         MPI_Bcast(partitioning, num_elements, MPI_LONG, 0,MPI_COMM_WORLD);
 
