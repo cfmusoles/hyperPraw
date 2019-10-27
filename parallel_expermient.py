@@ -62,6 +62,21 @@ do
 	run_experiment "small_dense_powerlaw.hgr" $SEED $PROCESSES "parallelVertex" 1
 	run_experiment "large_sparse_uniform.hgr" $SEED $PROCESSES "parallelVertex" 1
 	run_experiment "large_sparse_powerlaw.hgr" $SEED $PROCESSES "parallelVertex" 1
+
+	run_experiment "small_dense_uniform.hgr" $SEED $PROCESSES "parallelVertex" 5
+	run_experiment "small_dense_powerlaw.hgr" $SEED $PROCESSES "parallelVertex" 5
+	run_experiment "large_sparse_uniform.hgr" $SEED $PROCESSES "parallelVertex" 5
+	run_experiment "large_sparse_powerlaw.hgr" $SEED $PROCESSES "parallelVertex" 5
+
+	run_experiment "small_dense_uniform.hgr" $SEED $PROCESSES "parallelVertex" 10
+	run_experiment "small_dense_powerlaw.hgr" $SEED $PROCESSES "parallelVertex" 10
+	run_experiment "large_sparse_uniform.hgr" $SEED $PROCESSES "parallelVertex" 10
+	run_experiment "large_sparse_powerlaw.hgr" $SEED $PROCESSES "parallelVertex" 10
+
+	run_experiment "small_dense_uniform.hgr" $SEED $PROCESSES "parallelVertex" 50
+	run_experiment "small_dense_powerlaw.hgr" $SEED $PROCESSES "parallelVertex" 50
+	run_experiment "large_sparse_uniform.hgr" $SEED $PROCESSES "parallelVertex" 50
+	run_experiment "large_sparse_powerlaw.hgr" $SEED $PROCESSES "parallelVertex" 50
 	PROCESSES=$(($PROCESSES * $FACTOR))
 	
 done
