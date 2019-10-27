@@ -1554,9 +1554,7 @@ namespace PRAW {
                                 }
                             }
                         }
-                        
                     }
-                    bool normalise = false;
                     double current_value = c_rep;
                     
                     if(current_value > max_value ||                                                 

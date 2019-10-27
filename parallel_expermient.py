@@ -62,9 +62,9 @@ do
 	#synthetic graphs
 	#run_experiment "small_dense_uniform.hgr" $SEED $PROCESSES "parallelVertex" 1
 	#run_experiment "small_dense_powerlaw.hgr" $SEED $PROCESSES "parallelVertex" 1
-	run_experiment "2cubes_sphere.mtx.hgr" $SEED 1 "parallelVertex" 1
-	run_experiment "ABACUS_shell_hd.mtx.hgr" $SEED 1 "parallelVertex" 1
-	run_experiment "sparsine.mtx.hgr" $SEED 1 "parallelVertex" 1
+	run_experiment "2cubes_sphere.mtx.hgr" $SEED $PROCESSES "parallelVertex" 1
+	run_experiment "ABACUS_shell_hd.mtx.hgr" $SEED $PROCESSES "parallelVertex" 1
+	run_experiment "sparsine.mtx.hgr" $SEED $PROCESSES "parallelVertex" 1
 
 	PROCESSES=$(($PROCESSES * $FACTOR))
 	
