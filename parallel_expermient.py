@@ -46,8 +46,10 @@ run_experiment() {
 
 # baseline strategy only run once
 SEED=$RANDOM
-#run_experiment "small_dense_uniform.hgr" $SEED 1 "baselineSequential" 1
-#run_experiment "small_dense_powerlaw.hgr" $SEED 1 "baselineSequential" 1
+run_experiment "small_dense_uniform.hgr" $SEED 1 "baselineSequential" 1
+run_experiment "small_dense_powerlaw.hgr" $SEED 1 "baselineSequential" 1
+run_experiment "large_sparse_uniform.hgr" $SEED 1 "baselineSequential" 1
+run_experiment "large_sparse_powerlaw.hgr" $SEED 1 "baselineSequential" 1
 run_experiment "2cubes_sphere.mtx.hgr" $SEED 1 "baselineSequential" 1
 run_experiment "ABACUS_shell_hd.mtx.hgr" $SEED 1 "baselineSequential" 1
 run_experiment "sparsine.mtx.hgr" $SEED 1 "baselineSequential" 1
@@ -60,8 +62,10 @@ for p in $(seq 1 $NUM_PARALLEL_EXPERIMENTS)
 do
 	SEED=$RANDOM
 	#synthetic graphs
-	#run_experiment "small_dense_uniform.hgr" $SEED $PROCESSES "parallelVertex" 1
-	#run_experiment "small_dense_powerlaw.hgr" $SEED $PROCESSES "parallelVertex" 1
+	run_experiment "small_dense_uniform.hgr" $SEED $PROCESSES "parallelVertex" 1
+	run_experiment "small_dense_powerlaw.hgr" $SEED $PROCESSES "parallelVertex" 1
+	run_experiment "large_sparse_uniform.hgr" $SEED $PROCESSES "parallelVertex" 1
+	run_experiment "large_sparse_powerlaw.hgr" $SEED $PROCESSES "parallelVertex" 1
 	run_experiment "2cubes_sphere.mtx.hgr" $SEED $PROCESSES "parallelVertex" 1
 	run_experiment "ABACUS_shell_hd.mtx.hgr" $SEED $PROCESSES "parallelVertex" 1
 	run_experiment "sparsine.mtx.hgr" $SEED $PROCESSES "parallelVertex" 1
