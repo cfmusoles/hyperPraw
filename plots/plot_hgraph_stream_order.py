@@ -10,9 +10,9 @@ import pandas as pd
 import numpy as np
 
 
-hgraphs_folder = '../resources/'
+hgraphs_folder = '../resources/synthetic_hgraphs/'
 #hgraph_files = ["atmosmodj.mtx.hgr","kkt_power.mtx.hgr","sat14_velev-vliw-uns-2.0-uq5.cnf.dual.hgr"]
-hgraph_files = ["shuffled_ABACUS_shell_hd.mtx.hgr"]#"sat14_itox_vc1130.cnf.dual.hgr","2cubes_sphere.mtx.hgr","ABACUS_shell_hd.mtx.hgr","sparsine.mtx.hgr","pdb1HYS.mtx.hgr","sat14_10pipe_q0_k.cnf.primal.hgr","sat14_E02F22.cnf.hgr","webbase-1M.mtx.hgr"]
+hgraph_files = ["inverted_small.hgr"]#"sat14_itox_vc1130.cnf.dual.hgr","2cubes_sphere.mtx.hgr","ABACUS_shell_hd.mtx.hgr","sparsine.mtx.hgr","pdb1HYS.mtx.hgr","sat14_10pipe_q0_k.cnf.primal.hgr","sat14_E02F22.cnf.hgr","webbase-1M.mtx.hgr"]
 total_colour = 'blue'
 unique_colour = 'orange'
 pins_scale = 10e-4
