@@ -1242,11 +1242,11 @@ namespace PRAW {
         long int* part_load = (long int*)calloc(num_processes,sizeof(long int));
 
         memset(part_load,0,num_processes * sizeof(long int));
-        double total_workload = 0;
+        /*double total_workload = 0;
         for(int ii=0; ii < num_vertices; ii++) {
             total_workload += vtx_wgt[ii];
-        }
-        double max_workload = total_workload / num_processes * imbalance_tolerance;
+        }*/
+        double max_workload = (double)num_vertices / num_processes * imbalance_tolerance;
         
         std::vector<std::set<int> > hyperedges_in_partition(num_processes);
 
@@ -1384,9 +1384,9 @@ namespace PRAW {
         // currently uses full graph knowledge (just number of elements)
         // assumes all elements have same workload (1)
         // TODO@ needs to account for batch sync update
-        long int max_expected_workload = num_elements / num_partitions * imbalance_tolerance - num_processes * window_size;
+        double max_expected_workload = (double)num_elements / num_partitions * imbalance_tolerance - (num_processes-1) * (double)window_size;
         if(max_expected_workload < 1) {
-            PRINTF("Graph is too small! Too many processes (max expected workload limit is %li)\n",max_expected_workload);
+            PRINTF("Graph is too small! Too many processes (max expected workload limit is %f)\n",max_expected_workload);
             return 0;
         }    
         
@@ -1558,7 +1558,7 @@ namespace PRAW {
                     double current_value = c_rep;
                     
                     if(current_value > max_value ||                                                 
-                                current_value == max_value && part_load[best_partition] > part_load[pp]) {
+                                (current_value == max_value && part_load[best_partition] > part_load[pp])) {
                         max_value = current_value;
                         best_partition = pp;
                     }
