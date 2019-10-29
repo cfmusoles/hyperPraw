@@ -1766,7 +1766,7 @@ namespace PRAW {
 
         
         // Parameters (from HDRF, Petroni 2015)
-        float lambda = 1.0f;
+        float lambda = 0.1f;
         
         int process_id;
         MPI_Comm_rank(partitioning_comm,&process_id);
@@ -1813,11 +1813,13 @@ namespace PRAW {
         // currently uses full graph knowledge (just number of elements)
         // assumes all elements have same workload (1)
         // TODO@ needs to account for batch sync update
-        long int max_expected_workload = num_elements / num_partitions * imbalance_tolerance - num_processes * window_size;
+        double max_expected_workload = (double)num_elements / num_partitions * imbalance_tolerance - (num_processes-1) * (double)window_size;
         if(max_expected_workload < 1) {
-            PRINTF("Graph is too small! Too many processes (max expected workload limit is %li)\n",max_expected_workload);
+            PRINTF("Graph is too small! Too many processes (max expected workload limit is %f)\n",max_expected_workload);
             return 0;
         }    
+        // each process should start partition assignment eval from its process_id (to avoid initial cramming of elements on initial partitions)
+        int start_process = (float)process_id / num_processes * num_partitions;  
         
         PRINTF("Found in file: Pins: %i; elements %i:\n",num_pins,num_elements);
 
@@ -1951,10 +1953,14 @@ namespace PRAW {
                 double max_value = std::numeric_limits<double>::lowest();
                 int best_partition = 0;
                 for(int pp=0; pp < num_partitions; pp++) {
-                    if(part_load[pp] >= max_expected_workload) {
+                    // each process should start from its process_id (to avoid initial cramming of elements on initial partitions)
+                    int current_part = start_process + pp;
+                    if(current_part >= num_partitions) current_part -= num_partitions;
+                    
+                    if(part_load[current_part] >= max_expected_workload) {
 #ifdef DEBUG
                         partition_filled++;
-                        filled_parts[pp] = true;
+                        filled_parts[current_part] = true;
 #endif
                         continue;
                     }
@@ -1967,10 +1973,10 @@ namespace PRAW {
                         for (it = seen_pins[pin_id].A.begin(); it != seen_pins[pin_id].A.end(); ++it)
                         {
                             int part = *it;
-                            present_in_partition |= part == pp;
+                            present_in_partition |= part == current_part;
                             // communication should be proportional to the duplication of pins
                             // if a pin is duplicated in two partitions, then communication will happen across those partitions
-                            c_comm += comm_cost_matrix[pp][part];
+                            c_comm += comm_cost_matrix[current_part][part];
                         }
 
                         // Use HDRF
@@ -1986,19 +1992,19 @@ namespace PRAW {
                         c_comm = 1- c_comm/(max_comm_cost * num_pins);
                         c_rep /= (num_pins*2);
 
-                        float c_bal = lambda * (maxsize - part_load[pp]) / (0.1 + maxsize - minsize);
+                        float c_bal = lambda * (maxsize - part_load[current_part]) / (0.1 + maxsize - minsize);
 
                         current_value = c_bal + c_rep + c_comm;
                     } else {
                         float c_bal = lambda * pow(part_load[pp],0.5f);
 
-                        current_value = c_rep;//-c_bal + c_rep - c_comm;
+                        current_value = -c_bal + c_rep - c_comm;
                     }
                     
                     if(current_value > max_value ||                                                 
-                                current_value == max_value && part_load[best_partition] > part_load[pp]) {
+                                current_value == max_value && part_load[best_partition] > part_load[current_part]) {
                         max_value = current_value;
-                        best_partition = pp;
+                        best_partition = current_part;
                     }
                 }
                 // HOW CAN RESULTS BE DIFFERENT BEWTEEN round robin streaming and batch streaming if the assignment is done randomly??
