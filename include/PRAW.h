@@ -1389,6 +1389,8 @@ namespace PRAW {
             PRINTF("Graph is too small! Too many processes (max expected workload limit is %f)\n",max_expected_workload);
             return 0;
         }    
+        // each process should start partition assignment eval from its process_id (to avoid initial cramming of elements on initial partitions)
+        int start_process = (float)process_id / num_processes * num_partitions;                
         
         PRINTF("Found in file: Pins: %i; elements %i:\n",num_pins,num_elements);
 
@@ -1522,9 +1524,8 @@ namespace PRAW {
                 //      sum 1 + (1-norm_part_degree(v)) if p exists in A(v)
                 double max_value = std::numeric_limits<double>::lowest();
                 int best_partition = 0;
-                // each process should start from its process_id (to avoid initial cramming of elements on initial partitions)
-                int start_process = (float)process_id / num_processes * num_partitions;
                 for(int pp=0; pp < num_partitions; pp++) {
+                    // each process should start from its process_id (to avoid initial cramming of elements on initial partitions)
                     int current_part = start_process + pp;
                     if(current_part >= num_partitions) current_part -= num_partitions;
                     if(part_load[current_part] >= max_expected_workload) {
