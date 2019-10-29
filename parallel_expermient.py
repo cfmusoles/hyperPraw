@@ -47,7 +47,6 @@ run_experiment() {
 # baseline strategy only run once
 SEED=$RANDOM
 run_experiment "small.hgr" $SEED 1 "baselineSequential" 1
-run_experiment "shuffled_2cubes_sphere.mtx.hgr" $SEED 1 "baselineSequential" 1
 #run_experiment "small_dense_uniform.hgr" $SEED 1 "baselineSequential" 1
 #run_experiment "small_dense_powerlaw.hgr" $SEED 1 "baselineSequential" 1
 #run_experiment "large_sparse_uniform.hgr" $SEED 1 "baselineSequential" 1
@@ -66,7 +65,6 @@ do
 	#synthetic graphs
 	#run_experiment "small_dense_uniform.hgr" $SEED $PROCESSES "parallelVertex" 1
 	run_experiment "small.hgr" $SEED $PROCESSES "parallelVertex" 1
-	run_experiment "shuffled_2cubes_sphere.mtx.hgr" $SEED $PROCESSES "parallelVertex" 1
 	#run_experiment "small_dense_powerlaw.hgr" $SEED $PROCESSES "parallelVertex" 1
 	#run_experiment "large_sparse_uniform.hgr" $SEED $PROCESSES "parallelVertex" 1
 	#run_experiment "large_sparse_powerlaw.hgr" $SEED $PROCESSES "parallelVertex" 1

@@ -1522,11 +1522,15 @@ namespace PRAW {
                 //      sum 1 + (1-norm_part_degree(v)) if p exists in A(v)
                 double max_value = std::numeric_limits<double>::lowest();
                 int best_partition = 0;
+                // each process should start from its process_id (to avoid initial cramming of elements on initial partitions)
+                int start_process = (float)process_id / num_processes * num_partitions;
                 for(int pp=0; pp < num_partitions; pp++) {
-                    if(part_load[pp] >= max_expected_workload) {
+                    int current_part = start_process + pp;
+                    if(current_part >= num_partitions) current_part -= num_partitions;
+                    if(part_load[current_part] >= max_expected_workload) {
 #ifdef DEBUG
                         partition_filled++;
-                        filled_parts[pp] = true;
+                        filled_parts[current_part] = true;
 #endif
                         continue;
                     }
@@ -1540,7 +1544,7 @@ namespace PRAW {
                             for (it = seen_pins[pin_id].A.begin(); it != seen_pins[pin_id].A.end(); ++it)
                             {
                                 int part = *it;
-                                present_in_partition |= part == pp;
+                                present_in_partition |= part == current_part;
                             }
 
                             c_rep += present_in_partition ? 1 + (1 - normalised_part_degrees[vv]) : 0;
@@ -1548,7 +1552,7 @@ namespace PRAW {
                             for (it = seen_pins[pin_id].A.begin(); it != seen_pins[pin_id].A.end(); ++it)
                             {
                                 int part = *it;
-                                if(part == pp) {
+                                if(part == current_part) {
                                     c_rep += 1;
                                     break;
                                 }
@@ -1558,9 +1562,9 @@ namespace PRAW {
                     double current_value = c_rep;
                     
                     if(current_value > max_value ||                                                 
-                                (current_value == max_value && part_load[best_partition] > part_load[pp])) {
+                                (current_value == max_value && part_load[best_partition] > part_load[current_part])) {
                         max_value = current_value;
-                        best_partition = pp;
+                        best_partition = current_part;
                     }
                 }
                 element_mapping = best_partition;
