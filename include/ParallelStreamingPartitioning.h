@@ -21,14 +21,15 @@ Determined by parameter element_is_vertex
 class ParallelStreamingPartitioning : public Partitioning {
 public:
 	
-	ParallelStreamingPartitioning(char* experimentName, char* graph_file, char* streamFile, int max_processes, float imbalance_tolerance, int windowSize, bool input_order,bool elementIsVertex) : Partitioning(graph_file,imbalance_tolerance,element_is_vertex) {
+	ParallelStreamingPartitioning(char* experimentName, char* graph_file, char* streamFile, int max_processes, float imbalance_tolerance, int windowSize, bool input_order,bool elementIsVertex, bool useHDRF, bool staggeredStreams) : Partitioning(graph_file,imbalance_tolerance,element_is_vertex) {
 		experiment_name = experimentName;
         stream_window_size = windowSize;
         stream_file = streamFile;
         input_order_round_robin = input_order;
         max_num_processes = max_processes;  
         element_is_vertex = elementIsVertex; 
-        use_hdrf = false; // TODO add parameter that can be passed     
+        use_hdrf = useHDRF;   
+        staggered_streams = staggeredStreams; 
 
         split_and_configure_stream();
 
@@ -134,7 +135,7 @@ public:
                 element_wgt[ii] = 1;
             }
             bool local_replica_degree_updates_only = false;
-            *iterations = PRAW::ParallelStreaming(experiment_name,partitioning, num_partitions, partitioning_comm, hgraph_part_file.c_str(), element_wgt, imbalance_tolerance,local_replica_degree_updates_only,stream_window_size,input_order_round_robin, use_hdrf);
+            *iterations = PRAW::ParallelStreaming(experiment_name,partitioning, num_partitions, partitioning_comm, hgraph_part_file.c_str(), element_wgt, imbalance_tolerance,local_replica_degree_updates_only,stream_window_size,input_order_round_robin, use_hdrf,staggered_streams);
 
             // clean up operations
             free(element_wgt);
@@ -163,6 +164,7 @@ private:
     bool is_active = true;
     bool element_is_vertex;
     bool use_hdrf = false;
+    bool staggered_streams = true;
 };
 
 

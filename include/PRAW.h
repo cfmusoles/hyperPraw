@@ -1330,7 +1330,7 @@ namespace PRAW {
 
 
     // Parallel version of Alistairh hypergraph streaming partitioning
-    int ParallelStreaming(char* experiment_name, idx_t* partitioning, int num_partitions, MPI_Comm partitioning_comm, std::string hypergraph_filename, int* element_wgt, float imbalance_tolerance, bool local_replica_degree_updates_only = false, int window_size = 1, bool input_order_round_robin = true, bool use_hdrf = false) {
+    int ParallelStreaming(char* experiment_name, idx_t* partitioning, int num_partitions, MPI_Comm partitioning_comm, std::string hypergraph_filename, int* element_wgt, float imbalance_tolerance, bool local_replica_degree_updates_only = false, int window_size = 1, bool input_order_round_robin = true, bool use_hdrf = false, bool staggered_streams=true) {
         // Parallel Hyperedge Partitioning based algorithm
         // Because it can be applied to both vertex and hyperedge partitionings, we adopt the following nomenclature:
         //      element: what each line in the stream represent
@@ -1525,9 +1525,17 @@ namespace PRAW {
                 double max_value = std::numeric_limits<double>::lowest();
                 int best_partition = 0;
                 for(int pp=0; pp < num_partitions; pp++) {
-                    // each process should start from its process_id (to avoid initial cramming of elements on initial partitions)
-                    int current_part = start_process + pp;
-                    if(current_part >= num_partitions) current_part -= num_partitions;
+                    // choose which partition to evaluate (per stream)
+                    int current_part;
+                    if(staggered_streams) {
+                        // each process should start from its process_id (to avoid initial cramming of elements on initial partitions)
+                        current_part = start_process + pp;
+                        if(current_part >= num_partitions) current_part -= num_partitions;
+
+                    } else {
+                        current_part = pp;
+                    }
+                    
                     if(part_load[current_part] >= max_expected_workload) {
 #ifdef DEBUG
                         partition_filled++;

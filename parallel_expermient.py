@@ -21,6 +21,7 @@ template_4='''
 # budget code
 #PBS -A e582
 
+REPETITIONS=1
 PARTITIONS='''
 template_5='''
 EXPERIMENT_NAME='''
@@ -31,6 +32,10 @@ template_7='''
 cd $PBS_O_WORKDIR
 
 # bandwidth matrix creation
+# bandwidth probing parameters
+SIZE=512
+ITERATIONS=20
+WINDOW=10
 #renaming is necessary to avoid clashes between simultaneous jobs
 ORIGINAL_BM_FILE="results_mpi_send_bandwidth_"$PROCESSES
 aprun -n $PROCESSES mpi_perf $SIZE $ITERATIONS $WINDOW
@@ -48,40 +53,51 @@ mv $ORIGINAL_BM_FILE $BM_FILE
 run_experiment() {
 	HYPERGRAPH_FILE="$1"
 	SEED="$2"
-	MAX_PROCESSES="$3"
-	PART="$4"
-	WINDOW_SIZE="$5"
 	E_SIM_STEPS=0
 	H_SIM_STEPS=0
 	GRAPH_STREAM="inverted_"$HYPERGRAPH_FILE
 
-	aprun -n $PARTITIONS hyperPraw -n $EXPERIMENT_NAME"_"$PART"_"$MAX_PROCESSES"_"$WINDOW_SIZE -h $HYPERGRAPH_FILE -i 100 -m 1200 -p $PART -t $E_SIM_STEPS -x $H_SIM_STEPS -s $SEED -k $MESSAGE_SIZE -e $GRAPH_STREAM -P -K $MAX_PROCESSES -g $WINDOW_SIZE -b $BM_FILE -W
-	sleep 1
+	# run baseline
+	#aprun -n $PARTITIONS hyperPraw -n $EXPERIMENT_NAME"_baselineSequential" -h $HYPERGRAPH_FILE -i 100 -m 1200 -p baselineSequential -t $E_SIM_STEPS -x $H_SIM_STEPS -s $SEED -k $MESSAGE_SIZE -e $GRAPH_STREAM -P -K $M_PROCESSES -g 1 -b $BM_FILE
+	#sleep 1
+
+	# run parallel versions
+	NUM_PARALLEL_EXPERIMENTS=2
+	MAX_PROCESSES="3"
+	FACTOR="2"
+	for p in $(seq 1 $NUM_PARALLEL_EXPERIMENTS)
+	do
+		# staggered vs non staggered streams
+		aprun -n $PARTITIONS hyperPraw -n $EXPERIMENT_NAME"_staggered_parallelVertex_"$M_PROCESSES -h $HYPERGRAPH_FILE -i 100 -m 1200 -p parallelVertex -t $E_SIM_STEPS -x $H_SIM_STEPS -s $SEED -k $MESSAGE_SIZE -e $GRAPH_STREAM -P -K $M_PROCESSES -g 1 -b $BM_FILE
+		sleep 1
+		aprun -n $PARTITIONS hyperPraw -n $EXPERIMENT_NAME"_nonStaggered_parallelVertex_"$M_PROCESSES -h $HYPERGRAPH_FILE -i 100 -m 1200 -p parallelVertex -t $E_SIM_STEPS -x $H_SIM_STEPS -s $SEED -k $MESSAGE_SIZE -e $GRAPH_STREAM -P -K $M_PROCESSES -g 1 -b $BM_FILE -E
+		sleep 1
+		# hdrf vs overlap
+		aprun -n $PARTITIONS hyperPraw -n $EXPERIMENT_NAME"_overlap_parallelVertex_"$M_PROCESSES -h $HYPERGRAPH_FILE -i 100 -m 1200 -p parallelVertex -t $E_SIM_STEPS -x $H_SIM_STEPS -s $SEED -k $MESSAGE_SIZE -e $GRAPH_STREAM -P -K $M_PROCESSES -g 1 -b $BM_FILE
+		sleep 1
+		aprun -n $PARTITIONS hyperPraw -n $EXPERIMENT_NAME"_hdrf_parallelVertex_"$M_PROCESSES -h $HYPERGRAPH_FILE -i 100 -m 1200 -p parallelVertex -t $E_SIM_STEPS -x $H_SIM_STEPS -s $SEED -k $MESSAGE_SIZE -e $GRAPH_STREAM -P -K $M_PROCESSES -g 1 -b $BM_FILE -F
+		sleep 1
+		# hyperPraw with vs without bandwidth
+		aprun -n $PARTITIONS hyperPraw -n $EXPERIMENT_NAME"_hyperPraw_default_"$M_PROCESSES -h $HYPERGRAPH_FILE -i 100 -m 1200 -p hyperPrawVertex -t $E_SIM_STEPS -x $H_SIM_STEPS -s $SEED -k $MESSAGE_SIZE -e $GRAPH_STREAM -P -K $M_PROCESSES -g 1 -b $BM_FILE
+		sleep 1
+		aprun -n $PARTITIONS hyperPraw -n $EXPERIMENT_NAME"_hyperPraw_bandwidth_"$M_PROCESSES -h $HYPERGRAPH_FILE -i 100 -m 1200 -p hyperPrawVertex -t $E_SIM_STEPS -x $H_SIM_STEPS -s $SEED -k $MESSAGE_SIZE -e $GRAPH_STREAM -P -K $M_PROCESSES -g 1 -b $BM_FILE -W
+		sleep 1
+
+		MAX_PROCESSES=$(($MAX_PROCESSES * $FACTOR))
+	done
+	
+
 }
 
-# baseline strategy only run once
-SEED=$RANDOM
-#run_experiment "small_dense_uniform.hgr" $SEED 1 "baselineSequential" 1
-#run_experiment "small_dense_powerlaw.hgr" $SEED 1 "baselineSequential" 1
-#run_experiment "large_sparse_uniform.hgr" $SEED 1 "baselineSequential" 1
-#run_experiment "large_sparse_powerlaw.hgr" $SEED 1 "baselineSequential" 1
 
-# run parallel versions
-NUM_PARALLEL_EXPERIMENTS=5
-PROCESSES="3"
-FACTOR="2"
-for p in $(seq 1 $NUM_PARALLEL_EXPERIMENTS)
+for p in $(seq 1 $REPETITIONS)
 do
 	SEED=$RANDOM
 	#synthetic graphs
-	run_experiment "small_dense_uniform.hgr" $SEED $PROCESSES "parallelVertex" 1
-	run_experiment "small_dense_powerlaw.hgr" $SEED $PROCESSES "parallelVertex" 1
-	run_experiment "small_dense_uniform.hgr" $SEED $PROCESSES "hyperPrawVertex" 1
-	run_experiment "small_dense_powerlaw.hgr" $SEED $PROCESSES "hyperPrawVertex" 1
-	#run_experiment "large_sparse_uniform.hgr" $SEED $PROCESSES "parallelVertex" 1
-	#run_experiment "large_sparse_powerlaw.hgr" $SEED $PROCESSES "parallelVertex" 1
-
-	PROCESSES=$(($PROCESSES * $FACTOR))
+	run_experiment "small_dense_uniform.hgr" $SEED 
+	run_experiment "small_dense_powerlaw.hgr" $SEED
+	#run_experiment "large_sparse_uniform.hgr" $SEED
+	#run_experiment "large_sparse_powerlaw.hgr" $SEED
 	
 done
 
