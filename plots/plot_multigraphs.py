@@ -33,7 +33,7 @@ graph_names = ["smallPL","smallU","largePL","largeU"]
 #graph_names = ["sat14 itox","2cubes","ABACUS","sparsine","pdb1HYS","sat14 atco dual","sat14 10pipe primal","sat14 E02F22","webbase-1M","ship 001"]
 # each element on the following arrays corresponds to an experiment run (collection of files)
 #experiments_name = [experiment_name +  "_zoltan_" + graph_name + "_zoltan",experiment_name + "_default_" + graph_name + "_prawS",experiment_name + "_bandwidth_" + graph_name + "_prawS"]#,experiment_name + "_refinement_" + graph_name + "_prawSref"]
-experiments_name = ["hdrf_parallelVertex_3","overlap_parallelVertex_3","hdrf_parallelVertex_6","overlap_parallelVertex_6"]#,"parallelVertex_24_1","parallelVertex_48_1"]
+experiments_name = ["hdrf_parallelVertex_3","overlap_parallelVertex_3"]#,"hdrf_parallelVertex_6","overlap_parallelVertex_6"]#,"parallelVertex_24_1","parallelVertex_48_1"]
 experiments_partitioning = ["parallelVertex","parallelVertex","parallelVertex","parallelVertex","parallelVertex","parallelVertex"]
 colours = ["black","tomato","yellow","seagreen","red","blue"] # as many as the number of experiments included
 patterns = ["//" , "||" , "--" , "xx" , "//" , "||" ]
