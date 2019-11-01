@@ -112,7 +112,7 @@ int main(int argc, char** argv) {
     extern char *optarg;
 	extern int optind, opterr, optopt;
 	int c;
-	while( (c = getopt(argc,argv,"n:h:i:m:b:Ws:p:t:k:o:c:r:Hq:x:f:u:Pg:e:EBK:")) != -1 ) {
+	while( (c = getopt(argc,argv,"n:h:i:m:b:Ws:p:t:k:o:c:r:Hq:x:f:u:Pg:e:EBK:F")) != -1 ) {
 		switch(c) {
 			case 'n': // test name
 				experiment_name = optarg;
