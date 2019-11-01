@@ -22,7 +22,7 @@ template_4='''
 #PBS -A e582
 
 REPETITIONS=1
-PARTITIONS='''
+PROCESSES='''
 template_5='''
 EXPERIMENT_NAME='''
 template_6='''
@@ -58,7 +58,7 @@ run_experiment() {
 	GRAPH_STREAM="inverted_"$HYPERGRAPH_FILE
 
 	# run baseline
-	#aprun -n $PARTITIONS hyperPraw -n $EXPERIMENT_NAME"_baselineSequential" -h $HYPERGRAPH_FILE -i 100 -m 1200 -p baselineSequential -t $E_SIM_STEPS -x $H_SIM_STEPS -s $SEED -k $MESSAGE_SIZE -e $GRAPH_STREAM -P -K $M_PROCESSES -g 1 -b $BM_FILE
+	#aprun -n $PROCESSES hyperPraw -n $EXPERIMENT_NAME"_baselineSequential" -h $HYPERGRAPH_FILE -i 100 -m 1200 -p baselineSequential -t $E_SIM_STEPS -x $H_SIM_STEPS -s $SEED -k $MESSAGE_SIZE -e $GRAPH_STREAM -P -K $MAX_PROCESSES -g 1 -b $BM_FILE
 	#sleep 1
 
 	# run parallel versions
@@ -68,19 +68,19 @@ run_experiment() {
 	for p in $(seq 1 $NUM_PARALLEL_EXPERIMENTS)
 	do
 		# staggered vs non staggered streams
-		aprun -n $PARTITIONS hyperPraw -n $EXPERIMENT_NAME"_staggered_parallelVertex_"$M_PROCESSES -h $HYPERGRAPH_FILE -i 100 -m 1200 -p parallelVertex -t $E_SIM_STEPS -x $H_SIM_STEPS -s $SEED -k $MESSAGE_SIZE -e $GRAPH_STREAM -P -K $M_PROCESSES -g 1 -b $BM_FILE
+		aprun -n $PROCESSES hyperPraw -n $EXPERIMENT_NAME"_staggered_parallelVertex_"$MAX_PROCESSES -h $HYPERGRAPH_FILE -i 100 -m 1200 -p parallelVertex -t $E_SIM_STEPS -x $H_SIM_STEPS -s $SEED -k $MESSAGE_SIZE -e $GRAPH_STREAM -P -K $MAX_PROCESSES -g 1 -b $BM_FILE
 		sleep 1
-		aprun -n $PARTITIONS hyperPraw -n $EXPERIMENT_NAME"_nonStaggered_parallelVertex_"$M_PROCESSES -h $HYPERGRAPH_FILE -i 100 -m 1200 -p parallelVertex -t $E_SIM_STEPS -x $H_SIM_STEPS -s $SEED -k $MESSAGE_SIZE -e $GRAPH_STREAM -P -K $M_PROCESSES -g 1 -b $BM_FILE -E
+		aprun -n $PROCESSES hyperPraw -n $EXPERIMENT_NAME"_nonStaggered_parallelVertex_"$MAX_PROCESSES -h $HYPERGRAPH_FILE -i 100 -m 1200 -p parallelVertex -t $E_SIM_STEPS -x $H_SIM_STEPS -s $SEED -k $MESSAGE_SIZE -e $GRAPH_STREAM -P -K $MAX_PROCESSES -g 1 -b $BM_FILE -E
 		sleep 1
 		# hdrf vs overlap
-		aprun -n $PARTITIONS hyperPraw -n $EXPERIMENT_NAME"_overlap_parallelVertex_"$M_PROCESSES -h $HYPERGRAPH_FILE -i 100 -m 1200 -p parallelVertex -t $E_SIM_STEPS -x $H_SIM_STEPS -s $SEED -k $MESSAGE_SIZE -e $GRAPH_STREAM -P -K $M_PROCESSES -g 1 -b $BM_FILE
+		aprun -n $PROCESSES hyperPraw -n $EXPERIMENT_NAME"_overlap_parallelVertex_"$MAX_PROCESSES -h $HYPERGRAPH_FILE -i 100 -m 1200 -p parallelVertex -t $E_SIM_STEPS -x $H_SIM_STEPS -s $SEED -k $MESSAGE_SIZE -e $GRAPH_STREAM -P -K $MAX_PROCESSES -g 1 -b $BM_FILE
 		sleep 1
-		aprun -n $PARTITIONS hyperPraw -n $EXPERIMENT_NAME"_hdrf_parallelVertex_"$M_PROCESSES -h $HYPERGRAPH_FILE -i 100 -m 1200 -p parallelVertex -t $E_SIM_STEPS -x $H_SIM_STEPS -s $SEED -k $MESSAGE_SIZE -e $GRAPH_STREAM -P -K $M_PROCESSES -g 1 -b $BM_FILE -F
+		aprun -n $PROCESSES hyperPraw -n $EXPERIMENT_NAME"_hdrf_parallelVertex_"$MAX_PROCESSES -h $HYPERGRAPH_FILE -i 100 -m 1200 -p parallelVertex -t $E_SIM_STEPS -x $H_SIM_STEPS -s $SEED -k $MESSAGE_SIZE -e $GRAPH_STREAM -P -K $MAX_PROCESSES -g 1 -b $BM_FILE -F
 		sleep 1
 		# hyperPraw with vs without bandwidth
-		aprun -n $PARTITIONS hyperPraw -n $EXPERIMENT_NAME"_hyperPraw_default_"$M_PROCESSES -h $HYPERGRAPH_FILE -i 100 -m 1200 -p hyperPrawVertex -t $E_SIM_STEPS -x $H_SIM_STEPS -s $SEED -k $MESSAGE_SIZE -e $GRAPH_STREAM -P -K $M_PROCESSES -g 1 -b $BM_FILE
+		aprun -n $PROCESSES hyperPraw -n $EXPERIMENT_NAME"_hyperPraw_default_"$MAX_PROCESSES -h $HYPERGRAPH_FILE -i 100 -m 1200 -p hyperPrawVertex -t $E_SIM_STEPS -x $H_SIM_STEPS -s $SEED -k $MESSAGE_SIZE -e $GRAPH_STREAM -P -K $MAX_PROCESSES -g 1 -b $BM_FILE
 		sleep 1
-		aprun -n $PARTITIONS hyperPraw -n $EXPERIMENT_NAME"_hyperPraw_bandwidth_"$M_PROCESSES -h $HYPERGRAPH_FILE -i 100 -m 1200 -p hyperPrawVertex -t $E_SIM_STEPS -x $H_SIM_STEPS -s $SEED -k $MESSAGE_SIZE -e $GRAPH_STREAM -P -K $M_PROCESSES -g 1 -b $BM_FILE -W
+		aprun -n $PROCESSES hyperPraw -n $EXPERIMENT_NAME"_hyperPraw_bandwidth_"$MAX_PROCESSES -h $HYPERGRAPH_FILE -i 100 -m 1200 -p hyperPrawVertex -t $E_SIM_STEPS -x $H_SIM_STEPS -s $SEED -k $MESSAGE_SIZE -e $GRAPH_STREAM -P -K $MAX_PROCESSES -g 1 -b $BM_FILE -W
 		sleep 1
 
 		MAX_PROCESSES=$(($MAX_PROCESSES * $FACTOR))
