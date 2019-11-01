@@ -60,18 +60,20 @@ run_experiment() {
 	# run baseline
 	#aprun -n $PROCESSES hyperPraw -n $EXPERIMENT_NAME"_baselineSequential" -h $HYPERGRAPH_FILE -i 100 -m 1200 -p baselineSequential -t $E_SIM_STEPS -x $H_SIM_STEPS -s $SEED -k $MESSAGE_SIZE -e $GRAPH_STREAM -P -K $MAX_PROCESSES -g 1 -b $BM_FILE
 	#sleep 1
+	aprun -n $PROCESSES hyperPraw -n $EXPERIMENT_NAME"_parallelVertex_1" -h $HYPERGRAPH_FILE -i 100 -m 1200 -p parallelVertex -t $E_SIM_STEPS -x $H_SIM_STEPS -s $SEED -k $MESSAGE_SIZE -e $GRAPH_STREAM -P -K $MAX_PROCESSES -g 1 -b $BM_FILE
+	sleep 1
 
 	# run parallel versions
-	NUM_PARALLEL_EXPERIMENTS=2
+	NUM_PARALLEL_EXPERIMENTS=5
 	MAX_PROCESSES="3"
 	FACTOR="2"
 	for p in $(seq 1 $NUM_PARALLEL_EXPERIMENTS)
 	do
 		# staggered vs non staggered streams
-		#aprun -n $PROCESSES hyperPraw -n $EXPERIMENT_NAME"_staggered_parallelVertex_"$MAX_PROCESSES -h $HYPERGRAPH_FILE -i 100 -m 1200 -p parallelVertex -t $E_SIM_STEPS -x $H_SIM_STEPS -s $SEED -k $MESSAGE_SIZE -e $GRAPH_STREAM -P -K $MAX_PROCESSES -g 1 -b $BM_FILE
-		#sleep 1
-		#aprun -n $PROCESSES hyperPraw -n $EXPERIMENT_NAME"_nonStaggered_parallelVertex_"$MAX_PROCESSES -h $HYPERGRAPH_FILE -i 100 -m 1200 -p parallelVertex -t $E_SIM_STEPS -x $H_SIM_STEPS -s $SEED -k $MESSAGE_SIZE -e $GRAPH_STREAM -P -K $MAX_PROCESSES -g 1 -b $BM_FILE -E
-		#sleep 1
+		aprun -n $PROCESSES hyperPraw -n $EXPERIMENT_NAME"_staggered_parallelVertex_"$MAX_PROCESSES -h $HYPERGRAPH_FILE -i 100 -m 1200 -p parallelVertex -t $E_SIM_STEPS -x $H_SIM_STEPS -s $SEED -k $MESSAGE_SIZE -e $GRAPH_STREAM -P -K $MAX_PROCESSES -g 1 -b $BM_FILE
+		sleep 1
+		aprun -n $PROCESSES hyperPraw -n $EXPERIMENT_NAME"_nonStaggered_parallelVertex_"$MAX_PROCESSES -h $HYPERGRAPH_FILE -i 100 -m 1200 -p parallelVertex -t $E_SIM_STEPS -x $H_SIM_STEPS -s $SEED -k $MESSAGE_SIZE -e $GRAPH_STREAM -P -K $MAX_PROCESSES -g 1 -b $BM_FILE -E
+		sleep 1
 		# hdrf vs overlap
 		aprun -n $PROCESSES hyperPraw -n $EXPERIMENT_NAME"_overlap_parallelVertex_"$MAX_PROCESSES -h $HYPERGRAPH_FILE -i 100 -m 1200 -p parallelVertex -t $E_SIM_STEPS -x $H_SIM_STEPS -s $SEED -k $MESSAGE_SIZE -e $GRAPH_STREAM -P -K $MAX_PROCESSES -g 1 -b $BM_FILE
 		sleep 1
@@ -96,8 +98,8 @@ do
 	#synthetic graphs
 	run_experiment "small_dense_uniform.hgr" $SEED 
 	run_experiment "small_dense_powerlaw.hgr" $SEED
-	#run_experiment "large_sparse_uniform.hgr" $SEED
-	#run_experiment "large_sparse_powerlaw.hgr" $SEED
+	run_experiment "large_sparse_uniform.hgr" $SEED
+	run_experiment "large_sparse_powerlaw.hgr" $SEED
 	
 done
 

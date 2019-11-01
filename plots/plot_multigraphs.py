@@ -25,19 +25,19 @@ show_annotations = False
 # "webbase-1M.mtx.hgr" $SEED 1 1 #Y
 # "ship_001.mtx.hgr" $SEED 1 30 #Y # hedge sim is too short
 
-folder = "../results/streaming/"
-experiment_name = "stream"
-graphs = ["small_dense_powerlaw.hgr","small_dense_uniform.hgr","large_sparse_powerlaw.hgr","large_sparse_uniform.hgr"]
+folder = "../results/smoke/"
+experiment_name = "smoke"
+graphs = ["small_dense_powerlaw.hgr","small_dense_uniform.hgr"]#,"large_sparse_powerlaw.hgr","large_sparse_uniform.hgr"]
 graph_names = ["smallPL","smallU","largePL","largeU"]
 #graphs = ["sat14_itox_vc1130.cnf.dual.hgr","2cubes_sphere.mtx.hgr","ABACUS_shell_hd.mtx.hgr","sparsine.mtx.hgr","pdb1HYS.mtx.hgr","sat14_atco_enc1_opt1_05_21.cnf.dual.hgr","sat14_10pipe_q0_k.cnf.primal.hgr","sat14_E02F22.cnf.hgr","webbase-1M.mtx.hgr","ship_001.mtx.hgr"]
 #graph_names = ["sat14 itox","2cubes","ABACUS","sparsine","pdb1HYS","sat14 atco dual","sat14 10pipe primal","sat14 E02F22","webbase-1M","ship 001"]
 # each element on the following arrays corresponds to an experiment run (collection of files)
 #experiments_name = [experiment_name +  "_zoltan_" + graph_name + "_zoltan",experiment_name + "_default_" + graph_name + "_prawS",experiment_name + "_bandwidth_" + graph_name + "_prawS"]#,experiment_name + "_refinement_" + graph_name + "_prawSref"]
-experiments_name = ["baselineSequential_1_1","parallelVertex_3_1","parallelVertex_6_1","parallelVertex_12_1","parallelVertex_24_1","parallelVertex_48_1"]
-experiments_partitioning = ["baselineSequential","parallelVertex","parallelVertex","parallelVertex","parallelVertex","parallelVertex"]
+experiments_name = ["hdrf_parallelVertex_3","overlap_parallelVertex_3","hdrf_parallelVertex_6","overlap_parallelVertex_6"]#,"parallelVertex_24_1","parallelVertex_48_1"]
+experiments_partitioning = ["parallelVertex","parallelVertex","parallelVertex","parallelVertex","parallelVertex","parallelVertex"]
 colours = ["black","tomato","yellow","seagreen","red","blue"] # as many as the number of experiments included
 patterns = ["//" , "||" , "--" , "xx" , "//" , "||" ]
-legend_labels = ['Baseline','Praw-3','Praw-6','Praw-12','Praw-24','Praw-48']
+legend_labels = ['hdrf-3','overlap-3','hdrf-6','overlap-6','Praw-24','Praw-48']
 
 # Each element on the following arrays corresponds to a column in columns_to_plot
 columns_to_plot = [0,3,5,6]#,9,10,11]
