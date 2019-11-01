@@ -31,7 +31,7 @@ public:
         stream_file = streamFile;
         input_order_round_robin = input_order;
         max_num_processes = max_processes;   
-        element_is_vertex = elementIsVertex;     
+        element_is_vertex = elementIsVertex;   
 
         split_and_configure_stream();
 

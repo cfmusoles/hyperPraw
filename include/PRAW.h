@@ -1330,7 +1330,7 @@ namespace PRAW {
 
 
     // Parallel version of Alistairh hypergraph streaming partitioning
-    int ParallelStreaming(char* experiment_name, idx_t* partitioning, int num_partitions, MPI_Comm partitioning_comm, std::string hypergraph_filename, int* element_wgt, float imbalance_tolerance, bool local_replica_degree_updates_only = false, int window_size = 1, bool input_order_round_robin = true, bool use_hdrf = false, bool staggered_streams=true) {
+    int ParallelStreaming(char* experiment_name, idx_t* partitioning, int num_partitions, MPI_Comm partitioning_comm, std::string hypergraph_filename, int* element_wgt, float imbalance_tolerance, bool local_replica_degree_updates_only = false, int window_size = 1, bool input_order_round_robin = true, bool use_hdrf = false, bool staggered_streams=true, bool use_balance_cost = false, float lambda = 1.0f) {
         // Parallel Hyperedge Partitioning based algorithm
         // Because it can be applied to both vertex and hyperedge partitionings, we adopt the following nomenclature:
         //      element: what each line in the stream represent
@@ -1568,7 +1568,11 @@ namespace PRAW {
                             }
                         }
                     }
+
                     double current_value = c_rep;
+                    if(use_balance_cost) {
+                        current_value -= lambda * pow(part_load[pp],0.5f);
+                    }
                     
                     if(current_value > max_value ||                                                 
                                 (current_value == max_value && part_load[best_partition] > part_load[current_part])) {

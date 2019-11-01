@@ -94,7 +94,7 @@ int main(int argc, char** argv) {
     int message_size = 1;
     int stopping_condition = 0;
     bool proportional_comm_cost = false;
-    float ta_refinement = 1.0f;
+    float ta_lambda = 1.0f;
     bool save_partitioning_history = false;
     int simulation_iterations = 1;
     int hedge_sim_steps = 0;
@@ -106,13 +106,14 @@ int main(int argc, char** argv) {
     bool use_staggered_streams = true;
     bool use_hdrf_stream = false;
     bool input_order_round_robin = true;
+    bool use_balance_cost = false;
     int max_processes = num_processes;
 
     // getting command line parameters
     extern char *optarg;
 	extern int optind, opterr, optopt;
 	int c;
-	while( (c = getopt(argc,argv,"n:h:i:m:b:Ws:p:t:k:o:c:r:Hq:x:f:u:Pg:e:EBK:F")) != -1 ) {
+	while( (c = getopt(argc,argv,"n:h:i:m:b:Ws:p:t:k:o:c:r:Hq:x:f:u:Pg:e:ERK:FB")) != -1 ) {
 		switch(c) {
 			case 'n': // test name
 				experiment_name = optarg;
@@ -150,8 +151,8 @@ int main(int argc, char** argv) {
             case 'c': // type of comm cost mapping
 				proportional_comm_cost = atoi(optarg) == 1;
 				break;
-            case 'r': // tempering alpha when within imbalance tolerance
-				ta_refinement = atoi(optarg) * 0.001f;
+            case 'r': // tempering alpha (for sequentialVertex) / lambda (for streaming) when within imbalance tolerance
+				ta_lambda = atoi(optarg) * 0.001f;
 				break;
 			case 'H': // save streaming partitioning history
 				save_partitioning_history = true;
@@ -183,8 +184,11 @@ int main(int argc, char** argv) {
             case 'F': // use HDRF in stream partitioning
 				use_hdrf_stream = true;
 				break;
-            case 'B': // input order as bulk
+            case 'R': // input order as bulk
 				input_order_round_robin = false;
+				break;
+            case 'B': // use balance cost in allocation evaluation
+				use_balance_cost = true;
 				break;
             case 'K': // maximum number of processes to use for the partitioning algorithm (supported in rHDRF)
 				max_processes = atoi(optarg);
@@ -217,15 +221,15 @@ int main(int argc, char** argv) {
         isVertexCentric = true;
 	} else if(strcmp(part_method,"parallelVertex") == 0) {  
 		PRINTF("%i: Partitioning: parallel vertex streaming\n",process_id);
-        partition = new ParallelStreamingPartitioning(experiment_name,graph_file,stream_file,max_processes,imbalance_tolerance,sync_batch_size,input_order_round_robin,true,use_hdrf_stream,use_staggered_streams);
+        partition = new ParallelStreamingPartitioning(experiment_name,graph_file,stream_file,max_processes,imbalance_tolerance,sync_batch_size,input_order_round_robin,true,use_hdrf_stream,use_staggered_streams,use_balance_cost,ta_lambda);
         isVertexCentric = true;
 	} else if(strcmp(part_method,"parallelHyperedge") == 0) {  
 		PRINTF("%i: Partitioning: parallel hyperedge streaming\n",process_id);
-        partition = new ParallelStreamingPartitioning(experiment_name,graph_file,stream_file,max_processes,imbalance_tolerance,sync_batch_size,input_order_round_robin,false,use_hdrf_stream,use_staggered_streams);
+        partition = new ParallelStreamingPartitioning(experiment_name,graph_file,stream_file,max_processes,imbalance_tolerance,sync_batch_size,input_order_round_robin,false,use_hdrf_stream,use_staggered_streams,use_balance_cost,ta_lambda);
         isVertexCentric = false;
 	} else if(strcmp(part_method,"sequentialVertex") == 0) {  
 		PRINTF("%i: Partitioning: sequential vertex partitioning\n",process_id);
-		partition = new SequentialVertexPartitioning(experiment_name,graph_file,imbalance_tolerance,ta_refinement,max_iterations,bandwidth_file,use_bandwidth_in_partitioning,true,stopping_condition,proportional_comm_cost,save_partitioning_history);
+		partition = new SequentialVertexPartitioning(experiment_name,graph_file,imbalance_tolerance,ta_lambda,max_iterations,bandwidth_file,use_bandwidth_in_partitioning,true,stopping_condition,proportional_comm_cost,save_partitioning_history);
 	    isVertexCentric = true;
 	} else if(strcmp(part_method,"baselineSequential") == 0) {  
 		PRINTF("%i: Partitioning: baseline Alistairh sequential vertex partitioning\n",process_id);
