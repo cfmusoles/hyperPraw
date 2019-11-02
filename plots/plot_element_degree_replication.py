@@ -7,17 +7,16 @@ import pandas as pd
 import numpy as np
 
 
-hgraphs_folder = '../resources/'
-#hgraph_files = ["atmosmodj.mtx.hgr","kkt_power.mtx.hgr","sat14_velev-vliw-uns-2.0-uq5.cnf.dual.hgr"]
-hgraph_files = ["random_power_law.hgr"]#["2cubes_sphere.mtx.hgr","ABACUS_shell_hd.mtx.hgr","sparsine.mtx.hgr","sat14_10pipe_q0_k.cnf.primal.hgr","webbase-1M.mtx.hgr"]
-experiment_folder = "../results/"
-experiment_prefix = 'test_overlap'
-partition = 'rHDRF'
-num_processes = 12
+hgraphs_folder = '../resources/synthetic_hgraphs/'
+hgraph_files = ["small_dense_powerlaw.hgr","small_dense_uniform.hgr","large_sparse_powerlaw.hgr","large_sparse_uniform.hgr"]
+experiment_folder = "../results/streams/"
+experiment_prefix = 'streams_hdrf_parallelVertex_1'
+partition = 'parallelVertex'
+num_processes = 96
 
-storePlot = False
+storePlot = True
 image_format = 'pdf'
-image_names = ["rHDRF_" + str(i) for i,v in enumerate(hgraph_files)]
+image_names = ["a_" + str(i) for i,v in enumerate(hgraph_files)]
 
 for i,hgraph in enumerate(hgraph_files):
     hgraph_file = hgraphs_folder + hgraph
@@ -46,9 +45,22 @@ for i,hgraph in enumerate(hgraph_files):
 
     df = pd.DataFrame({'Pin degrees' : pin_degrees, 'Replicated' : replicated})
 
+    #df = pd.DataFrame({'count': df.groupby(['Pin degrees','Replicated']).size()})
+    v = df.groupby('Pin degrees').Replicated.value_counts().unstack()
+    v = v.fillna(0)
+    ratios = (v.T.iloc[1]) / (v.T.iloc[0] + v.T.iloc[1])
+    df = pd.DataFrame(ratios,columns=['count'])
+
+    ratios.plot()
+    if storePlot:
+        plt.savefig(image_names[i]+"."+ image_format,format=image_format,dpi=1000)
+    plt.show()
+
+    continue
+
     g = sns.catplot( x="Replicated", y="Pin degrees", data=df, legend=False, kind='violin')
     #ax = g.fig.get_axes()[0].set_yscale('log')
 
     if storePlot:
-        plt.savefig(image_names[i]+ image_format,format=image_format,dpi=1000)
+        plt.savefig(image_names[i]+"."+ image_format,format=image_format,dpi=1000)
     plt.show()

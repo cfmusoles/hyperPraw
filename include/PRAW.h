@@ -1518,6 +1518,8 @@ namespace PRAW {
                             }  
                         );
                     }
+
+
                 }
             
                 // calculate C_rep(he) per partition per vertex

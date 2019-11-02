@@ -25,27 +25,27 @@ show_annotations = False
 # "webbase-1M.mtx.hgr" $SEED 1 1 #Y
 # "ship_001.mtx.hgr" $SEED 1 30 #Y # hedge sim is too short
 
-folder = "../results/smoke/"
-experiment_name = "smoke"
-graphs = ["small_dense_powerlaw.hgr","small_dense_uniform.hgr"]#,"large_sparse_powerlaw.hgr","large_sparse_uniform.hgr"]
+folder = "../results/streams/"
+experiment_name = "streams"
+graphs = ["small_dense_powerlaw.hgr","small_dense_uniform.hgr","large_sparse_powerlaw.hgr","large_sparse_uniform.hgr"]
 graph_names = ["smallPL","smallU","largePL","largeU"]
 #graphs = ["sat14_itox_vc1130.cnf.dual.hgr","2cubes_sphere.mtx.hgr","ABACUS_shell_hd.mtx.hgr","sparsine.mtx.hgr","pdb1HYS.mtx.hgr","sat14_atco_enc1_opt1_05_21.cnf.dual.hgr","sat14_10pipe_q0_k.cnf.primal.hgr","sat14_E02F22.cnf.hgr","webbase-1M.mtx.hgr","ship_001.mtx.hgr"]
 #graph_names = ["sat14 itox","2cubes","ABACUS","sparsine","pdb1HYS","sat14 atco dual","sat14 10pipe primal","sat14 E02F22","webbase-1M","ship 001"]
 # each element on the following arrays corresponds to an experiment run (collection of files)
 #experiments_name = [experiment_name +  "_zoltan_" + graph_name + "_zoltan",experiment_name + "_default_" + graph_name + "_prawS",experiment_name + "_bandwidth_" + graph_name + "_prawS"]#,experiment_name + "_refinement_" + graph_name + "_prawSref"]
-experiments_name = ["hdrf_parallelVertex_3","overlap_parallelVertex_3"]#,"hdrf_parallelVertex_6","overlap_parallelVertex_6"]#,"parallelVertex_24_1","parallelVertex_48_1"]
-experiments_partitioning = ["parallelVertex","parallelVertex","parallelVertex","parallelVertex","parallelVertex","parallelVertex"]
-colours = ["black","tomato","yellow","seagreen","red","blue"] # as many as the number of experiments included
-patterns = ["//" , "||" , "--" , "xx" , "//" , "||" ]
-legend_labels = ['hdrf-3','overlap-3','hdrf-6','overlap-6','Praw-24','Praw-48']
+experiments_name = ["overlap_parallelVertex_1","overlap_parallelVertex_2","overlap_parallelVertex_4","overlap_parallelVertex_8","overlap_parallelVertex_16","overlap_parallelVertex_32","overlap_parallelVertex_64"]
+experiments_partitioning = ["parallelVertex","parallelVertex","parallelVertex","parallelVertex","parallelVertex","parallelVertex","parallelVertex"]
+colours = ["black","tomato","yellow","seagreen","red","blue","pink"] # as many as the number of experiments included
+patterns = ["//" , "||" , "--" , "xx" , "//" , "||","--"  ]
+legend_labels = ['sequential','2 streams','4 streams','8 streams','16 streams','32 streams','64 streams']
 
 # Each element on the following arrays corresponds to a column in columns_to_plot
 columns_to_plot = [0,3,5,6]#,9,10,11]
 reference_values = [0,2,1,6,7,8,3,1,1] # used to take values on each column divided by these
 use_ref_values = False
-scale_plots = [1,1,1e-6,1e-3,1,1,1,1]
+scale_plots = [1,1,1e-6,1e-6,1,1,1,1]
 plot_title = ["Partition time","Hyperedge cut","SOED","Absorption"]
-plot_ylabel = ["Time(s)","Cut ratio","SOED (millions)","Absorption (thousands)"]
+plot_ylabel = ["Time(s)","Cut ratio","SOED (millions)","Absorption (millions)"]
 image_format = 'pdf'
 plot_name = ["a_" + str(x) for x in range(len(columns_to_plot))] #["a1","a2","a3","a4","a5","a6","a7"]
 
@@ -59,7 +59,7 @@ fig_settings = {
         'lines.linewidth': 0.5,
         'axes.linewidth': 0.5,
         'axes.labelsize': 'medium',
-        'legend.fontsize': 'medium',
+        'legend.fontsize': 'small',
         'font.size': 18,
         'savefig.dpi': 200,
 		'figure.figsize': {13.6,6}
@@ -106,8 +106,8 @@ def plot(x,y, error,title,ylabel,name,colour,pattern,legend,show,global_counter)
 			plt.annotate(a,(xi,yi),textcoords='offset points',xytext=(10,10),ha='center')
 
 	if len(graphs) > 1:
-		plt.legend(loc='upper center', bbox_to_anchor=(0.5, 1.15),
-          ncol=len(experiments_name), fancybox=True)
+		plt.legend(loc='best', bbox_to_anchor=(0.5, 1.15),
+          ncol=int(len(experiments_name)/2), fancybox=True)
 	if show:
 		savepdfviasvg(name)
 		#plt.savefig(name + "." + image_format,format=image_format,dpi=1000)

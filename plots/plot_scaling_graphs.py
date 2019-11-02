@@ -6,16 +6,19 @@ import matplotlib.pyplot as plt
 import matplotlib.patches as mpatches
 
 geometric_scaling = True
-min_num_processes = 144
+min_num_processes = 1
 # for linear scaling of processors
 max_num_processes = 288
 process_step = 32
 #for geometric scaling of processors
-num_experiments = 1
-geometric_step = 4
+num_experiments = 7
+geometric_step = 2
+# for parallel streams partitioning ( where the number of streams != number of processes)
+num_processes = 96
 
 show_error = True
-as_bar_plot = True
+as_bar_plot = False
+show_title = True
 
 # "sat14_E02F20.cnf.hgr" $SEED 8 #Y
 # "sat14_itox_vc1130.cnf.dual.hgr" $SEED 2 #Y for esim
@@ -31,22 +34,24 @@ as_bar_plot = True
 # "webbase-1M.mtx.hgr" $SEED 1 1 #Y
 # "ship_001.mtx.hgr" $SEED 1 30 #Y # hedge sim is too short
 
-folder = "../results/runtime/"
-experiment_name = "runtime"
-graph_name = "sat14_itox_vc1130.cnf.dual.hgr"
+folder = "../results/streams/"
+experiment_name = "streams"
+graph_name = "large_sparse_uniform.hgr"
 # each element on the following arrays corresponds to an experiment run (collection of files)
-experiments = [experiment_name +  "_zoltan_" + graph_name + "_zoltan",experiment_name + "_default_" + graph_name + "_prawS",experiment_name + "_bandwidth_" + graph_name + "_prawS",experiment_name + "_refinement_" + graph_name + "_prawSref"]
+experiments = ["staggered_overlap_lambda0011_parallelVertex_{}","staggered_overlap_lambda01_parallelVertex_{}","staggered_overlap_lambda1_parallelVertex_{}","staggered_parallelVertex_{}"]
+experiments_partitioning = ["parallelVertex","parallelVertex","parallelVertex","parallelVertex","parallelVertex","parallelVertex"]
+experiments = [experiment_name + "_" + experiments[i] + "_" + graph_name + "_"+ experiments_partitioning[i] for i in range(len(experiments))]
 colours = ["red","green","blue","orange"] # as many as the number of experiments included
-legend_labels = ['Zoltan','PRAW','PRAW-arc-aware','PRAW-refinement']
+legend_labels = ['lambda 0.01','lambda 0.1','lambda 1','lambda 0']#['Zoltan','PRAW','PRAW-arc-aware','PRAW-refinement']
 
 # Each element on the following arrays corresponds to a column in columns_to_plot
-columns_to_plot = [1]#,4,3,5,8]#,9,10,11]
+columns_to_plot = [3]#,4,3,5,8]#,9,10,11]
 reference_values = [0,2,1,6,7,8,3,1,1] # used to take values on each column divided by these
 use_ref_values = False
 scale_plots = [1,1,1,1e-3,1,1,1,1]
-plot_title = ["EdgeSim time","Edge cut","Hyperedge cut","SOED","Edge comm cost","Hedge comm cost","Messages sent (edge)","Messages sent (hedge)"]
-plot_xlabel = ["Number of processes","Number of processes","Number of processes","Number of processes","Number of processes","Number of processes","Number of processes","Number of processes"]
-plot_ylabel = ["Time(s)","Cut ratio","Cut ratio","SOED (thousands)","Cost","Cost","Messages sent","Messages sent"]
+plot_title = ["Large uniform","Edge cut","Hyperedge cut","SOED","Edge comm cost","Hedge comm cost","Messages sent (edge)","Messages sent (hedge)"]
+plot_xlabel = ["Number of streams","Number of processes","Number of processes","Number of processes","Number of processes","Number of processes","Number of processes","Number of processes"]
+plot_ylabel = ["Cut ratio","Cut ratio","Cut ratio","SOED (thousands)","Cost","Cost","Messages sent","Messages sent"]
 image_format = 'pdf'
 plot_name = ["a_" + str(x) for x in range(len(columns_to_plot))] #["a1","a2","a3","a4","a5","a6","a7"]
 
@@ -86,14 +91,16 @@ def plot(x,y, error,title,xlabel,ylabel,name,colour,legend,show,global_counter):
 		else:
 			plt.errorbar(x, y,linewidth=1,color=colour,label=legend,marker='s',markersize=5)
 	if geometric_scaling:
-		plt.yscale("log",basey=10)
+		#plt.yscale("log",basey=10)
+		plt.yscale("linear")
 		plt.xscale("log",basex=10)
 	else:
 	#	plt.yscale("linear")
 		plt.xscale("linear")
 	plt.xlabel(xlabel)
 	plt.ylabel(ylabel)
-	plt.title(title)
+	if show_title:
+		plt.title(title)
 	plt.tick_params(axis='x',which='minor',bottom=False,labelbottom=False)
 	plt.xticks(experiment_range,experiment_range)
 	#plt.tight_layout()
@@ -115,7 +122,12 @@ for i in range(len(columns_to_plot)):
 		stdevs = [[] for y in range(h)]
 		
 		for p in experiment_range:
-			data = get_data_from_csv(folder + experiments[j] + "__" + str(p))
+			if "{}" in experiments[i]:
+				data = get_data_from_csv((folder + experiments[j]).format(p) + "__" + str(num_processes))
+				
+			else:
+				data = get_data_from_csv(folder + experiments[j] + "__" + str(p))
+			
 			if data.ndim <= 1:
 				data = data.reshape(1,len(data))
 			if use_ref_values:
