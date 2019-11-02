@@ -1725,7 +1725,7 @@ namespace PRAW {
 
     
     // Stream from multiple files / streams
-    int ParallelHDRF(char* experiment_name, idx_t* partitioning, int num_partitions, MPI_Comm partitioning_comm, double** comm_cost_matrix, std::string hypergraph_filename, int* element_wgt, int max_iterations, float imbalance_tolerance, bool local_replica_degree_updates_only = false, int window_size = 1, bool input_order_round_robin = true) {
+    int ParallelHDRF(char* experiment_name, idx_t* partitioning, int num_partitions, MPI_Comm partitioning_comm, double** comm_cost_matrix, std::string hypergraph_filename, int* element_wgt, int max_iterations, float imbalance_tolerance, bool local_replica_degree_updates_only = false, int window_size = 1, bool input_order_round_robin = true, float lambda = 1.0f) {
         // Parallel Hyperedge Partitioning based algorithm
         // Because it can be applied to both vertex and hyperedge partitionings, we adopt the following nomenclature:
         //      element: what each line in the stream represent
@@ -1778,9 +1778,6 @@ namespace PRAW {
         //      workload (experiment with and without)
         //      Partial degree? (experiment with and without)
 
-        
-        // Parameters (from HDRF, Petroni 2015)
-        float lambda = 0.1f;
         
         int process_id;
         MPI_Comm_rank(partitioning_comm,&process_id);
@@ -2010,9 +2007,9 @@ namespace PRAW {
 
                         current_value = c_bal + c_rep + c_comm;
                     } else {
-                        float c_bal = lambda * pow(part_load[pp],0.5f);
+                        //float c_bal = lambda * pow(part_load[pp],0.5f);
 
-                        current_value = -c_bal + c_rep - c_comm;
+                        current_value = c_rep - c_comm;//-c_bal;
                     }
                     
                     if(current_value > max_value ||                                                 

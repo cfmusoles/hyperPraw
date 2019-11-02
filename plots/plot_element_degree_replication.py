@@ -8,10 +8,13 @@ import numpy as np
 
 
 hgraphs_folder = '../resources/synthetic_hgraphs/'
-hgraph_files = ["small_dense_powerlaw.hgr","small_dense_uniform.hgr","large_sparse_powerlaw.hgr","large_sparse_uniform.hgr"]
+#file used to load elements and pins (use "inverse" version for hyperedge partitioning)
+hgraph_files = ["inverse_small_dense_powerlaw.hgr","inverse_small_dense_uniform.hgr","inverse_large_sparse_powerlaw.hgr","inverse_large_sparse_uniform.hgr"]
+# filename used as stream for partitioning
+hgraph_stream_files = ["small_dense_powerlaw.hgr","small_dense_uniform.hgr","large_sparse_powerlaw.hgr","large_sparse_uniform.hgr"]
 experiment_folder = "../results/streams/"
-experiment_prefix = 'streams_hdrf_parallelVertex_1'
-partition = 'parallelVertex'
+experiment_prefix = 'streams_hdrf_parallelHyperedge_1'
+partition = 'parallelHyperedge'
 num_processes = 96
 
 storePlot = True
@@ -22,7 +25,7 @@ for i,hgraph in enumerate(hgraph_files):
     hgraph_file = hgraphs_folder + hgraph
 
     #load partitioning scheme
-    partitioning = np.genfromtxt(experiment_folder + experiment_prefix + '_' + hgraph + '_' + partition + '_partitioning__' + str(num_processes),skip_header=0,delimiter=",")
+    partitioning = np.genfromtxt(experiment_folder + experiment_prefix + '_' + hgraph_stream_files[i] + '_' + partition + '_partitioning__' + str(num_processes),skip_header=0,delimiter=",")
     partitioning = [int(i)  for i in partitioning]
 
     # load pin degrees from hgraph file

@@ -217,7 +217,7 @@ int main(int argc, char** argv) {
         isVertexCentric = false;
 	} else if(strcmp(part_method,"hyperPrawVertex") == 0) {  
 		PRINTF("%i: Partitioning: parallel vertex hyperPRAW\n",process_id);
-        partition = new ParallelHyperPRAWPartitioning(experiment_name,graph_file,stream_file,max_processes,imbalance_tolerance,max_iterations,bandwidth_file,use_bandwidth_in_partitioning,proportional_comm_cost,sync_batch_size,input_order_round_robin,true);
+        partition = new ParallelHyperPRAWPartitioning(experiment_name,graph_file,stream_file,max_processes,imbalance_tolerance,max_iterations,bandwidth_file,use_bandwidth_in_partitioning,proportional_comm_cost,sync_batch_size,input_order_round_robin,true,ta_lambda);
         isVertexCentric = true;
 	} else if(strcmp(part_method,"parallelVertex") == 0) {  
 		PRINTF("%i: Partitioning: parallel vertex streaming\n",process_id);
@@ -237,7 +237,7 @@ int main(int argc, char** argv) {
 	    isVertexCentric = true;
 	} else if(strcmp(part_method,"hyperPrawHyperedge") == 0) {  
 		PRINTF("%i: Partitioning: parallel hyperedge hyperPRAW\n",process_id);
-        partition = new ParallelHyperPRAWPartitioning(experiment_name,graph_file,stream_file,max_processes,imbalance_tolerance,max_iterations,bandwidth_file,use_bandwidth_in_partitioning,proportional_comm_cost,sync_batch_size,input_order_round_robin,false);
+        partition = new ParallelHyperPRAWPartitioning(experiment_name,graph_file,stream_file,max_processes,imbalance_tolerance,max_iterations,bandwidth_file,use_bandwidth_in_partitioning,proportional_comm_cost,sync_batch_size,input_order_round_robin,false,ta_lambda);
         isVertexCentric = false;
 	} else { // default is random
 		PRINTF("%i: Partitioning: random\n",process_id);
