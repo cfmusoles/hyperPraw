@@ -8,12 +8,12 @@ import numpy as np
 
 
 hgraphs_folder = '../resources/synthetic_hgraphs/'
-#file used to load elements and pins (use "inverse" version for hyperedge partitioning)
-hgraph_files = ["inverse_small_dense_powerlaw.hgr","inverse_small_dense_uniform.hgr","inverse_large_sparse_powerlaw.hgr","inverse_large_sparse_uniform.hgr"]
+#file used to load elements and pins (use "inverted" version for hyperedge partitioning)
+hgraph_files = ["inverted_small_dense_powerlaw.hgr","inverted_small_dense_uniform.hgr","inverted_large_sparse_powerlaw.hgr","inverted_large_sparse_uniform.hgr"]
 # filename used as stream for partitioning
 hgraph_stream_files = ["small_dense_powerlaw.hgr","small_dense_uniform.hgr","large_sparse_powerlaw.hgr","large_sparse_uniform.hgr"]
 experiment_folder = "../results/streams/"
-experiment_prefix = 'streams_hdrf_parallelHyperedge_1'
+experiment_prefix = 'streams_overlap_parallelHyperedge_1'
 partition = 'parallelHyperedge'
 num_processes = 96
 

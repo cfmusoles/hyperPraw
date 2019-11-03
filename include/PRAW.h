@@ -1397,6 +1397,8 @@ namespace PRAW {
         // initialise workload
         // workload starts empty across all partitions
         long int total_workload = 0;
+        long int minsize = 0;
+        long int maxsize = 0;
 
 #ifdef DEBUG
         // number of pins seen for the first time
@@ -1573,7 +1575,9 @@ namespace PRAW {
 
                     double current_value = c_rep;
                     if(use_balance_cost) {
-                        current_value -= lambda * pow(part_load[pp],0.5f);
+                        float c_bal = lambda * (maxsize - part_load[current_part]) / (0.1 + maxsize - minsize);
+                        //float c_bal = lambda * pow(part_load[pp],0.5f);
+                        current_value -= c_bal;
                     }
                     
                     if(current_value > max_value ||                                                 
@@ -1693,6 +1697,9 @@ namespace PRAW {
             free(displs);
             free(recvbuffer);
             free(remote_pins_size);
+
+            minsize = *std::min_element(part_load, part_load + num_partitions);
+            maxsize = *std::max_element(part_load, part_load + num_partitions); 
         }
         istream.close();
         

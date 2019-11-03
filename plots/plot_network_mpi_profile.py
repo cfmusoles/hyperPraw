@@ -8,7 +8,7 @@ from mpl_toolkits.mplot3d import Axes3D
 from matplotlib.ticker import LinearLocator, FormatStrFormatter
 from pylab import *
 
-num_processes = 72
+num_processes = 96
 plot_bandwidth = False			# plot network bandwidth data
 plot_sent_data = True			# plot application sent data
 plot_comm_cost = False			# plot combined comm cost
@@ -38,11 +38,16 @@ show_title = False
 # atmosmodj.mtx.hgr
 # kkt_power.mtx.hgr 
 
-folder = "../results/stream/"
+# small_dense_uniform.hgr
+# small_dense_powerlaw.hgr
+# large_sparse_uniform.hgr
+# large_sparse_powerlaw.hgr
+
+folder = "../results/prawtest/"
 bandwidth_send_experiment_name = 'results_mpi_send_bandwidth_1_' + str(num_processes)
-graph_name = "2cubes_sphere.mtx.hgr"
-partitioning = 'rHDRF'
-test_name = 'stream_rHDRF_default_16'
+graph_name = "large_sparse_powerlaw.hgr"
+partitioning = 'hyperPrawVertex'
+test_name = 'prawtest_hyperPraw_bandwidth_16'
 
 sim_sent_experiment = test_name + '_' + graph_name + '_' + partitioning + '_hedgeSim_comm_cost__' + str(num_processes)
 #sim_sent_experiment = test_name + '_' + partitioning + '_comm_matrix_' + str(num_processes)
