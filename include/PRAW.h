@@ -2129,8 +2129,8 @@ namespace PRAW {
             free(remote_pins_size);      
 
             
-            minsize = *std::min_element(part_load, part_load + num_partitions);
-            maxsize = *std::max_element(part_load, part_load + num_partitions);      
+            //minsize = *std::min_element(part_load, part_load + num_partitions);
+            //maxsize = *std::max_element(part_load, part_load + num_partitions);      
 
         }
         istream.close();

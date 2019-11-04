@@ -33,7 +33,7 @@ graph_names = ["smallPL","smallU","largePL","largeU"]
 #graph_names = ["sat14 itox","2cubes","ABACUS","sparsine","pdb1HYS","sat14 atco dual","sat14 10pipe primal","sat14 E02F22","webbase-1M","ship 001"]
 # each element on the following arrays corresponds to an experiment run (collection of files)
 #experiments_name = [experiment_name +  "_zoltan_" + graph_name + "_zoltan",experiment_name + "_default_" + graph_name + "_prawS",experiment_name + "_bandwidth_" + graph_name + "_prawS"]#,experiment_name + "_refinement_" + graph_name + "_prawSref"]
-experiments_name = ["staggered_overlap_parallelVertex_16","hyperPraw_default_16","hyperPraw_bandwidth_16"]#,"overlap_parallelVertex_8","overlap_parallelVertex_16","overlap_parallelVertex_32","overlap_parallelVertex_64"]
+experiments_name = ["staggered_overlap_lambda10_parallelVertex_4","hyperPraw_default_4","hyperPraw_bandwidth_4"]#,"overlap_parallelVertex_8","overlap_parallelVertex_16","overlap_parallelVertex_32","overlap_parallelVertex_64"]
 experiments_partitioning = ["parallelVertex","hyperPrawVertex","hyperPrawVertex","hyperPrawVertex","parallelVertex","parallelVertex","parallelVertex"]
 colours = ["black","tomato","yellow","seagreen","red","blue","pink"] # as many as the number of experiments included
 patterns = ["//" , "||" , "--" , "xx" , "//" , "||","--"  ]

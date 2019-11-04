@@ -45,7 +45,7 @@ show_title = False
 
 folder = "../results/prawtest/"
 bandwidth_send_experiment_name = 'results_mpi_send_bandwidth_1_' + str(num_processes)
-graph_name = "large_sparse_powerlaw.hgr"
+graph_name = "small_dense_powerlaw.hgr"
 partitioning = 'hyperPrawVertex'
 test_name = 'prawtest_hyperPraw_bandwidth_16'
 
