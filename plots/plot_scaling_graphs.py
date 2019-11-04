@@ -14,7 +14,7 @@ process_step = 32
 num_experiments = 7
 geometric_step = 2
 # for parallel streams partitioning ( where the number of streams != number of processes)
-num_processes = 96
+num_partitions = 96
 
 show_error = True
 as_bar_plot = False
@@ -38,11 +38,11 @@ folder = "../results/streams/"
 experiment_name = "streams"
 graph_name = "large_sparse_uniform.hgr"
 # each element on the following arrays corresponds to an experiment run (collection of files)
-experiments = ["staggered_overlap_lambda0011_parallelVertex_{}","staggered_overlap_lambda01_parallelVertex_{}","staggered_overlap_lambda1_parallelVertex_{}","staggered_parallelVertex_{}"]
+experiments = ["staggered_overlap_lambda1_parallelVertex_{}","staggered_overlap_lambda10_parallelVertex_{}","staggered_overlap_lambda100_parallelVertex_{}","staggered_parallelVertex_{}"]
 experiments_partitioning = ["parallelVertex","parallelVertex","parallelVertex","parallelVertex","parallelVertex","parallelVertex"]
 experiments = [experiment_name + "_" + experiments[i] + "_" + graph_name + "_"+ experiments_partitioning[i] for i in range(len(experiments))]
 colours = ["red","green","blue","orange"] # as many as the number of experiments included
-legend_labels = ['lambda 0.01','lambda 0.1','lambda 1','lambda 0']#['Zoltan','PRAW','PRAW-arc-aware','PRAW-refinement']
+legend_labels = ['lambda 1','lambda 10','lambda 100','lambda 0']#['Zoltan','PRAW','PRAW-arc-aware','PRAW-refinement']
 
 # Each element on the following arrays corresponds to a column in columns_to_plot
 columns_to_plot = [3]#,4,3,5,8]#,9,10,11]
@@ -123,7 +123,7 @@ for i in range(len(columns_to_plot)):
 		
 		for p in experiment_range:
 			if "{}" in experiments[i]:
-				data = get_data_from_csv((folder + experiments[j]).format(p) + "__" + str(num_processes))
+				data = get_data_from_csv((folder + experiments[j]).format(p) + "__" + str(num_partitions))
 				
 			else:
 				data = get_data_from_csv(folder + experiments[j] + "__" + str(p))

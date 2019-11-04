@@ -1397,8 +1397,6 @@ namespace PRAW {
         // initialise workload
         // workload starts empty across all partitions
         long int total_workload = 0;
-        long int minsize = 0;
-        long int maxsize = 0;
 
 #ifdef DEBUG
         // number of pins seen for the first time
@@ -1575,8 +1573,7 @@ namespace PRAW {
 
                     double current_value = c_rep;
                     if(use_balance_cost) {
-                        float c_bal = lambda * (maxsize - part_load[current_part]) / (0.1 + maxsize - minsize);
-                        //float c_bal = lambda * pow(part_load[pp],0.5f);
+                        float c_bal = lambda * pow(part_load[current_part],0.5f);
                         current_value -= c_bal;
                     }
                     
@@ -1697,9 +1694,6 @@ namespace PRAW {
             free(displs);
             free(recvbuffer);
             free(remote_pins_size);
-
-            minsize = *std::min_element(part_load, part_load + num_partitions);
-            maxsize = *std::max_element(part_load, part_load + num_partitions); 
         }
         istream.close();
         
@@ -2003,21 +1997,11 @@ namespace PRAW {
                         c_rep += present_in_partition ? 1 : 0;
                         
                     }
-                    bool normalise = false;
-                    double current_value;
-                    if(normalise) {
-                        // c_rep and c_comm must be normalised to avoid them dominating the final equation
-                        c_comm = 1- c_comm/(max_comm_cost * num_pins);
-                        c_rep /= (num_pins*2);
 
-                        float c_bal = lambda * (maxsize - part_load[current_part]) / (0.1 + maxsize - minsize);
+                    float c_bal = lambda * pow(part_load[current_part],0.5f);
 
-                        current_value = c_bal + c_rep + c_comm;
-                    } else {
-                        //float c_bal = lambda * pow(part_load[pp],0.5f);
-
-                        current_value = c_rep - c_comm;//-c_bal;
-                    }
+                    double current_value = c_rep - c_comm - c_bal;
+                    
                     
                     if(current_value > max_value ||                                                 
                                 current_value == max_value && part_load[best_partition] > part_load[current_part]) {
