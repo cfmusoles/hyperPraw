@@ -1998,9 +1998,9 @@ namespace PRAW {
                         
                     }
 
-                    float c_bal = lambda * pow(part_load[current_part],0.5f);
+                    float c_bal = 10 * pow(part_load[current_part],0.5f);
 
-                    double current_value = c_rep - c_comm - c_bal;
+                    double current_value = c_rep - lambda * c_comm - c_bal;
                     
                     
                     if(current_value > max_value ||                                                 
