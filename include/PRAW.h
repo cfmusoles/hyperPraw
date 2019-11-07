@@ -38,6 +38,7 @@ namespace PRAW {
     struct pin_data {
         int partial_degree = 0; // how many times has the pin  appeared in the stream so far
         std::set<int> A;  // in what partitions it has been replicated so far
+        std::unordered_map<short,short> P;
     };
 
     std::string getFileName(std::string filePath)
@@ -1871,6 +1872,7 @@ namespace PRAW {
         // create an object Vertex that contains two variables
         //      int partial_degree --> store the current partial degree
         //      std::vector<int> A --> store the list of partitions that have a replica of the vertex
+        //      std::unordered_map<short,short> --> store the partitions that have a replica of the pin plus the pins and the number of replications on that partition
         // store the Vertex in a std::unordered_map (hashmap) of Vertex* of length num_vertices (vertex id is given by the index)
         std::unordered_map<int,pin_data> seen_pins;
 
@@ -1982,15 +1984,23 @@ namespace PRAW {
                         int pin_id = batch_elements[idx][vv];
                         bool present_in_partition = false;
                         std::set<int>::iterator it;
-                        for (it = seen_pins[pin_id].A.begin(); it != seen_pins[pin_id].A.end(); ++it)
+                        /*for (it = seen_pins[pin_id].A.begin(); it != seen_pins[pin_id].A.end(); ++it)
                         {
                             int part = *it;
                             present_in_partition |= part == current_part;
                             // communication should be proportional to the duplication of pins
                             // if a pin is duplicated in two partitions, then communication will happen across those partitions
-                            //c_comm += comm_cost_matrix[current_part][part] * seen_pins[pin_id].partial_degree;
-                            // or use normalised part degrees here too
-                            c_comm += comm_cost_matrix[current_part][part] * (normalised_part_degrees[vv]);
+                            c_comm += comm_cost_matrix[current_part][part] * seen_pins[pin_id].partial_degree;
+                        }*/
+                        std::unordered_map<short,short>::iterator it;
+                        for (it = seen_pins[pin_id].P.begin(); it != seen_pins[pin_id].P.end(); ++it)
+                        {
+                            short part = it->first;
+                            short replications = it->second;
+                            present_in_partition |= part == current_part;
+                            // communication should be proportional to the duplication of pins
+                            // if a pin is duplicated in two partitions, then communication will happen across those partitions
+                            c_comm += comm_cost_matrix[current_part][part] * replications;
                         }
 
                         // Use HDRF
@@ -2046,6 +2056,12 @@ namespace PRAW {
                     // then during remote sync avoid double counting local pins
                     // we already updated seen_pins[].part_degree when we read the stream
                     seen_pins[pin_id].A.insert(element_mapping);
+                    if(seen_pins[pin_id].P.find(element_mapping) == seen_pins[pin_id].P.end()) {
+                        seen_pins[pin_id].P[element_mapping] = 1;
+                    } else {
+                        seen_pins[pin_id].P[element_mapping] += 1;
+                    }
+                    
                     
                 }
                 local_pins_size[idx] = new_pins;                    
@@ -2116,7 +2132,12 @@ namespace PRAW {
                             
                             // update remote vertex info
                             seen_pins[pin_id].partial_degree += 1;
-                            seen_pins[pin_id].A.insert(dest_partition);  
+                            seen_pins[pin_id].A.insert(dest_partition); 
+                            if(seen_pins[pin_id].P.find(dest_partition) == seen_pins[pin_id].P.end()) {
+                                seen_pins[pin_id].P[dest_partition] = 1;
+                            } else {
+                                seen_pins[pin_id].P[dest_partition] += 1;
+                            } 
                                     
                         }
                     }
