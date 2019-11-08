@@ -3,7 +3,7 @@ import seaborn as sns
 import numpy as np
 import math
 
-folder = '../resources/synthetic_hgraphs/'
+folder = '../resources/'
 hgraphs = ["small_dense_powerlaw.hgr","small_dense_uniform.hgr","large_sparse_powerlaw.hgr","large_sparse_uniform.hgr"]
         #['sat14_itox_vc1130.cnf.dual.hgr','2cubes_sphere.mtx.hgr','ABACUS_shell_hd.mtx.hgr','sparsine.mtx.hgr',
             #'pdb1HYS.mtx.hgr','sat14_10pipe_q0_k.cnf.primal.hgr','sat14_E02F22.cnf.hgr','webbase-1M.mtx.hgr',

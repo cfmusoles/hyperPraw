@@ -1983,8 +1983,8 @@ namespace PRAW {
                     for(int vv=0; vv < num_pins; vv++) {
                         int pin_id = batch_elements[idx][vv];
                         bool present_in_partition = false;
-                        std::set<int>::iterator it;
-                        /*for (it = seen_pins[pin_id].A.begin(); it != seen_pins[pin_id].A.end(); ++it)
+                        /*std::set<int>::iterator it;
+                        for (it = seen_pins[pin_id].A.begin(); it != seen_pins[pin_id].A.end(); ++it)
                         {
                             int part = *it;
                             present_in_partition |= part == current_part;
@@ -2005,8 +2005,8 @@ namespace PRAW {
 
                         // Use HDRF
                         //c_rep += present_in_partition ? 1 + (1 - normalised_part_degrees[vv]) : 0;
-                        // or use overlap
-                        c_rep += present_in_partition ? 1 : 0;
+                        // or use overlap                        
+                        c_rep += present_in_partition ? seen_pins[pin_id].P[current_part] : 0;
                         
                     }
 
@@ -2061,8 +2061,6 @@ namespace PRAW {
                     } else {
                         seen_pins[pin_id].P[element_mapping] += 1;
                     }
-                    
-                    
                 }
                 local_pins_size[idx] = new_pins;                    
             }
