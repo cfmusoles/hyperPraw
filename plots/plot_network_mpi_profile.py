@@ -47,7 +47,7 @@ folder = "../results/praw/"
 bandwidth_send_experiment_name = 'results_mpi_send_bandwidth_1_' + str(num_processes)
 graph_name = "small_dense_uniform.hgr"
 partitioning = 'hyperPrawVertex'
-test_name = 'praw_hyperPraw_bandwidth_1'
+test_name = 'praw_hyperPraw_bandwidth_lambda1004'
 
 sim_sent_experiment = test_name + '_' + graph_name + '_' + partitioning + '_hedgeSim_comm_cost__' + str(num_processes)
 #sim_sent_experiment = test_name + '_' + partitioning + '_comm_matrix_' + str(num_processes)

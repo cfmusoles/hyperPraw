@@ -1990,7 +1990,7 @@ namespace PRAW {
                             present_in_partition |= part == current_part;
                             // communication should be proportional to the duplication of pins
                             // if a pin is duplicated in two partitions, then communication will happen across those partitions
-                            c_comm += comm_cost_matrix[current_part][part] * seen_pins[pin_id].partial_degree;
+                            c_comm += comm_cost_matrix[current_part][part];
                         }*/
                         std::unordered_map<short,short>::iterator it;
                         for (it = seen_pins[pin_id].P.begin(); it != seen_pins[pin_id].P.end(); ++it)

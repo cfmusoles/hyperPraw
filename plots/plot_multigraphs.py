@@ -27,17 +27,17 @@ show_annotations = False
 
 folder = "../results/praw/"
 experiment_name = "praw"
-graphs = ["small_dense_powerlaw.hgr","small_dense_uniform.hgr"]#,"large_sparse_powerlaw.hgr","large_sparse_uniform.hgr"]
-graph_names = ["Small powerlaw","Small uniform","Large powerlaw","Large uniform"]
+graphs = ["small_dense_powerlaw.hgr","small_dense_uniform.hgr","large_sparse_uniform.hgr"]#,"large_sparse_powerlaw.hgr"]
+graph_names = ["Small powerlaw","Small uniform","Large uniform","Large powerlaw"]
 #graphs = ["sat14_itox_vc1130.cnf.dual.hgr","2cubes_sphere.mtx.hgr","ABACUS_shell_hd.mtx.hgr","sparsine.mtx.hgr","pdb1HYS.mtx.hgr","sat14_atco_enc1_opt1_05_21.cnf.dual.hgr","sat14_10pipe_q0_k.cnf.primal.hgr","sat14_E02F22.cnf.hgr","webbase-1M.mtx.hgr","ship_001.mtx.hgr"]
 #graph_names = ["sat14 itox","2cubes","ABACUS","sparsine","pdb1HYS","sat14 atco dual","sat14 10pipe primal","sat14 E02F22","webbase-1M","ship 001"]
 # each element on the following arrays corresponds to an experiment run (collection of files)
 #experiments_name = [experiment_name +  "_zoltan_" + graph_name + "_zoltan",experiment_name + "_default_" + graph_name + "_prawS",experiment_name + "_bandwidth_" + graph_name + "_prawS"]#,experiment_name + "_refinement_" + graph_name + "_prawSref"]
-experiments_name = ["staggered_overlap_lambda10_parallelVertex_16","hyperPraw_bandwidth_16","hyperPraw_bandwidth_16"]#,"overlap_parallelVertex_8","overlap_parallelVertex_16","overlap_parallelVertex_32","overlap_parallelVertex_64"]
-experiments_partitioning = ["parallelVertex","hyperPrawVertex","hyperPrawVertex","hyperPrawVertex","parallelVertex","parallelVertex","parallelVertex"]
+experiments_name = ["staggered_overlap_lambda10_parallelVertex_1","staggered_overlap_lambda100_parallelVertex_1","hyperPraw_bandwidth_lambda101","hyperPraw_bandwidth_lambda1001"]#,"overlap_parallelVertex_8","overlap_parallelVertex_16","overlap_parallelVertex_32","overlap_parallelVertex_64"]
+experiments_partitioning = ["parallelVertex","parallelVertex","hyperPrawVertex","hyperPrawVertex","parallelVertex","parallelVertex","parallelVertex"]
 colours = ["black","tomato","yellow","seagreen","red","blue","pink"] # as many as the number of experiments included
 patterns = ["//" , "||" , "--" , "xx" , "//" , "||","--"  ]
-legend_labels = ['default','HyperPraw-default','HyperPraw-bandwidth','8 streams','16 streams','32 streams','64 streams']
+legend_labels = ['default10','default100','HyperPraw-bandwidth10','HyperPraw-bandwidth100','16 streams','32 streams','64 streams']
 
 # Each element on the following arrays corresponds to a column in columns_to_plot
 columns_to_plot = [0,3,5,6,1,2]#,11]
