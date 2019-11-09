@@ -1980,8 +1980,6 @@ namespace PRAW {
                     }
                     double c_rep = 0;
                     double c_comm = 0;
-                    int total_replicas = 0;
-                    int remote_replicas = 0;
                     //std::set<short> remote_reps;
                     for(int vv=0; vv < num_pins; vv++) {
                         int pin_id = batch_elements[idx][vv];
@@ -2003,10 +2001,8 @@ namespace PRAW {
                             if(part == current_part) {
                                 present_in_partition = true;
                             } else {
-                                remote_replicas += 1;
                                 //remote_reps.insert(part);
                             }
-                            total_replicas += 1;
                             //present_in_partition |= part == current_part;
                             // communication should be proportional to the duplication of pins
                             // if a pin is duplicated in two partitions, then communication will happen across those partitions
@@ -2021,7 +2017,7 @@ namespace PRAW {
 
                     float c_bal = lambda * pow(part_load[current_part],0.5f);
                     
-                    double current_value = /*c_rep*/ - (float)remote_replicas * c_comm / total_replicas - c_bal;
+                    double current_value = /*c_rep*/ - c_comm - c_bal;
                     
                     
                     if(current_value > max_value ||                                                 
