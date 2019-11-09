@@ -1980,6 +1980,9 @@ namespace PRAW {
                     }
                     double c_rep = 0;
                     double c_comm = 0;
+                    int total_replicas = 0;
+                    int remote_replicas = 0;
+                    std::set<short> remote_reps;
                     for(int vv=0; vv < num_pins; vv++) {
                         int pin_id = batch_elements[idx][vv];
                         bool present_in_partition = false;
@@ -1996,23 +1999,29 @@ namespace PRAW {
                         for (it = seen_pins[pin_id].P.begin(); it != seen_pins[pin_id].P.end(); ++it)
                         {
                             short part = it->first;
-                            short replications = it->second;
-                            present_in_partition |= part == current_part;
+                            short replicas = it->second;
+                            if(part == current_part) {
+                                present_in_partition = true;
+                            } else {
+                                remote_replicas += 1;
+                                remote_reps.insert(part);
+                            }
+                            total_replicas += 1;
+                            //present_in_partition |= part == current_part;
                             // communication should be proportional to the duplication of pins
                             // if a pin is duplicated in two partitions, then communication will happen across those partitions
-                            c_comm += comm_cost_matrix[current_part][part] * replications;
+                            c_comm += comm_cost_matrix[current_part][part] * replicas;
                         }
 
                         // Use HDRF
                         //c_rep += present_in_partition ? 1 + (1 - normalised_part_degrees[vv]) : 0;
                         // or use overlap                        
                         c_rep += present_in_partition ? seen_pins[pin_id].P[current_part] : 0;
-                        
                     }
 
                     float c_bal = lambda * pow(part_load[current_part],0.5f);
-
-                    double current_value = c_rep - c_comm - c_bal;
+                    
+                    double current_value = /*c_rep*/ - (float)remote_reps.size() * c_comm / num_partitions - c_bal;
                     
                     
                     if(current_value > max_value ||                                                 
