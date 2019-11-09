@@ -1982,7 +1982,7 @@ namespace PRAW {
                     double c_comm = 0;
                     int total_replicas = 0;
                     int remote_replicas = 0;
-                    std::set<short> remote_reps;
+                    //std::set<short> remote_reps;
                     for(int vv=0; vv < num_pins; vv++) {
                         int pin_id = batch_elements[idx][vv];
                         bool present_in_partition = false;
@@ -2004,7 +2004,7 @@ namespace PRAW {
                                 present_in_partition = true;
                             } else {
                                 remote_replicas += 1;
-                                remote_reps.insert(part);
+                                //remote_reps.insert(part);
                             }
                             total_replicas += 1;
                             //present_in_partition |= part == current_part;
@@ -2021,7 +2021,7 @@ namespace PRAW {
 
                     float c_bal = lambda * pow(part_load[current_part],0.5f);
                     
-                    double current_value = /*c_rep*/ - (float)remote_reps.size() * c_comm / num_partitions - c_bal;
+                    double current_value = /*c_rep*/ - (float)remote_replicas * c_comm / total_replicas - c_bal;
                     
                     
                     if(current_value > max_value ||                                                 
