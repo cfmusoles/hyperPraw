@@ -27,7 +27,7 @@ show_annotations = False
 
 folder = "../results/norep_n/"
 experiment_name = "norep_n"
-graphs = ["small_dense_powerlaw.hgr","small_dense_uniform.hgr","large_sparse_uniform.hgr"]#,"large_sparse_powerlaw.hgr"]
+graphs = ["small_dense_powerlaw.hgr","small_dense_uniform.hgr","large_sparse_uniform.hgr","large_sparse_powerlaw.hgr"]
 graph_names = ["Small powerlaw","Small uniform","Large uniform","Large powerlaw"]
 #graphs = ["sat14_itox_vc1130.cnf.dual.hgr","2cubes_sphere.mtx.hgr","ABACUS_shell_hd.mtx.hgr","sparsine.mtx.hgr","pdb1HYS.mtx.hgr","sat14_atco_enc1_opt1_05_21.cnf.dual.hgr","sat14_10pipe_q0_k.cnf.primal.hgr","sat14_E02F22.cnf.hgr","webbase-1M.mtx.hgr","ship_001.mtx.hgr"]
 #graph_names = ["sat14 itox","2cubes","ABACUS","sparsine","pdb1HYS","sat14 atco dual","sat14 10pipe primal","sat14 E02F22","webbase-1M","ship 001"]
