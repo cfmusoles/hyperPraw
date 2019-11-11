@@ -1788,16 +1788,6 @@ namespace PRAW {
         
         // create shared data structures (partitions workload, list of replica destinations for each vertex, partial degree for each vertex)
         long int* part_load = (long int*)calloc(num_partitions, sizeof(long int));
-        double max_comm_cost = 0;
-        for(int ff=0; ff < num_partitions; ff++) {
-           double current_max_cost = 0;
-           for(int tt=0; tt < num_partitions; tt++) {
-               current_max_cost += comm_cost_matrix[ff][tt];
-           }
-           if(current_max_cost > max_comm_cost) {
-               max_comm_cost = current_max_cost;
-           }
-        }
 
         int num_pins;
         int num_elements;
@@ -2016,12 +2006,14 @@ namespace PRAW {
                         // or use overlap                        
                         c_rep += present_in_partition ? seen_pins[pin_id].P[current_part] : 0;
                     }
-
-                    //float c_bal = lambda * pow(part_load[current_part],0.5f);
-                    float c_bal = lambda * (maxsize - part_load[current_part]) / (0.1 + maxsize - minsize);
+                    // alternatives to try:
+                    //  float c_bal = lambda * pow(part_load[current_part],0.5f);
+                    //  float c_bal = lambda * pow(part_load[current_part],0.2f);
+                    //  some normalisation with the max_expected_workload:  float c_bal = lambda * pow(max_expected_workload - part_load[current_part],0.5f);
+                    float c_bal = lambda * pow(part_load[current_part],0.5f);
                     
                     double current_value = /*c_rep*/ - c_comm / total_replicas + c_bal;
-                    
+                    //printf("[%i]: %.2f -- %.2f\n",current_part,c_comm / total_replicas,c_bal);
                     
                     if(current_value > max_value ||                                                 
                                 current_value == max_value && part_load[best_partition] > part_load[current_part]) {
@@ -2157,9 +2149,7 @@ namespace PRAW {
             free(recvbuffer);
             free(remote_pins_size);      
 
-            
-            minsize = *std::min_element(part_load, part_load + num_partitions);
-            maxsize = *std::max_element(part_load, part_load + num_partitions);      
+               
 
         }
         istream.close();
