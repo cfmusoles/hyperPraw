@@ -1971,7 +1971,6 @@ namespace PRAW {
                     double c_rep = 0;
                     double c_comm = 0;
                     int total_replicas = 0;
-                    //std::set<short> remote_reps;
                     for(int vv=0; vv < num_pins; vv++) {
                         int pin_id = batch_elements[idx][vv];
                         bool present_in_partition = false;
@@ -1989,11 +1988,7 @@ namespace PRAW {
                         {
                             short part = it->first;
                             short replicas = it->second;
-                            if(part == current_part) {
-                                present_in_partition = true;
-                            } else {
-                                //remote_reps.insert(part);
-                            }
+                            present_in_partition |= part == current_part;
                             total_replicas += replicas;
                             //present_in_partition |= part == current_part;
                             // communication should be proportional to the duplication of pins
@@ -2008,11 +2003,10 @@ namespace PRAW {
                     }
                     // alternatives to try:
                     //  float c_bal = lambda * pow(part_load[current_part],0.5f);
-                    //  float c_bal = lambda * pow(part_load[current_part],0.2f);
                     //  some normalisation with the max_expected_workload:  float c_bal = lambda * pow(max_expected_workload - part_load[current_part],0.5f);
                     float c_bal = lambda * pow(part_load[current_part],0.5f);
                     
-                    double current_value = /*c_rep*/ - c_comm / total_replicas + c_bal;
+                    double current_value = /*c_rep*/ - c_comm / total_replicas - c_bal;
                     //printf("[%i]: %.2f -- %.2f\n",current_part,c_comm / total_replicas,c_bal);
                     
                     if(current_value > max_value ||                                                 
