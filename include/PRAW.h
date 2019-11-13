@@ -2006,7 +2006,7 @@ namespace PRAW {
                     //  some normalisation with the max_expected_workload:  float c_bal = lambda * pow(max_expected_workload - part_load[current_part],0.5f);
                     float c_bal = lambda * pow(part_load[current_part],0.5f);
                     
-                    double current_value = c_rep;// - c_comm;// / total_replicas - c_bal;
+                    double current_value = c_rep / total_replicas;// - c_comm;// / total_replicas - c_bal;
                     //printf("[%i]: %.2f -- %.2f\n",current_part,c_comm / total_replicas,c_bal);
                     
                     if(current_value > max_value ||                                                 
