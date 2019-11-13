@@ -87,18 +87,10 @@ run_experiment() {
 		#aprun -n $PROCESSES hyperPraw -n $EXPERIMENT_NAME"_staggered_overlap_lambda10_parallelVertex_"$MAX_PROCESSES -h $HYPERGRAPH_FILE -i 100 -m 1200 -p parallelVertex -t $E_SIM_STEPS -x $H_SIM_STEPS -s $SEED -k $MESSAGE_SIZE -e $GRAPH_STREAM -P -K $MAX_PROCESSES -g 1 -b $BM_FILE -B -r 10000
 		#sleep 1
 		# hyperPraw with vs without bandwidth
-		aprun -n $PROCESSES hyperPraw -n $EXPERIMENT_NAME"_hyperPraw_default_comnotnorm_lambda0_"$MAX_PROCESSES -h $HYPERGRAPH_FILE -i 100 -m 1200 -p hyperPrawVertex -t $E_SIM_STEPS -x $H_SIM_STEPS -s $SEED -k $MESSAGE_SIZE -e $GRAPH_STREAM -P -K $MAX_PROCESSES -g 1 -b $BM_FILE -r 0
+		aprun -n $PROCESSES hyperPraw -n $EXPERIMENT_NAME"_hyperPraw_default_"$MAX_PROCESSES -h $HYPERGRAPH_FILE -i 100 -m 1200 -p hyperPrawVertex -t $E_SIM_STEPS -x $H_SIM_STEPS -s $SEED -k $MESSAGE_SIZE -e $GRAPH_STREAM -P -K $MAX_PROCESSES -g 1 -b $BM_FILE
 		sleep 1
-		aprun -n $PROCESSES hyperPraw -n $EXPERIMENT_NAME"_hyperPraw_bandwidth_comnotnorm_lambda0_"$MAX_PROCESSES -h $HYPERGRAPH_FILE -i 100 -m 1200 -p hyperPrawVertex -t $E_SIM_STEPS -x $H_SIM_STEPS -s $SEED -k $MESSAGE_SIZE -e $GRAPH_STREAM -P -K $MAX_PROCESSES -g 1 -b $BM_FILE -W -r 0
+		aprun -n $PROCESSES hyperPraw -n $EXPERIMENT_NAME"_hyperPraw_bandwidth_"$MAX_PROCESSES -h $HYPERGRAPH_FILE -i 100 -m 1200 -p hyperPrawVertex -t $E_SIM_STEPS -x $H_SIM_STEPS -s $SEED -k $MESSAGE_SIZE -e $GRAPH_STREAM -P -K $MAX_PROCESSES -g 1 -b $BM_FILE -W 
 		sleep 1
-		#aprun -n $PROCESSES hyperPraw -n $EXPERIMENT_NAME"_hyperPraw_default_lambda01_"$MAX_PROCESSES -h $HYPERGRAPH_FILE -i 100 -m 1200 -p hyperPrawVertex -t $E_SIM_STEPS -x $H_SIM_STEPS -s $SEED -k $MESSAGE_SIZE -e $GRAPH_STREAM -P -K $MAX_PROCESSES -g 1 -b $BM_FILE -r 100
-		#sleep 1
-		#aprun -n $PROCESSES hyperPraw -n $EXPERIMENT_NAME"_hyperPraw_bandwidth_lambda01_"$MAX_PROCESSES -h $HYPERGRAPH_FILE -i 100 -m 1200 -p hyperPrawVertex -t $E_SIM_STEPS -x $H_SIM_STEPS -s $SEED -k $MESSAGE_SIZE -e $GRAPH_STREAM -P -K $MAX_PROCESSES -g 1 -b $BM_FILE -W -r 100
-		sleep 1
-		#aprun -n $PROCESSES hyperPraw -n $EXPERIMENT_NAME"_hyperPraw_default_lambda1_"$MAX_PROCESSES -h $HYPERGRAPH_FILE -i 100 -m 1200 -p hyperPrawVertex -t $E_SIM_STEPS -x $H_SIM_STEPS -s $SEED -k $MESSAGE_SIZE -e $GRAPH_STREAM -P -K $MAX_PROCESSES -g 1 -b $BM_FILE -r 1000
-		#sleep 1
-		#aprun -n $PROCESSES hyperPraw -n $EXPERIMENT_NAME"_hyperPraw_bandwidth_lambda1_"$MAX_PROCESSES -h $HYPERGRAPH_FILE -i 100 -m 1200 -p hyperPrawVertex -t $E_SIM_STEPS -x $H_SIM_STEPS -s $SEED -k $MESSAGE_SIZE -e $GRAPH_STREAM -P -K $MAX_PROCESSES -g 1 -b $BM_FILE -W -r 1000
-		#sleep 1
 
 		MAX_PROCESSES=$(($MAX_PROCESSES * $FACTOR))
 	done
@@ -111,18 +103,18 @@ for p in $(seq 1 $REPETITIONS)
 do
 	SEED=$RANDOM
 	#synthetic graphs
-	#run_experiment "small_dense_uniform.hgr" $SEED 1 10
-	#run_experiment "small_dense_powerlaw.hgr" $SEED 1 10
-	#run_experiment "large_sparse_uniform.hgr" $SEED 1 10
-	#run_experiment "large_sparse_powerlaw.hgr" $SEED 1 10
+	run_experiment "small_dense_uniform.hgr" $SEED 1 8
+	run_experiment "small_dense_powerlaw.hgr" $SEED 1 8
+	run_experiment "large_sparse_uniform.hgr" $SEED 1 8
+	run_experiment "large_sparse_powerlaw.hgr" $SEED 1 8
 
 	# benchmark graphs
-	run_experiment "2cubes_sphere.mtx.hgr" $SEED 3 20
-	run_experiment "ABACUS_shell_hd.mtx.hgr" $SEED 100 200
+	#run_experiment "2cubes_sphere.mtx.hgr" $SEED 3 20
+	#run_experiment "ABACUS_shell_hd.mtx.hgr" $SEED 100 200
 	
 	#large graphs
-	run_experiment "sat14_10pipe_q0_k.cnf.primal.hgr" $SEED 1 1
-	run_experiment "sat14_E02F22.cnf.hgr" $SEED 1 1
+	#run_experiment "sat14_10pipe_q0_k.cnf.primal.hgr" $SEED 1 1
+	#run_experiment "sat14_E02F22.cnf.hgr" $SEED 1 1
 	#run_experiment "webbase-1M.mtx.hgr" $SEED 1 1
 	
 done
