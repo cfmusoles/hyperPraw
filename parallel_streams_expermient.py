@@ -53,8 +53,8 @@ mv $ORIGINAL_BM_FILE $BM_FILE
 run_experiment() {
 	HYPERGRAPH_FILE="$1"
 	SEED="$2"
-	E_SIM_STEPS=1
-	H_SIM_STEPS=8
+	E_SIM_STEPS="$3"
+	H_SIM_STEPS="$4"
 	GRAPH_STREAM="inverted_"$HYPERGRAPH_FILE
 
 	# run baseline
@@ -83,8 +83,8 @@ run_experiment() {
 		#aprun -n $PROCESSES hyperPraw -n $EXPERIMENT_NAME"_staggered_overlap_lambda1_parallelVertex_"$MAX_PROCESSES -h $HYPERGRAPH_FILE -i 100 -m 1200 -p parallelVertex -t $E_SIM_STEPS -x $H_SIM_STEPS -s $SEED -k $MESSAGE_SIZE -e $GRAPH_STREAM -P -K $MAX_PROCESSES -g 1 -b $BM_FILE -B -r 1000
 		#sleep 1
 		#aprun -n $PROCESSES hyperPraw -n $EXPERIMENT_NAME"_staggered_overlap_lambda10_parallelVertex_"$MAX_PROCESSES -h $HYPERGRAPH_FILE -i 100 -m 1200 -p parallelVertex -t $E_SIM_STEPS -x $H_SIM_STEPS -s $SEED -k $MESSAGE_SIZE -e $GRAPH_STREAM -P -K $MAX_PROCESSES -g 1 -b $BM_FILE -B -r 10000
-		#sleep 1
-		#aprun -n $PROCESSES hyperPraw -n $EXPERIMENT_NAME"_staggered_overlap_lambda100_parallelVertex_"$MAX_PROCESSES -h $HYPERGRAPH_FILE -i 100 -m 1200 -p parallelVertex -t $E_SIM_STEPS -x $H_SIM_STEPS -s $SEED -k $MESSAGE_SIZE -e $GRAPH_STREAM -P -K $MAX_PROCESSES -g 1 -b $BM_FILE -B -r 100000
+		sleep 1
+		aprun -n $PROCESSES hyperPraw -n $EXPERIMENT_NAME"_staggered_overlap_lambda100_parallelVertex_"$MAX_PROCESSES -h $HYPERGRAPH_FILE -i 100 -m 1200 -p parallelVertex -t $E_SIM_STEPS -x $H_SIM_STEPS -s $SEED -k $MESSAGE_SIZE -e $GRAPH_STREAM -P -K $MAX_PROCESSES -g 1 -b $BM_FILE -B -r 100000
 		#sleep 1
 		# hyperPraw with vs without bandwidth
 		aprun -n $PROCESSES hyperPraw -n $EXPERIMENT_NAME"_hyperPraw_default_lambda01_"$MAX_PROCESSES -h $HYPERGRAPH_FILE -i 100 -m 1200 -p hyperPrawVertex -t $E_SIM_STEPS -x $H_SIM_STEPS -s $SEED -k $MESSAGE_SIZE -e $GRAPH_STREAM -P -K $MAX_PROCESSES -g 1 -b $BM_FILE -r 100
@@ -111,10 +111,21 @@ for p in $(seq 1 $REPETITIONS)
 do
 	SEED=$RANDOM
 	#synthetic graphs
-	run_experiment "small_dense_uniform.hgr" $SEED 
-	run_experiment "small_dense_powerlaw.hgr" $SEED
-	run_experiment "large_sparse_uniform.hgr" $SEED
-	run_experiment "large_sparse_powerlaw.hgr" $SEED
+	#run_experiment "small_dense_uniform.hgr" $SEED 1 10
+	#run_experiment "small_dense_powerlaw.hgr" $SEED 1 10
+	#run_experiment "large_sparse_uniform.hgr" $SEED 1 10
+	#run_experiment "large_sparse_powerlaw.hgr" $SEED 1 10
+
+	# benchmark graphs
+	run_experiment "sat14_itox_vc1130.cnf.dual.hgr" $SEED 1 20
+	run_experiment "2cubes_sphere.mtx.hgr" $SEED 5 30
+	run_experiment "ABACUS_shell_hd.mtx.hgr" $SEED 200 300
+	run_experiment "sparsine.mtx.hgr" $SEED 2 20
+	
+	#large graphs
+	run_experiment "sat14_10pipe_q0_k.cnf.primal.hgr" $SEED 1 2
+	run_experiment "sat14_E02F22.cnf.hgr" $SEED 2 2
+	run_experiment "webbase-1M.mtx.hgr" $SEED 1 3
 	
 done
 
