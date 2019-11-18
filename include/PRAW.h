@@ -1817,6 +1817,7 @@ namespace PRAW {
         // assumes all elements have same workload (1)
         // TODO@ needs to account for batch sync update
         double max_expected_workload = (double)num_elements / num_partitions * imbalance_tolerance - (num_processes-1) * (double)window_size;
+        double average_expected_workload = (double)num_elements / num_partitions;
         if(max_expected_workload < 1) {
             PRINTF("Graph is too small! Too many processes (max expected workload limit is %f)\n",max_expected_workload);
             return 0;
@@ -2001,12 +2002,13 @@ namespace PRAW {
                         // or use overlap                        
                         c_rep += present_in_partition ? seen_pins[pin_id].P[current_part] : 0;
                     }
-                    // alternatives to try:
-                    //  float c_bal = lambda * pow(part_load[current_part],0.5f);
-                    //  some normalisation with the max_expected_workload:  float c_bal = lambda * pow(max_expected_workload - part_load[current_part],0.5f);
-                    float c_bal = lambda * pow(part_load[current_part],0.5f);
+                    // only calculate balance factor for near full partitions
+                    float c_bal = 0;
+                    if(part_load[current_part] > average_expected_workload) {
+                        c_bal = lambda * pow(part_load[current_part],0.5f);
+                    }
                     
-                    double current_value = c_rep / total_replicas;// - c_comm;// / total_replicas - c_bal;
+                    double current_value = c_rep - c_comm - c_bal;// / total_replicas - c_bal;
                     //printf("[%i]: %.2f -- %.2f\n",current_part,c_comm / total_replicas,c_bal);
                     
                     if(current_value > max_value ||                                                 
