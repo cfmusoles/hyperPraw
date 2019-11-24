@@ -2002,13 +2002,17 @@ namespace PRAW {
                         // or use overlap                        
                         c_rep += present_in_partition ? seen_pins[pin_id].P[current_part] : 0;
                     }
-                    // only calculate balance factor for near full partitions
-                    float c_bal = 0;
-                    if(part_load[current_part] > average_expected_workload) {
-                        c_bal = lambda * pow(part_load[current_part],0.5f);
+                    
+                    // only count replicas in favour of partitions that are underfilled
+                    // an attempt to keep better workload balance
+                    //float c_bal = lambda * pow(part_load[current_part],0.5f);
+                    double current_value = 0;
+                    if(part_load[current_part] <= average_expected_workload) {
+                        current_value = c_rep - c_comm;// / total_replicas - c_bal;
+                    } else {
+                        current_value = - c_comm * lambda;// / total_replicas - c_bal;
                     }
                     
-                    double current_value = c_rep - c_comm - c_bal;// / total_replicas - c_bal;
                     //printf("[%i]: %.2f -- %.2f\n",current_part,c_comm / total_replicas,c_bal);
                     
                     if(current_value > max_value ||                                                 
