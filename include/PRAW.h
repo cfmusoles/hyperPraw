@@ -1996,7 +1996,7 @@ namespace PRAW {
                             // if a pin is duplicated in two partitions, then communication will happen across those partitions
                             // TODO: should we be using replicas as a weight here? the communication is not necessarily proportional to it
                             // TRY removing it and see if the c_bal then is more effective
-                            c_comm += comm_cost_matrix[current_part][part] * 1;//replicas;
+                            c_comm += comm_cost_matrix[current_part][part] * pow(replicas,0.5f); // try softening the weight of cost of communication
                         }
 
                         // Use HDRF
@@ -2005,11 +2005,10 @@ namespace PRAW {
                         c_rep += present_in_partition ? seen_pins[pin_id].P[current_part] : 0;
                     }
                     
+                    // when not weighed by replicas, c_rep == -c_comm
                     // TODO DOES NOT SOLVE TAIL EFFECT
-                    // only count replicas in favour of partitions that are underfilled
-                    // an attempt to keep better workload balance
                     float c_bal = lambda * pow(part_load[current_part],0.5f);
-                    double current_value = c_rep - c_comm - c_bal;
+                    double current_value = - c_comm - c_bal;
                     
                     /*if(part_load[current_part] <= average_expected_workload) {
                         current_value = c_rep - c_comm;// / total_replicas - c_bal;

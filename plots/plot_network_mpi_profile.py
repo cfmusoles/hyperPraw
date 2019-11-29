@@ -43,13 +43,13 @@ show_title = False
 # large_sparse_uniform.hgr
 # large_sparse_powerlaw.hgr
 
-folder = "../results/ncom_bal/"
+folder = "../results/com_nw/"
 bandwidth_send_experiment_name = 'results_mpi_send_bandwidth_1_' + str(num_processes)
-graph_name = "small_dense_powerlaw.hgr"
+graph_name = "small_dense_uniform.hgr"
 partitioning = 'hyperPrawVertex'
-test_name = 'ncom_bal_hyperPraw_bandwidth_lambda01_1'
+test_name = 'com_nw_hyperPraw_bandwidth_lambda10_1'
 
-sim_sent_experiment = test_name + '_' + graph_name + '_' + partitioning + '_hedgeSim_comm_cost__' + str(num_processes)
+sim_sent_experiment = test_name + '_' + graph_name + '_' + partitioning + '_edgeSim_comm_cost__' + str(num_processes)
 #sim_sent_experiment = test_name + '_' + partitioning + '_comm_matrix_' + str(num_processes)
 
 xlabel = "Process"
