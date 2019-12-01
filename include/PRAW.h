@@ -1782,6 +1782,7 @@ namespace PRAW {
 
         // own parameters
         float lambda_update = 1.7f;
+        float lambda_refine = 0.8f;
         
         int process_id;
         MPI_Comm_rank(partitioning_comm,&process_id);
@@ -1795,10 +1796,9 @@ namespace PRAW {
         int num_elements;
 
         // avoid overfitting variables
-        /*bool check_overfit = false;
+        bool check_overfit = false;
         bool rollback = false;
         idx_t* last_partitioning = NULL;
-        float last_cut_metric = std::numeric_limits<float>::max();*/
 
         int iter = 0;
         for(iter=0; iter < max_iterations; iter++) {
@@ -2174,26 +2174,29 @@ namespace PRAW {
             float max_imbalance = minsize <= 0 ? num_partitions : maxsize / minsize;
             PRINTF("***Max-min ratio: %.3f, current lambda: %f.\n",max_imbalance,lambda); 
 
-            //if(last_cut_metric < pin_replication_factor) {
-            if(max_imbalance < (imbalance_tolerance) / (1.0f/imbalance_tolerance)) {
-                break;    
-            }
-
-            /*if(process_id == MASTER_NODE) {
-                if(last_partitioning == NULL) {
-                    last_partitioning = (idx_t*)malloc(num_elements*sizeof(idx_t));
+            // check if within imbalance allowance (max over min)
+            if(max_imbalance < (imbalance_tolerance / (1.0f/imbalance_tolerance) * imbalance_tolerance)) {
+                check_overfit = true;
+                if(process_id == MASTER_NODE) {
+                    if(last_partitioning == NULL) {
+                        last_partitioning = (idx_t*)malloc(num_elements*sizeof(idx_t));
+                    }
+                    memcpy(last_partitioning,partitioning,num_elements * sizeof(idx_t));
+                }             
+                lambda *= lambda_refine;       
+            } else {
+                // still too imbalanced
+                if(check_overfit) {
+                    rollback = true;
+                    break;
                 }
-                memcpy(last_partitioning,partitioning,num_elements * sizeof(idx_t));
+                lambda *=  lambda_update;
             }
-            last_cut_metric = pin_replication_factor;*/
-
-            // update lambda
-            lambda *= lambda_update;
             
         }
 
         // roll back to last partitioning that was inside imbalance tolerance
-        /*if(rollback) {
+        if(rollback) {
             if(process_id == MASTER_NODE) {
                 // share last partitioning with all
                 memcpy(partitioning,last_partitioning,num_elements * sizeof(idx_t));
@@ -2206,7 +2209,7 @@ namespace PRAW {
                 // update partitioning from 0
                 MPI_Recv(partitioning,num_elements,MPI_LONG,MASTER_NODE,0,partitioning_comm,MPI_STATUS_IGNORE);
             }
-        }*/
+        }
 
         
         
