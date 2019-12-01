@@ -13,7 +13,7 @@ plot_bandwidth = False			# plot network bandwidth data
 plot_sent_data = True			# plot application sent data
 plot_comm_cost = False			# plot combined comm cost
 storeResults = False
-log_scale = False
+log_scale = True
 show_title = False
 
 # "sat14_itox_vc1130.cnf.dual.hgr" $SEED 2 #Y for esim
@@ -43,13 +43,13 @@ show_title = False
 # large_sparse_uniform.hgr
 # large_sparse_powerlaw.hgr
 
-folder = "../results/com_nw/"
+folder = "../results/com_soft/"
 bandwidth_send_experiment_name = 'results_mpi_send_bandwidth_1_' + str(num_processes)
-graph_name = "small_dense_uniform.hgr"
+graph_name = "large_sparse_uniform.hgr"
 partitioning = 'hyperPrawVertex'
-test_name = 'com_nw_hyperPraw_bandwidth_lambda10_1'
+test_name = 'com_soft_hyperPraw_bandwidth_lambda10_1'#'com_soft_staggered_overlap_lambda10_parallelVertex_1'#'com_soft_hyperPraw_bandwidth_lambda10_1'
 
-sim_sent_experiment = test_name + '_' + graph_name + '_' + partitioning + '_edgeSim_comm_cost__' + str(num_processes)
+sim_sent_experiment = test_name + '_' + graph_name + '_' + partitioning + '_hedgeSim_comm_cost__' + str(num_processes)
 #sim_sent_experiment = test_name + '_' + partitioning + '_comm_matrix_' + str(num_processes)
 
 xlabel = "Process"

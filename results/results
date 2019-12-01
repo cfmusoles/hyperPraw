@@ -1,0 +1,6 @@
+All in obj_function_tests
+
+com_nw: -c_comm - c_bal (c_com not weighed)
+com_w: -c_comm - c_bal (c_com weighed by the replicas)
+com_soft: -comm - c_bal (c_com weighed by sqrt replicas)
+nowg_com: c_rep - c_comm - c_bal (c_com not weighed)
