@@ -1781,8 +1781,8 @@ namespace PRAW {
         //      Partial degree? (experiment with and without)
 
         // own parameters
-        float lambda_update = 1.7f;
-        float lambda_refine = 0.8f;
+        float lambda_update = 1.7f; // must be greater than 1. Used when partitions are too imbalanced at the end of the pass
+        float lambda_refine = 0.8f; // must be lower than 1. Used when partitions are within imbalance limits at the end of the pass
         
         int process_id;
         MPI_Comm_rank(partitioning_comm,&process_id);
@@ -2007,7 +2007,7 @@ namespace PRAW {
                                 // if a pin is duplicated in two partitions, then communication will happen across those partitions
                                 // TODO: should we be using replicas as a weight here? the communication is not necessarily proportional to it
                                 // TRY removing it and see if the c_bal then is more effective
-                                c_comm += comm_cost_matrix[current_part][part] * 1; // try softening the weight of cost of communication
+                                c_comm += comm_cost_matrix[current_part][part] * replicas; // try softening the weight of cost of communication
                             }
 
                             // Use HDRF
@@ -2175,7 +2175,7 @@ namespace PRAW {
             PRINTF("***Max-min ratio: %.3f, current lambda: %f.\n",max_imbalance,lambda); 
 
             // check if within imbalance allowance (max over min)
-            if(max_imbalance < (imbalance_tolerance / (1.0f/imbalance_tolerance) * imbalance_tolerance)) {
+            if(max_imbalance < (imbalance_tolerance / (1.0f/imbalance_tolerance))) {
                 check_overfit = true;
                 if(process_id == MASTER_NODE) {
                     if(last_partitioning == NULL) {
