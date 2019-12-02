@@ -1983,6 +1983,7 @@ namespace PRAW {
                         double c_rep = 0;
                         double c_comm = 0;
                         int total_replicas = 0;
+                        int local_replicas = 0;
                         for(int vv=0; vv < num_pins; vv++) {
                             int pin_id = batch_elements[idx][vv];
                             bool present_in_partition = false;
@@ -2002,12 +2003,14 @@ namespace PRAW {
                                 short replicas = it->second;
                                 present_in_partition |= part == current_part;
                                 total_replicas += replicas;
+                                if(part == current_part)
+                                    local_replicas += replicas;
                                 //present_in_partition |= part == current_part;
                                 // communication should be proportional to the duplication of pins
                                 // if a pin is duplicated in two partitions, then communication will happen across those partitions
                                 // TODO: should we be using replicas as a weight here? the communication is not necessarily proportional to it
                                 // TRY removing it and see if the c_bal then is more effective
-                                c_comm += comm_cost_matrix[current_part][part] * replicas; // try softening the weight of cost of communication
+                                c_comm += comm_cost_matrix[current_part][part] * 1; // try softening the weight of cost of communication
                             }
 
                             // Use HDRF
@@ -2019,7 +2022,8 @@ namespace PRAW {
                         // when not weighed by replicas, c_rep == -c_comm
                         // TODO DOES NOT SOLVE TAIL EFFECT
                         float c_bal = lambda * pow(part_load[current_part],0.5f);
-                        double current_value = - c_comm - c_bal;
+                        float multiplier = local_replicas > 0 ? (float)total_replicas / (float)local_replicas : total_replicas;
+                        double current_value = - multiplier * c_comm - c_bal;
                         
                         //printf("[%i]: %.2f -- %.2f\n",current_part,c_comm / total_replicas,c_bal);
                         
