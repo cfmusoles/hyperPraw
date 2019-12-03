@@ -1781,8 +1781,8 @@ namespace PRAW {
         //      Partial degree? (experiment with and without)
 
         // own parameters
-        float lambda_update = 1.7f; // must be greater than 1. Used when partitions are too imbalanced at the end of the pass
-        float lambda_refine = 0.8f; // must be lower than 1. Used when partitions are within imbalance limits at the end of the pass
+        float lambda_update = 1.3f; // must be greater than 1. Used when partitions are too imbalanced at the end of the pass
+        float lambda_refine = 0.95f; // must be lower than 1. Used when partitions are within imbalance limits at the end of the pass
         
         int process_id;
         MPI_Comm_rank(partitioning_comm,&process_id);
@@ -1982,8 +1982,6 @@ namespace PRAW {
                         }
                         double c_rep = 0;
                         double c_comm = 0;
-                        int total_replicas = 0;
-                        int local_replicas = 0;
                         for(int vv=0; vv < num_pins; vv++) {
                             int pin_id = batch_elements[idx][vv];
                             bool present_in_partition = false;
@@ -2002,15 +2000,10 @@ namespace PRAW {
                                 short part = it->first;
                                 short replicas = it->second;
                                 present_in_partition |= part == current_part;
-                                total_replicas += replicas;
-                                if(part == current_part)
-                                    local_replicas += replicas;
                                 //present_in_partition |= part == current_part;
                                 // communication should be proportional to the duplication of pins
                                 // if a pin is duplicated in two partitions, then communication will happen across those partitions
-                                // TODO: should we be using replicas as a weight here? the communication is not necessarily proportional to it
-                                // TRY removing it and see if the c_bal then is more effective
-                                c_comm += comm_cost_matrix[current_part][part] * 1; // try softening the weight of cost of communication
+                                c_comm += comm_cost_matrix[current_part][part] * replicas;
                             }
 
                             // Use HDRF
@@ -2019,11 +2012,8 @@ namespace PRAW {
                             c_rep += present_in_partition ? seen_pins[pin_id].P[current_part] : 0;
                         }
                         
-                        // when not weighed by replicas, c_rep == -c_comm
-                        // TODO DOES NOT SOLVE TAIL EFFECT
                         float c_bal = lambda * pow(part_load[current_part],0.5f);
-                        float multiplier = local_replicas > 0 ? (float)total_replicas / (float)local_replicas : total_replicas;
-                        double current_value = - multiplier * c_comm - c_bal;
+                        double current_value = - c_comm - c_bal;
                         
                         //printf("[%i]: %.2f -- %.2f\n",current_part,c_comm / total_replicas,c_bal);
                         
