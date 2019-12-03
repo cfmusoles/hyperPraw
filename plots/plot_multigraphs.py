@@ -27,13 +27,13 @@ show_annotations = False
 
 folder = "../results/refine_w/"
 experiment_name = "refine_w"
-graphs = ["small_dense_powerlaw.hgr","small_dense_uniform.hgr","large_sparse_uniform.hgr","large_sparse_powerlaw.hgr"]
+graphs = ["small_dense_powerlaw.hgr","small_dense_uniform.hgr","large_sparse_uniform.hgr"]#,"large_sparse_powerlaw.hgr"]
 graph_names = ["Small powerlaw","Small uniform","Large uniform","Large powerlaw"]
 #graphs = ["sat14_itox_vc1130.cnf.dual.hgr","2cubes_sphere.mtx.hgr","ABACUS_shell_hd.mtx.hgr","sparsine.mtx.hgr","pdb1HYS.mtx.hgr","sat14_atco_enc1_opt1_05_21.cnf.dual.hgr","sat14_10pipe_q0_k.cnf.primal.hgr","sat14_E02F22.cnf.hgr","webbase-1M.mtx.hgr","ship_001.mtx.hgr"]
 #graph_names = ["sat14 itox","2cubes","ABACUS","sparsine","pdb1HYS","sat14 atco dual","sat14 10pipe primal","sat14 E02F22","webbase-1M","ship 001"]
 # each element on the following arrays corresponds to an experiment run (collection of files)
 #experiments_name = [experiment_name +  "_zoltan_" + graph_name + "_zoltan",experiment_name + "_default_" + graph_name + "_prawS",experiment_name + "_bandwidth_" + graph_name + "_prawS"]#,experiment_name + "_refinement_" + graph_name + "_prawSref"]
-experiments_name = ["staggered_overlap_lambda10_parallelVertex_1","staggered_overlap_lambda10_parallelVertex_16","hyperPraw_default_1","hyperPraw_default_16","hyperPraw_bandwidth_1","hyperPraw_bandwidth_16"]
+experiments_name = ["staggered_overlap_lambda10_w1_parallelVertex_1","staggered_overlap_lambda10_w1_parallelVertex_16","hyperPraw_default_1","hyperPraw_default_16","hyperPraw_bandwidth_1","hyperPraw_bandwidth_16"]
 experiments_partitioning = ["parallelVertex","parallelVertex","hyperPrawVertex","hyperPrawVertex","hyperPrawVertex","hyperPrawVertex","hyperPrawVertex","hyperPrawVertex","hyperPrawVertex"]
 colours = ["black","tomato","yellow","seagreen","red","blue","pink","brown","red","purple"] # as many as the number of experiments included
 patterns = ["//" , "||" , "--" , "xx" , "//" , "||","--","//" , "||" , "--"]

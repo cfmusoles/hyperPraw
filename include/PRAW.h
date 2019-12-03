@@ -1781,7 +1781,7 @@ namespace PRAW {
         //      Partial degree? (experiment with and without)
 
         // own parameters
-        float lambda_update = 1.3f; // must be greater than 1. Used when partitions are too imbalanced at the end of the pass
+        float lambda_update = 1.2f; // must be greater than 1. Used when partitions are too imbalanced at the end of the pass
         float lambda_refine = 0.95f; // must be lower than 1. Used when partitions are within imbalance limits at the end of the pass
         
         int process_id;
@@ -2022,7 +2022,7 @@ namespace PRAW {
                                 //present_in_partition |= part == current_part;
                                 // communication should be proportional to the duplication of pins
                                 // if a pin is duplicated in two partitions, then communication will happen across those partitions
-                                c_comm += comm_cost_matrix[current_part][part] * replicas;
+                                c_comm += comm_cost_matrix[current_part][part] * 1;
                             }
 
                             // Use HDRF
@@ -2201,7 +2201,7 @@ namespace PRAW {
 
 
             // check if within imbalance allowance (max over min)
-            if(max_imbalance < (imbalance_tolerance / (1.0f/imbalance_tolerance))) {
+            if(max_imbalance < (imbalance_tolerance / (1.0f/imbalance_tolerance) * imbalance_tolerance)) {
                 check_overfit = true;
                 if(process_id == MASTER_NODE) {
                     if(last_partitioning == NULL) {
