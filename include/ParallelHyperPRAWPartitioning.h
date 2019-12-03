@@ -21,7 +21,7 @@ Each line represents a vertex and the hyperedge_id it  belongs to.
 class ParallelHyperPRAWPartitioning : public Partitioning {
 public:
 	
-	ParallelHyperPRAWPartitioning(char* experimentName, char* graph_file, char* streamFile, int max_processes, float imbalance_tolerance, int iterations, char* comm_bandwidth_file, bool useBandwidth, bool proportionalCommCost, int syncBatchSize, bool input_order, bool elementIsVertex, float l) : Partitioning(graph_file,imbalance_tolerance,element_is_vertex) {
+	ParallelHyperPRAWPartitioning(char* experimentName, char* graph_file, char* streamFile, int max_processes, float imbalance_tolerance, int iterations, char* comm_bandwidth_file, bool useBandwidth, bool proportionalCommCost, int syncBatchSize, bool input_order, bool elementIsVertex, float l, bool savePartitioningHistory) : Partitioning(graph_file,imbalance_tolerance,element_is_vertex) {
 		experiment_name = experimentName;
         comm_bandwidth_filename = comm_bandwidth_file;
         use_bandwidth_file = useBandwidth;
@@ -33,6 +33,7 @@ public:
         max_num_processes = max_processes;   
         element_is_vertex = elementIsVertex; 
         lambda = l;  
+        save_partitioning_history = savePartitioningHistory;
 
         split_and_configure_stream();
 
@@ -148,7 +149,7 @@ public:
                 vtx_wgt[ii] = 1;
             }
 
-            *iterations = PRAW::ParallelHDRF(experiment_name,partitioning, num_partitions, partitioning_comm, comm_cost_matrix, hgraph_part_file.c_str(), vtx_wgt, max_iterations, imbalance_tolerance,false,sync_batch_size,input_order_round_robin,lambda);
+            *iterations = PRAW::ParallelHDRF(experiment_name,partitioning, num_partitions, partitioning_comm, comm_cost_matrix, hgraph_part_file.c_str(), vtx_wgt, max_iterations, imbalance_tolerance,false,sync_batch_size,input_order_round_robin,lambda,save_partitioning_history);
 
             // clean up operations
             for(int ii=0; ii < num_partitions; ii++) {
@@ -184,6 +185,7 @@ private:
     bool is_active = true;
     bool element_is_vertex = true;
     float lambda = 1.0f;
+    bool save_partitioning_history = false;
 };
 
 

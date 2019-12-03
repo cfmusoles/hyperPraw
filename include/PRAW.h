@@ -1727,7 +1727,7 @@ namespace PRAW {
 
     
     // Stream from multiple files / streams
-    int ParallelHDRF(char* experiment_name, idx_t* partitioning, int num_partitions, MPI_Comm partitioning_comm, double** comm_cost_matrix, std::string hypergraph_filename, int* element_wgt, int max_iterations, float imbalance_tolerance, bool local_replica_degree_updates_only = false, int window_size = 1, bool input_order_round_robin = true, float lambda = 1.0f) {
+    int ParallelHDRF(char* experiment_name, idx_t* partitioning, int num_partitions, MPI_Comm partitioning_comm, double** comm_cost_matrix, std::string hypergraph_filename, int* element_wgt, int max_iterations, float imbalance_tolerance, bool local_replica_degree_updates_only = false, int window_size = 1, bool input_order_round_robin = true, float lambda = 1.0f,bool save_partitioning_history = false) {
         // Parallel Hyperedge Partitioning based algorithm
         // Because it can be applied to both vertex and hyperedge partitionings, we adopt the following nomenclature:
         //      element: what each line in the stream represent
@@ -1799,6 +1799,25 @@ namespace PRAW {
         bool check_overfit = false;
         bool rollback = false;
         idx_t* last_partitioning = NULL;
+
+        std::string history_file = experiment_name;
+        
+        if(save_partitioning_history && process_id == 0) {
+            history_file += "_";
+            history_file += getFileName(hypergraph_filename);
+            history_file += "_partition_history__";
+            char str_int[16];
+            sprintf(str_int,"%i",num_processes);
+            history_file +=  str_int;
+            // remove history file if exists
+            FILE *fp = fopen(history_file.c_str(), "w");
+            if(fp == NULL) {
+                printf("Error when storing partitioning history into file\n");
+            } else {
+                fprintf(fp,"%s\n","Iteration, Lambda, Vertex replication factor, Hedge imbalance");
+            }
+            fclose(fp);
+        }
 
         int iter = 0;
         for(iter=0; iter < max_iterations; iter++) {
@@ -2158,15 +2177,28 @@ namespace PRAW {
             // update lambda (importance of load balancing)
             // keep searching until the last cut metric is not improved
             // this algorithm is always guaranteed to find balanced partitions
-            /*float pin_replication_factor;
-            PRAW::getEdgeCentricReplicationFactor(&seen_pins,num_pins,
-                                    &pin_replication_factor);
-            */
+            
             // test load balance (give more importance to load balance if the ratio max/min is too high)
             float maxsize = *std::max_element(part_load, part_load + num_partitions);
             float minsize = *std::min_element(part_load, part_load + num_partitions);
             float max_imbalance = minsize <= 0 ? num_partitions : maxsize / minsize;
             PRINTF("***Max-min ratio: %.3f, current lambda: %f.\n",max_imbalance,lambda); 
+
+            if(save_partitioning_history && process_id == MASTER_NODE) {
+                // store partition history
+                float pin_replication_factor;
+                PRAW::getEdgeCentricReplicationFactor(&seen_pins,num_pins,
+                                        &pin_replication_factor);
+
+                FILE *fp = fopen(history_file.c_str(), "ab+");
+                if(fp == NULL) {
+                    printf("Error when storing partitioning history into file\n");
+                } else {
+                    fprintf(fp,"%i,%.2f, %.3f,%.3f\n",iter,lambda,pin_replication_factor,max_imbalance);
+                }
+                fclose(fp);
+            }
+
 
             // check if within imbalance allowance (max over min)
             if(max_imbalance < (imbalance_tolerance / (1.0f/imbalance_tolerance))) {
