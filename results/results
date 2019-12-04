@@ -10,4 +10,4 @@ refinement strategies
 
 refine: -c_comm -c_bal (com not weighed)
 refine_w: same but com is weighed by the replicas
-ref_lw: same but com is multiplied by total_replicas/local_replicas
+ref_hard: same but bal is multiplied by part_load[pp]^0.75
