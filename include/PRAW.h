@@ -2022,7 +2022,7 @@ namespace PRAW {
                                 //present_in_partition |= part == current_part;
                                 // communication should be proportional to the duplication of pins
                                 // if a pin is duplicated in two partitions, then communication will happen across those partitions
-                                c_comm += comm_cost_matrix[current_part][part] * 1;
+                                c_comm += comm_cost_matrix[current_part][part] * replicas;
                             }
 
                             // Use HDRF
@@ -2031,7 +2031,7 @@ namespace PRAW {
                             c_rep += present_in_partition ? seen_pins[pin_id].P[current_part] : 0;
                         }
                         
-                        float c_bal = lambda * pow(part_load[current_part],0.5f);
+                        float c_bal = lambda * pow(part_load[current_part],0.75f);
                         double current_value = - c_comm - c_bal;
                         
                         //printf("[%i]: %.2f -- %.2f\n",current_part,c_comm / total_replicas,c_bal);
