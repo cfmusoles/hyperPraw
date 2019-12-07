@@ -45,12 +45,9 @@ show_title = False
 
 folder = "../results/ref_wh/"
 bandwidth_send_experiment_name = 'results_mpi_send_bandwidth_1_' + str(num_processes)
-graph_name = "small_dense_powerlaw.hgr"
-partitioning = 'hyperPrawVertex'
-test_name = 'ref_wh_hyperPraw_bandwidth_1'#'ref_wh_staggered_overlap_lambda10_w1_parallelVertex_1'#'ref_wh_hyperPraw_bandwidth_1'
-
-sim_sent_experiment = test_name + '_' + graph_name + '_' + partitioning + '_edgeSim_comm_cost__' + str(num_processes)
-#sim_sent_experiment = test_name + '_' + partitioning + '_comm_matrix_' + str(num_processes)
+graph_names = ["small_dense_uniform.hgr","small_dense_powerlaw.hgr","large_sparse_uniform.hgr","large_sparse_powerlaw.hgr"]
+partitioning = ['hyperPrawVertex','parallelVertex']
+test_names = ['ref_wh_hyperPraw_bandwidth_1','ref_wh_staggered_overlap_lambda10_w1_parallelVertex_1']#'ref_wh_hyperPraw_bandwidth_1'
 
 xlabel = "Process"
 ylabel = "Process"
@@ -130,61 +127,67 @@ def plot_2dgraph(data,title,label,fname):
 		plt.savefig(fname + "." + image_format,format=image_format)
 	plt.show()
 
+for graph_name in graph_names:
 
-## creating figure for bandwidth estimation (send performance)
-if plot_bandwidth:
+	for i,test_name in enumerate(test_names):
 
-	#data = get_data_from_csv(folder + bandwidth_send_experiment_name,'\t')
-	#plot_3dgraph(data,titles[0],zlabels[0],filenames[0])
+		sim_sent_experiment = test_name + '_' + graph_name + '_' + partitioning[i] + '_edgeSim_comm_cost__' + str(num_processes)
+		#sim_sent_experiment = test_name + '_' + partitioning + '_comm_matrix_' + str(num_processes)
 
-	## Plot bandwidth and data sent separately in a double figure
-	bandwidth_data = get_data_from_csv(folder + bandwidth_send_experiment_name,'\t')
-	plot_2dgraph(bandwidth_data,"P2P Bandwidth",'log (MB/s)',filenames[1])
+		## creating figure for bandwidth estimation (send performance)
+		if plot_bandwidth:
 
-	
+			#data = get_data_from_csv(folder + bandwidth_send_experiment_name,'\t')
+			#plot_3dgraph(data,titles[0],zlabels[0],filenames[0])
 
-## creating combined figure for cost of communication
-## each value corresponds to a process-process pair: total data sent / bandwidth 
-if plot_sent_data:
-	## IN 3D##
-	#data = get_data_from_csv(folder + sim_sent_experiment,' ')
-	#plot_3dgraph(data,titles[1],zlabels[1],filenames[1])
-	####
+			## Plot bandwidth and data sent separately in a double figure
+			bandwidth_data = get_data_from_csv(folder + bandwidth_send_experiment_name,'\t')
+			plot_2dgraph(bandwidth_data,"P2P Bandwidth",'log (MB/s)',filenames[1] + test_name + graph_name)
 
-	## Plot bandwidth and data sent separately in a double figure
-	comm_data = get_data_from_csv(folder + sim_sent_experiment,' ')
-	plot_2dgraph(comm_data,"Actual data sent",'log (Bytes sent)',filenames[2])
-	
+			
 
-if plot_comm_cost:
-	## Plot bandwidth and data sent separately in a double figure
-	bandwidth_data = get_data_from_csv(folder + bandwidth_send_experiment_name,'\t')
-	comm_data = get_data_from_csv(folder + sim_sent_experiment,' ')
-	#transform 0 values
-	bandwidth_data[bandwidth_data == 0] = np.max(bandwidth_data)
-	comm_data[comm_data == 0] = 0.1
-	# calculate cost of comm (theoretical)
-	cost_data = np.array([c/b for b, c in zip(bandwidth_data, comm_data)])
-	cost_data = np.nan_to_num(cost_data)
-	print('Total cost: ' + str(cost_data.sum()))
-	
+		## creating combined figure for cost of communication
+		## each value corresponds to a process-process pair: total data sent / bandwidth 
+		if plot_sent_data:
+			## IN 3D##
+			#data = get_data_from_csv(folder + sim_sent_experiment,' ')
+			#plot_3dgraph(data,titles[1],zlabels[1],filenames[1])
+			####
 
-	## Compound graph##
-	#bandwidth_data = get_data_from_csv(folder + bandwidth_send_experiment_name,'\t')
-	#comm_data = get_data_from_csv(folder + sim_sent_experiment,' ')
-	#cost_data = np.array([c/b for b, c in zip(bandwidth_data, comm_data)])
-	#cost_data = np.nan_to_num(cost_data)
-	#print('Total cost: ' + str(cost_data.sum()))
-	# colour maps http://scipy-cookbook.readthedocs.io/items/Matplotlib_Show_colormaps.html
-	#pcolor(cost_data,cmap=get_cmap("binary"))
-	#cbar = colorbar()
-	#plt.title(titles[2])
-	#plt.xlabel(xlabel)
-	#plt.ylabel(ylabel)
-	#cbar.ax.set_ylabel("Cost (time)",rotation=90)
-	#if storeResults:
-	#	plt.savefig(filenames[2] + "." + image_format,format=image_format,dpi=300)
-	#plt.show()
+			## Plot bandwidth and data sent separately in a double figure
+			comm_data = get_data_from_csv(folder + sim_sent_experiment,' ')
+			plot_2dgraph(comm_data,"Actual data sent",'log (Bytes sent)',filenames[2] + test_name + graph_name)
+			
 
-	####
+		if plot_comm_cost:
+			## Plot bandwidth and data sent separately in a double figure
+			bandwidth_data = get_data_from_csv(folder + bandwidth_send_experiment_name,'\t')
+			comm_data = get_data_from_csv(folder + sim_sent_experiment,' ')
+			#transform 0 values
+			bandwidth_data[bandwidth_data == 0] = np.max(bandwidth_data)
+			comm_data[comm_data == 0] = 0.1
+			# calculate cost of comm (theoretical)
+			cost_data = np.array([c/b for b, c in zip(bandwidth_data, comm_data)])
+			cost_data = np.nan_to_num(cost_data)
+			print('Total cost: ' + str(cost_data.sum()))
+			
+
+			## Compound graph##
+			#bandwidth_data = get_data_from_csv(folder + bandwidth_send_experiment_name,'\t')
+			#comm_data = get_data_from_csv(folder + sim_sent_experiment,' ')
+			#cost_data = np.array([c/b for b, c in zip(bandwidth_data, comm_data)])
+			#cost_data = np.nan_to_num(cost_data)
+			#print('Total cost: ' + str(cost_data.sum()))
+			# colour maps http://scipy-cookbook.readthedocs.io/items/Matplotlib_Show_colormaps.html
+			#pcolor(cost_data,cmap=get_cmap("binary"))
+			#cbar = colorbar()
+			#plt.title(titles[2])
+			#plt.xlabel(xlabel)
+			#plt.ylabel(ylabel)
+			#cbar.ax.set_ylabel("Cost (time)",rotation=90)
+			#if storeResults:
+			#	plt.savefig(filenames[2] + "." + image_format,format=image_format,dpi=300)
+			#plt.show()
+
+			####
 
