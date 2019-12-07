@@ -43,13 +43,13 @@ show_title = False
 # large_sparse_uniform.hgr
 # large_sparse_powerlaw.hgr
 
-folder = "../results/refine/"
+folder = "../results/ref_wh/"
 bandwidth_send_experiment_name = 'results_mpi_send_bandwidth_1_' + str(num_processes)
-graph_name = "large_sparse_powerlaw.hgr"
+graph_name = "small_dense_powerlaw.hgr"
 partitioning = 'hyperPrawVertex'
-test_name = 'refine_hyperPraw_bandwidth_16'#'refine_staggered_overlap_lambda10_w1_parallelVertex_1'#'refine_hyperPraw_bandwidth_1'
+test_name = 'ref_wh_hyperPraw_bandwidth_1'#'ref_wh_staggered_overlap_lambda10_w1_parallelVertex_1'#'ref_wh_hyperPraw_bandwidth_1'
 
-sim_sent_experiment = test_name + '_' + graph_name + '_' + partitioning + '_hedgeSim_comm_cost__' + str(num_processes)
+sim_sent_experiment = test_name + '_' + graph_name + '_' + partitioning + '_edgeSim_comm_cost__' + str(num_processes)
 #sim_sent_experiment = test_name + '_' + partitioning + '_comm_matrix_' + str(num_processes)
 
 xlabel = "Process"

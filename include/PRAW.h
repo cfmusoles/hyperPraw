@@ -1783,7 +1783,7 @@ namespace PRAW {
         // own parameters
         float lambda_update = 1.2f; // must be greater than 1. Used when partitions are too imbalanced at the end of the pass
         float lambda_refine = 0.95f; // must be lower than 1. Used when partitions are within imbalance limits at the end of the pass
-        
+
         int process_id;
         MPI_Comm_rank(partitioning_comm,&process_id);
         int num_processes;
@@ -2031,7 +2031,7 @@ namespace PRAW {
                             c_rep += present_in_partition ? seen_pins[pin_id].P[current_part] : 0;
                         }
                         
-                        float c_bal = lambda * pow(part_load[current_part],0.75f);
+                        float c_bal = 1 * pow(part_load[current_part],lambda);
                         double current_value = - c_comm - c_bal;
                         
                         //printf("[%i]: %.2f -- %.2f\n",current_part,c_comm / total_replicas,c_bal);
@@ -2209,14 +2209,17 @@ namespace PRAW {
                     }
                     memcpy(last_partitioning,partitioning,num_elements * sizeof(idx_t));
                 }             
-                lambda *= lambda_refine;       
+                //lambda *= lambda_refine;  
+                lambda += 0.05;   
             } else {
                 // still too imbalanced
                 if(check_overfit) {
                     rollback = true;
                     break;
                 }
-                lambda *=  lambda_update;
+                //lambda *=  lambda_update;
+                lambda -= 0.02;
+                if (lambda <= 0) break;
             }
             
         }

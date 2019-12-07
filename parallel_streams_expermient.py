@@ -95,9 +95,9 @@ run_experiment() {
 		#aprun -n $PROCESSES hyperPraw -n $EXPERIMENT_NAME"_staggered_overlap_lambda10_w50_parallelVertex_"$MAX_PROCESSES -h $HYPERGRAPH_FILE -i 100 -m 1200 -p parallelVertex -t $E_SIM_STEPS -x $H_SIM_STEPS -s $SEED -k $MESSAGE_SIZE -e $GRAPH_STREAM -P -K $MAX_PROCESSES -g 50 -b $BM_FILE -B -r 10000 -q $SIMS_PER_TRIAL
 		#sleep 1
 		# hyperPraw with vs without bandwidth
-		aprun -n $PROCESSES hyperPraw -n $EXPERIMENT_NAME"_hyperPraw_default_"$MAX_PROCESSES -h $HYPERGRAPH_FILE -i 100 -m 1200 -p hyperPrawVertex -t $E_SIM_STEPS -x $H_SIM_STEPS -s $SEED -k $MESSAGE_SIZE -e $GRAPH_STREAM -P -K $MAX_PROCESSES -g 1 -b $BM_FILE -r 1000 -q $SIMS_PER_TRIAL -H
+		aprun -n $PROCESSES hyperPraw -n $EXPERIMENT_NAME"_hyperPraw_default_"$MAX_PROCESSES -h $HYPERGRAPH_FILE -i 100 -m 1200 -p hyperPrawVertex -t $E_SIM_STEPS -x $H_SIM_STEPS -s $SEED -k $MESSAGE_SIZE -e $GRAPH_STREAM -P -K $MAX_PROCESSES -g 1 -b $BM_FILE -r 500 -q $SIMS_PER_TRIAL -H
 		sleep 1
-		aprun -n $PROCESSES hyperPraw -n $EXPERIMENT_NAME"_hyperPraw_bandwidth_"$MAX_PROCESSES -h $HYPERGRAPH_FILE -i 100 -m 1200 -p hyperPrawVertex -t $E_SIM_STEPS -x $H_SIM_STEPS -s $SEED -k $MESSAGE_SIZE -e $GRAPH_STREAM -P -K $MAX_PROCESSES -g 1 -b $BM_FILE -W -r 1000 -q $SIMS_PER_TRIAL -H
+		aprun -n $PROCESSES hyperPraw -n $EXPERIMENT_NAME"_hyperPraw_bandwidth_"$MAX_PROCESSES -h $HYPERGRAPH_FILE -i 100 -m 1200 -p hyperPrawVertex -t $E_SIM_STEPS -x $H_SIM_STEPS -s $SEED -k $MESSAGE_SIZE -e $GRAPH_STREAM -P -K $MAX_PROCESSES -g 1 -b $BM_FILE -W -r 500 -q $SIMS_PER_TRIAL -H
 		sleep 1
 
 		MAX_PROCESSES=$(($MAX_PROCESSES * $FACTOR))
