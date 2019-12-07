@@ -2210,7 +2210,7 @@ namespace PRAW {
                     memcpy(last_partitioning,partitioning,num_elements * sizeof(idx_t));
                 }             
                 //lambda *= lambda_refine;  
-                lambda += 0.05;   
+                lambda -= 0.02;   
             } else {
                 // still too imbalanced
                 if(check_overfit) {
@@ -2218,7 +2218,7 @@ namespace PRAW {
                     break;
                 }
                 //lambda *=  lambda_update;
-                lambda -= 0.02;
+                lambda += 0.05;
                 if (lambda <= 0) break;
             }
             
