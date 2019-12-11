@@ -2031,8 +2031,8 @@ namespace PRAW {
                             c_rep += present_in_partition ? seen_pins[pin_id].P[current_part] : 0;
                         }
                         
-                        //float c_bal = 1 * pow(part_load[current_part],lambda);
-                        double current_value = - c_comm;// - c_bal;
+                        float c_bal = 1 * pow(part_load[current_part],lambda);
+                        double current_value = - c_comm - c_bal;
                         
                         //printf("[%i]: %.2f -- %.2f\n",current_part,c_comm / total_replicas,c_bal);
                         
@@ -2199,7 +2199,6 @@ namespace PRAW {
                 fclose(fp);
             }
 
-            break;
             // check if within imbalance allowance (max over min)
             if(max_imbalance < (imbalance_tolerance / (1.0f/imbalance_tolerance) * imbalance_tolerance)) {
                 check_overfit = true;
