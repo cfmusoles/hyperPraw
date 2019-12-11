@@ -21,7 +21,7 @@ Each line represents a vertex and the hyperedge_id it  belongs to.
 class ParallelHyperPRAWPartitioning : public Partitioning {
 public:
 	
-	ParallelHyperPRAWPartitioning(char* experimentName, char* graph_file, char* streamFile, int max_processes, float imbalance_tolerance, int iterations, char* comm_bandwidth_file, bool useBandwidth, bool proportionalCommCost, int syncBatchSize, bool input_order, bool elementIsVertex, float l, bool savePartitioningHistory) : Partitioning(graph_file,imbalance_tolerance,element_is_vertex) {
+	ParallelHyperPRAWPartitioning(char* experimentName, char* graph_file, char* streamFile, int max_processes, float imbalance_tolerance, int iterations, char* comm_bandwidth_file, bool useBandwidth, bool proportionalCommCost, int syncBatchSize, bool input_order, bool elementIsVertex, float l, bool savePartitioningHistory) : Partitioning(graph_file,imbalance_tolerance,elementIsVertex) {
 		experiment_name = experimentName;
         comm_bandwidth_filename = comm_bandwidth_file;
         use_bandwidth_file = useBandwidth;

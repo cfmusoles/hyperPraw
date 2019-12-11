@@ -959,7 +959,6 @@ namespace PRAW {
         std::vector<std::vector<int> > hyperedges;
         std::vector<std::vector<int> > hedge_ptr;
         load_hypergraph_from_file_dist_CSR(hypergraph_filename, &hyperedges, &hedge_ptr, MASTER_NODE, partitioning, true);
-        
 
         // each process must read from file only the info relevant to its data
         // 3 - Initiate N number of iterations on each process:
@@ -1439,7 +1438,6 @@ namespace PRAW {
         
         int max_stream_size = num_elements / num_processes + ((num_elements % num_processes > 0) ? 1 : 0);
         while(element_id < max_stream_size) {
-            
 
             int actual_window_size = 0;
             
@@ -1494,6 +1492,7 @@ namespace PRAW {
                     //return (element_priority[a] < element_priority[b]); // from lowest to highest
                 }
             );
+
             // process each batched element in order
             for(int el=0; el < actual_window_size; el++) {
                 int idx = index[el];
@@ -1591,6 +1590,7 @@ namespace PRAW {
                 //  TODO: Batch synchronisation requres testing. Are we saving time? Are results correct?
                 //  issues: tradeoff between less comm overhead and quality of partition (potentially higher graph size requirements as partition load is not updated often)
                 // *****
+                
                 new_replicas[idx].push_back(element_mapping); // add in front the partition selected
                 part_load[element_mapping] += 1; //  TODO: not really the element id  !! should be using element_wgt[current_element_id]
                 int new_pins = 0;
@@ -1618,6 +1618,8 @@ namespace PRAW {
             }
             element_id += window_size;
 
+            
+            
             // batch synchronisation
             // synchronise length of pins list to be sent
             int* remote_pins_size = (int*)malloc(sizeof(int) * window_size * num_processes);
@@ -1669,11 +1671,13 @@ namespace PRAW {
                     }
                     int current_pin_length = remote_pins_size[ii*window_size+el_order];
                     int dest_partition = recvbuffer[displs[ii] + current_element_index];
+                    
                     // move current_element_index to start reading pins
                     current_element_index++;
                     
                     total_workload += element_wgt[current_element];
                     partitioning[current_element] = dest_partition;
+
                     if(ii != process_id) {
                         // only update pins from remote processes (they were accounted for during local streaming)
                         part_load[dest_partition] += element_wgt[current_element];

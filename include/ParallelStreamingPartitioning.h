@@ -21,7 +21,7 @@ Determined by parameter element_is_vertex
 class ParallelStreamingPartitioning : public Partitioning {
 public:
 	
-	ParallelStreamingPartitioning(char* experimentName, char* graph_file, char* streamFile, int max_processes, float imbalance_tolerance, int windowSize, bool input_order,bool elementIsVertex, bool useHDRF, bool staggeredStreams, bool useBalanceCost, float l) : Partitioning(graph_file,imbalance_tolerance,element_is_vertex) {
+	ParallelStreamingPartitioning(char* experimentName, char* graph_file, char* streamFile, int max_processes, float imbalance_tolerance, int windowSize, bool input_order,bool elementIsVertex, bool useHDRF, bool staggeredStreams, bool useBalanceCost, float l) : Partitioning(graph_file,imbalance_tolerance,elementIsVertex) {
 		experiment_name = experimentName;
         stream_window_size = windowSize;
         stream_file = streamFile;

@@ -110,13 +110,13 @@ for p in $(seq 1 $REPETITIONS)
 do
 	SEED=$RANDOM
 	#synthetic graphs
-	run_experiment "small_uniform_dense_c96.hgr" $SEED 1 10
-	run_experiment "small_uniform_sparse_c96.hgr" $SEED 1 10
-	run_experiment "large_uniform_sparse_c96.hgr" $SEED 1 10
-	run_experiment "large_powerlaw_sparse_c96.hgr" $SEED 1 10
-	run_experiment "small_powerlaw_dense_c96.hgr" $SEED 1 10
-	run_experiment "small_uniform_dense_c192.hgr" $SEED 1 10
-	run_experiment "small_uniform_sparse_c48.hgr" $SEED 1 10
+	run_experiment "small_uniform_dense_c96.hgr" $SEED 10 10 # produce error
+	run_experiment "small_uniform_sparse_c96.hgr" $SEED 10 10 # produce error
+	run_experiment "large_uniform_sparse_c96.hgr" $SEED 10 10
+	run_experiment "large_powerlaw_sparse_c96.hgr" $SEED 10 10
+	run_experiment "small_powerlaw_dense_c96.hgr" $SEED 10 10 # produce error
+	run_experiment "small_uniform_dense_c192.hgr" $SEED 10 10 # produce error
+	run_experiment "small_uniform_sparse_c48.hgr" $SEED 10 10 # produce error
 
 	# benchmark graphs
 	#run_experiment "2cubes_sphere.mtx.hgr" $SEED 3 20
