@@ -9,7 +9,7 @@ num_processes = 96
 
 show_error = True
 as_bar_plot = True
-log_scale = True
+log_scale = False
 show_title = False
 show_annotations = False
 
@@ -25,10 +25,16 @@ show_annotations = False
 # "webbase-1M.mtx.hgr" $SEED 1 1 #Y
 # "ship_001.mtx.hgr" $SEED 1 30 #Y # hedge sim is too short
 
-folder = "../results/ref_hard/"
-experiment_name = "ref_hard"
-graphs = ["small_dense_powerlaw.hgr","small_dense_uniform.hgr","large_sparse_uniform.hgr","large_sparse_powerlaw.hgr"]
-graph_names = ["Small powerlaw","Small uniform","Large uniform","Large powerlaw"]
+folder = "../results/syn_bench/"
+experiment_name = "syn_bench"
+graphs = ["large_powerlaw_sparse_c96.hgr", "small_powerlaw_dense_c96.hgr",
+                    "large_uniform_sparse_c96.hgr", "small_uniform_dense_c96.hgr",
+                    "small_uniform_sparse_c96.hgr", "small_uniform_sparse_c48.hgr",
+                    "small_uniform_dense_c192.hgr"]
+graph_names = ["large_powerlaw_sparse_c96", "small_powerlaw_dense_c96",
+                    "large_uniform_sparse_c96", "small_uniform_dense_c96",
+                    "small_uniform_sparse_c96", "small_uniform_sparse_c48",
+                    "small_uniform_dense_c192"]
 #graphs = ["sat14_itox_vc1130.cnf.dual.hgr","2cubes_sphere.mtx.hgr","ABACUS_shell_hd.mtx.hgr","sparsine.mtx.hgr","pdb1HYS.mtx.hgr","sat14_atco_enc1_opt1_05_21.cnf.dual.hgr","sat14_10pipe_q0_k.cnf.primal.hgr","sat14_E02F22.cnf.hgr","webbase-1M.mtx.hgr","ship_001.mtx.hgr"]
 #graph_names = ["sat14 itox","2cubes","ABACUS","sparsine","pdb1HYS","sat14 atco dual","sat14 10pipe primal","sat14 E02F22","webbase-1M","ship 001"]
 # each element on the following arrays corresponds to an experiment run (collection of files)
@@ -91,7 +97,7 @@ def plot(x,y, error,title,ylabel,name,colour,pattern,legend,show,global_counter)
 			plt.errorbar(x, y,linewidth=1,color=colour,label=legend,marker='s',markersize=5)
 	
 	if log_scale:
-		plt.yscale("linear")
+		plt.yscale("log")
 		#plt.ylim(1,3000)
 	plt.ylabel(ylabel)
 	if show_title:

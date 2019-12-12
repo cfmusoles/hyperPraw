@@ -43,11 +43,14 @@ show_title = False
 # large_sparse_uniform.hgr
 # large_sparse_powerlaw.hgr
 
-folder = "../results/ref_wh/"
+folder = "../results/syn_bench/"
 bandwidth_send_experiment_name = 'results_mpi_send_bandwidth_1_' + str(num_processes)
-graph_names = ["small_dense_uniform.hgr","small_dense_powerlaw.hgr","large_sparse_uniform.hgr","large_sparse_powerlaw.hgr"]
+graph_names = ["large_powerlaw_sparse_c96.hgr", "small_powerlaw_dense_c96.hgr",
+                    "large_uniform_sparse_c96.hgr", "small_uniform_dense_c96.hgr",
+                    "small_uniform_sparse_c96.hgr", "small_uniform_sparse_c48.hgr",
+                    "small_uniform_dense_c192.hgr"]
 partitioning = ['hyperPrawVertex','parallelVertex']
-test_names = ['ref_wh_hyperPraw_bandwidth_1','ref_wh_staggered_overlap_lambda10_w1_parallelVertex_1']#'ref_wh_hyperPraw_bandwidth_1'
+test_names = ['syn_bench_hyperPraw_bandwidth_1','syn_bench_staggered_overlap_lambda10_w1_parallelVertex_1']#'ref_wh_hyperPraw_bandwidth_1'
 
 xlabel = "Process"
 ylabel = "Process"

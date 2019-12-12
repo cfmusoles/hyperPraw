@@ -81,10 +81,10 @@ run_experiment() {
 		#aprun -n $PROCESSES hyperPraw -n $EXPERIMENT_NAME"_overlap_parallelHyperedge_"$MAX_PROCESSES -h $HYPERGRAPH_FILE -i 100 -m 1200 -p parallelHyperedge -t $E_SIM_STEPS -x $H_SIM_STEPS -s $SEED -k $MESSAGE_SIZE -e $HYPERGRAPH_FILE -P -K $MAX_PROCESSES -g 1 -b $BM_FILE -q $SIMS_PER_TRIAL
 		#sleep 1
 		# using balance in cost function (various lambda values)
-		aprun -n $PROCESSES hyperPraw -n $EXPERIMENT_NAME"_staggered_overlap_lambda01_w1_parallelVertex_"$MAX_PROCESSES -h $HYPERGRAPH_FILE -i 100 -m 1200 -p parallelVertex -t $E_SIM_STEPS -x $H_SIM_STEPS -s $SEED -k $MESSAGE_SIZE -e $GRAPH_STREAM -P -K $MAX_PROCESSES -g 1 -b $BM_FILE -B -r 100 -q $SIMS_PER_TRIAL
-		sleep 1
-		aprun -n $PROCESSES hyperPraw -n $EXPERIMENT_NAME"_staggered_overlap_lambda1_w1_parallelVertex_"$MAX_PROCESSES -h $HYPERGRAPH_FILE -i 100 -m 1200 -p parallelVertex -t $E_SIM_STEPS -x $H_SIM_STEPS -s $SEED -k $MESSAGE_SIZE -e $GRAPH_STREAM -P -K $MAX_PROCESSES -g 1 -b $BM_FILE -B -r 1000 -q $SIMS_PER_TRIAL
-		sleep 1
+		#aprun -n $PROCESSES hyperPraw -n $EXPERIMENT_NAME"_staggered_overlap_lambda01_w1_parallelVertex_"$MAX_PROCESSES -h $HYPERGRAPH_FILE -i 100 -m 1200 -p parallelVertex -t $E_SIM_STEPS -x $H_SIM_STEPS -s $SEED -k $MESSAGE_SIZE -e $GRAPH_STREAM -P -K $MAX_PROCESSES -g 1 -b $BM_FILE -B -r 100 -q $SIMS_PER_TRIAL
+		#sleep 1
+		#aprun -n $PROCESSES hyperPraw -n $EXPERIMENT_NAME"_staggered_overlap_lambda1_w1_parallelVertex_"$MAX_PROCESSES -h $HYPERGRAPH_FILE -i 100 -m 1200 -p parallelVertex -t $E_SIM_STEPS -x $H_SIM_STEPS -s $SEED -k $MESSAGE_SIZE -e $GRAPH_STREAM -P -K $MAX_PROCESSES -g 1 -b $BM_FILE -B -r 1000 -q $SIMS_PER_TRIAL
+		#sleep 1
 		aprun -n $PROCESSES hyperPraw -n $EXPERIMENT_NAME"_staggered_overlap_lambda10_w1_parallelVertex_"$MAX_PROCESSES -h $HYPERGRAPH_FILE -i 100 -m 1200 -p parallelVertex -t $E_SIM_STEPS -x $H_SIM_STEPS -s $SEED -k $MESSAGE_SIZE -e $GRAPH_STREAM -P -K $MAX_PROCESSES -g 1 -b $BM_FILE -B -r 10000 -q $SIMS_PER_TRIAL
 		sleep 1
 		# windows-based synchronisation
@@ -110,22 +110,14 @@ for p in $(seq 1 $REPETITIONS)
 do
 	SEED=$RANDOM
 	#synthetic graphs
-	run_experiment "small_uniform_dense_c96.hgr" $SEED 10 10 # produce error
-	run_experiment "small_uniform_sparse_c96.hgr" $SEED 10 10 # produce error
-	run_experiment "large_uniform_sparse_c96.hgr" $SEED 10 10
-	run_experiment "large_powerlaw_sparse_c96.hgr" $SEED 10 10
-	run_experiment "small_powerlaw_dense_c96.hgr" $SEED 10 10 # produce error
-	run_experiment "small_uniform_dense_c192.hgr" $SEED 10 10 # produce error
-	run_experiment "small_uniform_sparse_c48.hgr" $SEED 10 10 # produce error
-
-	# benchmark graphs
-	#run_experiment "2cubes_sphere.mtx.hgr" $SEED 3 20
-	#run_experiment "ABACUS_shell_hd.mtx.hgr" $SEED 100 200
-	
-	#large graphs
-	#run_experiment "sat14_10pipe_q0_k.cnf.primal.hgr" $SEED 1 1
-	#run_experiment "sat14_E02F22.cnf.hgr" $SEED 1 1
-	#run_experiment "webbase-1M.mtx.hgr" $SEED 1 1
+	run_experiment "small_uniform_dense_c96.hgr" $SEED 6 30
+	run_experiment "small_uniform_sparse_c96.hgr" $SEED 19 30
+	run_experiment "large_uniform_sparse_c96.hgr" $SEED 12 30
+	run_experiment "large_powerlaw_sparse_c96.hgr" $SEED 16 30
+	run_experiment "small_powerlaw_dense_c96.hgr" $SEED 3 30
+	run_experiment "small_uniform_dense_c192.hgr" $SEED 4 30
+	run_experiment "small_uniform_sparse_c48.hgr" $SEED 20 30
+	run_experiment "huge_uniform_dense_c96.hgr" $SEED 1 5
 	
 done
 
