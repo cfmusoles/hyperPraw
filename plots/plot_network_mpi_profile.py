@@ -8,7 +8,7 @@ from mpl_toolkits.mplot3d import Axes3D
 from matplotlib.ticker import LinearLocator, FormatStrFormatter
 from pylab import *
 
-num_processes = 96
+num_processes = 192
 plot_bandwidth = False			# plot network bandwidth data
 plot_sent_data = True			# plot application sent data
 plot_comm_cost = False			# plot combined comm cost
@@ -48,9 +48,9 @@ bandwidth_send_experiment_name = 'results_mpi_send_bandwidth_1_' + str(num_proce
 graph_names = ["large_powerlaw_sparse_c96.hgr", "small_powerlaw_dense_c96.hgr",
                     "large_uniform_sparse_c96.hgr", "small_uniform_dense_c96.hgr",
                     "small_uniform_sparse_c96.hgr", "small_uniform_sparse_c48.hgr",
-                    "small_uniform_dense_c192.hgr"]
+                    "small_uniform_dense_c192.hgr","huge_uniform_dense_c96.hgr"]
 partitioning = ['hyperPrawVertex','parallelVertex']
-test_names = ['syn_bench_hyperPraw_bandwidth_1','syn_bench_staggered_overlap_lambda10_w1_parallelVertex_1']#'ref_wh_hyperPraw_bandwidth_1'
+test_names = ['syn_bench_hyperPraw_bandwidth_1','syn_bench_staggered_overlap_lambda10_w1_parallelVertex_1']
 
 xlabel = "Process"
 ylabel = "Process"

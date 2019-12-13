@@ -30,11 +30,11 @@ experiment_name = "syn_bench"
 graphs = ["large_powerlaw_sparse_c96.hgr", "small_powerlaw_dense_c96.hgr",
                     "large_uniform_sparse_c96.hgr", "small_uniform_dense_c96.hgr",
                     "small_uniform_sparse_c96.hgr", "small_uniform_sparse_c48.hgr",
-                    "small_uniform_dense_c192.hgr"]
+                    "small_uniform_dense_c192.hgr","huge_uniform_dense_c96.hgr"]
 graph_names = ["large_powerlaw_sparse_c96", "small_powerlaw_dense_c96",
                     "large_uniform_sparse_c96", "small_uniform_dense_c96",
                     "small_uniform_sparse_c96", "small_uniform_sparse_c48",
-                    "small_uniform_dense_c192"]
+                    "small_uniform_dense_c192","huge_uniform_dense_c96"]
 #graphs = ["sat14_itox_vc1130.cnf.dual.hgr","2cubes_sphere.mtx.hgr","ABACUS_shell_hd.mtx.hgr","sparsine.mtx.hgr","pdb1HYS.mtx.hgr","sat14_atco_enc1_opt1_05_21.cnf.dual.hgr","sat14_10pipe_q0_k.cnf.primal.hgr","sat14_E02F22.cnf.hgr","webbase-1M.mtx.hgr","ship_001.mtx.hgr"]
 #graph_names = ["sat14 itox","2cubes","ABACUS","sparsine","pdb1HYS","sat14 atco dual","sat14 10pipe primal","sat14 E02F22","webbase-1M","ship 001"]
 # each element on the following arrays corresponds to an experiment run (collection of files)
