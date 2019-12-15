@@ -1573,7 +1573,7 @@ namespace PRAW {
 
                     double current_value = c_rep;
                     if(use_balance_cost) {
-                        float c_bal = lambda * pow(part_load[current_part],0.5f);
+                        float c_bal = 1 * pow(part_load[current_part],lambda);//lambda * pow(part_load[current_part],0.5f);
                         current_value -= c_bal;
                     }
                     
