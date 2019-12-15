@@ -26,7 +26,7 @@ template_2 = '''
 template_3=''':bigmem='''
 template_4='''
 # walltime
-#PBS -l walltime=32:00:0
+#PBS -l walltime=24:00:0
 # budget code
 #PBS -A e582
 
@@ -85,10 +85,10 @@ run_experiment() {
 		# hdrf vs overlap
 		aprun -n $PROCESSES hyperPraw -n $EXPERIMENT_NAME"_staggered_hdrf_parallelVertex_"$MAX_PROCESSES -h $HYPERGRAPH_FILE -m 1200 -p parallelVertex -t $E_SIM_STEPS -x $H_SIM_STEPS -s $SEED -k $MESSAGE_SIZE -e $GRAPH_STREAM -P -K $MAX_PROCESSES -g 1 -b $BM_FILE -F -q $SIMS_PER_TRIAL
 		sleep 1
-		aprun -n $PROCESSES hyperPraw -n $EXPERIMENT_NAME"_hdrf_parallelHyperedge_"$MAX_PROCESSES -h $HYPERGRAPH_FILE -m 1200 -p parallelHyperedge -t $E_SIM_STEPS -x $H_SIM_STEPS -s $SEED -k $MESSAGE_SIZE -e $HYPERGRAPH_FILE -P -K $MAX_PROCESSES -g 1 -b $BM_FILE -F -q $SIMS_PER_TRIAL
-		sleep 1
-		aprun -n $PROCESSES hyperPraw -n $EXPERIMENT_NAME"_overlap_parallelHyperedge_"$MAX_PROCESSES -h $HYPERGRAPH_FILE -m 1200 -p parallelHyperedge -t $E_SIM_STEPS -x $H_SIM_STEPS -s $SEED -k $MESSAGE_SIZE -e $HYPERGRAPH_FILE -P -K $MAX_PROCESSES -g 1 -b $BM_FILE -q $SIMS_PER_TRIAL
-		sleep 1
+		#aprun -n $PROCESSES hyperPraw -n $EXPERIMENT_NAME"_hdrf_parallelHyperedge_"$MAX_PROCESSES -h $HYPERGRAPH_FILE -m 1200 -p parallelHyperedge -t $E_SIM_STEPS -x $H_SIM_STEPS -s $SEED -k $MESSAGE_SIZE -e $HYPERGRAPH_FILE -P -K $MAX_PROCESSES -g 1 -b $BM_FILE -F -q $SIMS_PER_TRIAL
+		#sleep 1
+		#aprun -n $PROCESSES hyperPraw -n $EXPERIMENT_NAME"_overlap_parallelHyperedge_"$MAX_PROCESSES -h $HYPERGRAPH_FILE -m 1200 -p parallelHyperedge -t $E_SIM_STEPS -x $H_SIM_STEPS -s $SEED -k $MESSAGE_SIZE -e $HYPERGRAPH_FILE -P -K $MAX_PROCESSES -g 1 -b $BM_FILE -q $SIMS_PER_TRIAL
+		#sleep 1
 		# using balance in cost function (various lambda values)
 		aprun -n $PROCESSES hyperPraw -n $EXPERIMENT_NAME"_staggered_overlap_lambda025_parallelVertex_"$MAX_PROCESSES -h $HYPERGRAPH_FILE -m 1200 -p parallelVertex -t $E_SIM_STEPS -x $H_SIM_STEPS -s $SEED -k $MESSAGE_SIZE -e $GRAPH_STREAM -P -K $MAX_PROCESSES -g 1 -b $BM_FILE -B -r 250 -q $SIMS_PER_TRIAL
 		sleep 1
@@ -107,12 +107,12 @@ for p in $(seq 1 $REPETITIONS)
 do
 	SEED=$RANDOM
 	#synthetic graphs
-	run_experiment "small_uniform_dense_c96.hgr" $SEED 5 30
+	run_experiment "small_uniform_dense_c96.hgr" $SEED 2 30
 	run_experiment "small_uniform_sparse_c96.hgr" $SEED 18 30
 	run_experiment "large_uniform_sparse_c96.hgr" $SEED 11 30
 	run_experiment "large_powerlaw_sparse_c96.hgr" $SEED 15 30
-	run_experiment "small_powerlaw_dense_c96.hgr" $SEED 3 30
-	run_experiment "small_uniform_dense_c192.hgr" $SEED 3 30
+	run_experiment "small_powerlaw_dense_c96.hgr" $SEED 2 30
+	run_experiment "small_uniform_dense_c192.hgr" $SEED 2 30
 	run_experiment "small_uniform_sparse_c48.hgr" $SEED 19 30
 	run_experiment "huge_uniform_dense_c96.hgr" $SEED 1 5
 	

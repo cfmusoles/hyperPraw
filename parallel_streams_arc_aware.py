@@ -27,7 +27,7 @@ template_2 = '''
 template_3=''':bigmem='''
 template_4='''
 # walltime
-#PBS -l walltime=32:00:0
+#PBS -l walltime=24:00:0
 # budget code
 #PBS -A e582
 
@@ -111,12 +111,12 @@ for p in $(seq 1 $REPETITIONS)
 do
 	SEED=$RANDOM
 	#synthetic graphs
-	run_experiment "small_uniform_dense_c96.hgr" $SEED 5 30
+	run_experiment "small_uniform_dense_c96.hgr" $SEED 2 30
 	run_experiment "small_uniform_sparse_c96.hgr" $SEED 18 30
 	run_experiment "large_uniform_sparse_c96.hgr" $SEED 11 30
 	run_experiment "large_powerlaw_sparse_c96.hgr" $SEED 15 30
-	run_experiment "small_powerlaw_dense_c96.hgr" $SEED 3 30
-	run_experiment "small_uniform_dense_c192.hgr" $SEED 3 30
+	run_experiment "small_powerlaw_dense_c96.hgr" $SEED 2 30
+	run_experiment "small_uniform_dense_c192.hgr" $SEED 2 30
 	run_experiment "small_uniform_sparse_c48.hgr" $SEED 19 30
 	run_experiment "huge_uniform_dense_c96.hgr" $SEED 1 5
 	
