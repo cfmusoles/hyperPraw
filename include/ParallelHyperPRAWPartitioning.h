@@ -46,6 +46,9 @@ public:
 
         int process_id;
         MPI_Comm_rank(MPI_COMM_WORLD,&process_id);
+        int total_processes;
+        MPI_Comm_size(MPI_COMM_WORLD,&total_processes); 
+
         
         // Create MPI communicator group (of only max_number_processes)
         // Only those processes will work towards partitioning
@@ -72,6 +75,9 @@ public:
         hgraph_file += str_int;
         hgraph_file += "_";
         sprintf(str_int,"%i",process_id);
+        hgraph_file += str_int;
+        hgraph_file += "_";
+        sprintf(str_int,"%i",total_processes);
         hgraph_file += str_int;
         hgraph_file += ".hgr";
         hgraph_part_file = hgraph_file;

@@ -32,7 +32,7 @@ template_4='''
 #PBS -A e582
 
 REPETITIONS=1
-SIMS_PER_TRIAL=3
+SIMS_PER_TRIAL=2
 PROCESSES='''
 template_5='''
 EXPERIMENT_NAME='''
