@@ -21,7 +21,7 @@ Each line represents a vertex and the hyperedge_id it  belongs to.
 class ParallelHyperPRAWPartitioning : public Partitioning {
 public:
 	
-	ParallelHyperPRAWPartitioning(char* experimentName, char* graph_file, char* streamFile, int max_processes, float imbalance_tolerance, int iterations, char* comm_bandwidth_file, bool useBandwidth, bool proportionalCommCost, int syncBatchSize, bool input_order, bool elementIsVertex, float l, bool savePartitioningHistory) : Partitioning(graph_file,imbalance_tolerance,elementIsVertex) {
+	ParallelHyperPRAWPartitioning(char* experimentName, char* graph_file, char* streamFile, int max_processes, float imbalance_tolerance, int iterations, char* comm_bandwidth_file, bool useBandwidth, bool proportionalCommCost, int syncBatchSize, bool input_order, bool elementIsVertex, float l, bool savePartitioningHistory, bool local_update_only) : Partitioning(graph_file,imbalance_tolerance,elementIsVertex) {
 		experiment_name = experimentName;
         comm_bandwidth_filename = comm_bandwidth_file;
         use_bandwidth_file = useBandwidth;
@@ -34,6 +34,7 @@ public:
         element_is_vertex = elementIsVertex; 
         lambda = l;  
         save_partitioning_history = savePartitioningHistory;
+        local_parallel_update_only = local_update_only;
 
         split_and_configure_stream();
 
@@ -155,7 +156,7 @@ public:
                 vtx_wgt[ii] = 1;
             }
 
-            *iterations = PRAW::ParallelHDRF(experiment_name,partitioning, num_partitions, partitioning_comm, comm_cost_matrix, hgraph_part_file.c_str(), vtx_wgt, max_iterations, imbalance_tolerance,false,sync_batch_size,input_order_round_robin,lambda,save_partitioning_history);
+            *iterations = PRAW::ParallelHDRF(experiment_name,partitioning, num_partitions, partitioning_comm, comm_cost_matrix, hgraph_part_file.c_str(), vtx_wgt, max_iterations, imbalance_tolerance,local_parallel_update_only,sync_batch_size,input_order_round_robin,lambda,save_partitioning_history);
 
             // clean up operations
             for(int ii=0; ii < num_partitions; ii++) {
@@ -192,6 +193,7 @@ private:
     bool element_is_vertex = true;
     float lambda = 1.0f;
     bool save_partitioning_history = false;
+    bool local_parallel_update_only = false;
 };
 
 

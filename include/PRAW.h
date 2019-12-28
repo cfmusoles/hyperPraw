@@ -38,7 +38,7 @@ namespace PRAW {
     struct pin_data {
         int partial_degree = 0; // how many times has the pin  appeared in the stream so far
         std::set<int> A;  // in what partitions it has been replicated so far
-        std::unordered_map<short,short> P;
+        std::unordered_map<unsigned short,unsigned short> P;
     };
 
     std::string getFileName(std::string filePath)
@@ -2017,11 +2017,11 @@ namespace PRAW {
                                 // if a pin is duplicated in two partitions, then communication will happen across those partitions
                                 c_comm += comm_cost_matrix[current_part][part];
                             }*/
-                            std::unordered_map<short,short>::iterator it;
+                            std::unordered_map<unsigned short,unsigned short>::iterator it;
                             for (it = seen_pins[pin_id].P.begin(); it != seen_pins[pin_id].P.end(); ++it)
                             {
-                                short part = it->first;
-                                short replicas = it->second;
+                                unsigned short part = it->first;
+                                unsigned short replicas = it->second;
                                 present_in_partition |= part == current_part;
                                 //present_in_partition |= part == current_part;
                                 // communication should be proportional to the duplication of pins
@@ -2080,6 +2080,8 @@ namespace PRAW {
                         // must update seen_pins data structure as it goes along
                         // then during remote sync avoid double counting local pins
                         // we already updated seen_pins[].part_degree when we read the stream
+                        // TODO: we don't need both seen_pins.A and .P, whichever we don't use can be inhibited
+                        // seen_pins.A is still used by getEdgeCentricReplicationFactor to calculate vertex replication
                         seen_pins[pin_id].A.insert(element_mapping);
                         if(seen_pins[pin_id].P.find(element_mapping) == seen_pins[pin_id].P.end()) {
                             seen_pins[pin_id].P[element_mapping] = 1;
