@@ -1,0 +1,3 @@
+# syn_bench: characterising parallel hypergraph streaming partitioning [parallel_streams_baseline.py]
+# ar_aware: benchmark parallel streaming vs arc aware streaming vs global hypergraph partitioning (zoltan) (parallel_streams_arc_aware.py]
+# h_praw: characterising hyper Praw streaming (window-based, local updates only) [parallel_streams_hyperPraw.py]
