@@ -25,8 +25,8 @@ show_annotations = False
 # "webbase-1M.mtx.hgr" $SEED 1 1 #Y
 # "ship_001.mtx.hgr" $SEED 1 30 #Y # hedge sim is too short
 
-folder = "../results/par_str/"
-experiment_name = "par_str"
+folder = "../results/ar_aware/"
+experiment_name = "ar_aware"
 graphs = ["large_powerlaw_sparse_c96.hgr", "small_powerlaw_dense_c96.hgr",
                     "large_uniform_sparse_c96.hgr", "small_uniform_dense_c96.hgr",
                     "small_uniform_sparse_c96.hgr", "small_uniform_sparse_c48.hgr",
@@ -39,8 +39,8 @@ graph_names = ["large_powerlaw_sparse_c96", "small_powerlaw_dense_c96",
 #graph_names = ["sat14 itox","2cubes","ABACUS","sparsine","pdb1HYS","sat14 atco dual","sat14 10pipe primal","sat14 E02F22","webbase-1M","ship 001"]
 # each element on the following arrays corresponds to an experiment run (collection of files)
 #experiments_name = [experiment_name +  "_zoltan_" + graph_name + "_zoltan",experiment_name + "_default_" + graph_name + "_prawS",experiment_name + "_bandwidth_" + graph_name + "_prawS"]#,experiment_name + "_refinement_" + graph_name + "_prawSref"]
-experiments_name = ["staggered_overlap_parallelVertex_1","nonStaggered_overlap_parallelVertex_1","staggered_overlap_lambda025_parallelVertex_1","staggered_overlap_lambda05_parallelVertex_1","staggered_overlap_lambda1_parallelVertex_1","staggered_hdrf_parallelVertex_1"]
-experiments_partitioning = ["parallelVertex","parallelVertex","parallelVertex","parallelVertex","parallelVertex","parallelVertex","parallelVertex","parallelVertex"]
+experiments_name = ["parallelVertex_1","hyperPraw_default_1","hyperPraw_bandwidth_1","zoltanVertex_1"]
+experiments_partitioning = ["parallelVertex","hyperPrawVertex","hyperPrawVertex","zoltanVertex","parallelVertex","parallelVertex","parallelVertex","parallelVertex"]
 colours = ["black","tomato","yellow","seagreen","red","blue","pink","brown","red","purple"] # as many as the number of experiments included
 patterns = ["//" , "||" , "--" , "xx" , "//" , "||","--","//" , "||" , "--"]
 legend_labels = ['default1','default16','HyperPraw-default1','HyperPraw-default16','HyperPraw-bandwidth1','HyperPraw-bandwidth16']
