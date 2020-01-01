@@ -31,7 +31,7 @@ template_4='''
 #PBS -A e582
 
 REPETITIONS=1
-SIMS_PER_TRIAL=2
+SIMS_PER_TRIAL=1
 PROCESSES='''
 template_5='''
 EXPERIMENT_NAME='''
@@ -68,9 +68,9 @@ run_experiment() {
 	GRAPH_STREAM="inverted_"$HYPERGRAPH_FILE
 
 	# run parallel versions
-	NUM_PARALLEL_EXPERIMENTS=4
+	NUM_PARALLEL_EXPERIMENTS=3
 	MAX_PROCESSES="1"
-	FACTOR="4"
+	FACTOR="8"
 	for p in $(seq 1 $NUM_PARALLEL_EXPERIMENTS)
 	do
 		# window based streaming tests

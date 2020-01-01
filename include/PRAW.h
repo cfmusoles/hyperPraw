@@ -1606,7 +1606,8 @@ namespace PRAW {
                             new_replicas[idx].push_back(pin_id);
                             new_pins++;
                         } else {
-                            seen_pins[pin_id].partial_degree += 1;
+                            // we already account for this when reading the stream
+                            //seen_pins[pin_id].partial_degree += 1;
                         }
                     }
                     // must update seen_pins data structure as it goes along
@@ -2068,13 +2069,15 @@ namespace PRAW {
                             new_replicas[idx].push_back(pin_id);
                             new_pins++;
                         } else {
+                            // only update remote streams when new in - partitioning mappings are found
                             // TODO: test performance degradation when only updating partial degree with local info
                             if(seen_pins[pin_id].A.find(element_mapping) == seen_pins[pin_id].A.end()) {
                                 // if it has been seen but it's the first replica on new partition
                                 new_replicas[idx].push_back(pin_id);
                                 new_pins++;
                             } else {
-                                seen_pins[pin_id].partial_degree += 1;
+                                // no need to update partial_degree since this is done when the pins are read from the stream
+                                //seen_pins[pin_id].partial_degree += 1;
                             }
                         }
                         // must update seen_pins data structure as it goes along
