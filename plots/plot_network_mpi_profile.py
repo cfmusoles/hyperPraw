@@ -8,7 +8,7 @@ from mpl_toolkits.mplot3d import Axes3D
 from matplotlib.ticker import LinearLocator, FormatStrFormatter
 from pylab import *
 
-num_processes = 192
+num_processes = 96
 plot_bandwidth = False			# plot network bandwidth data
 plot_sent_data = True			# plot application sent data
 plot_comm_cost = False			# plot combined comm cost
@@ -43,20 +43,20 @@ show_title = False
 # large_sparse_uniform.hgr
 # large_sparse_powerlaw.hgr
 
-folder = "../results/syn_bench/"
+folder = "../results/ar_aware/"
 bandwidth_send_experiment_name = 'results_mpi_send_bandwidth_1_' + str(num_processes)
 graph_names = ["large_powerlaw_sparse_c96.hgr", "small_powerlaw_dense_c96.hgr",
                     "large_uniform_sparse_c96.hgr", "small_uniform_dense_c96.hgr",
                     "small_uniform_sparse_c96.hgr", "small_uniform_sparse_c48.hgr",
-                    "small_uniform_dense_c192.hgr","huge_uniform_dense_c96.hgr"]
-partitioning = ['hyperPrawVertex','parallelVertex']
-test_names = ['syn_bench_hyperPraw_bandwidth_1','syn_bench_staggered_overlap_lambda10_w1_parallelVertex_1']
+                    "small_uniform_dense_c192.hgr"]#,"huge_uniform_dense_c96.hgr"]
+partitioning = ['parallelVertex','hyperPrawVertex']
+test_names = ['ar_aware_parallelVertex_1','ar_aware_hyperPraw_bandwidth_1']
 
 xlabel = "Process"
 ylabel = "Process"
 zlabels = ["MB/sec","Bytes"]
 titles = ["P2P Bandwidth (praw-noB)","Sent data (praw-withB)","Cost of communication (praw-withB)"]
-filenames = ["a1","a2","a3"]
+filenames = ["bandwidth_","a2_","ar_aware_communication"]
 image_format = 'pdf'
 
 # general plot settings

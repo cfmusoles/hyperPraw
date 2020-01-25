@@ -11,8 +11,8 @@ min_num_processes = 1
 max_num_processes = 288
 process_step = 32
 #for geometric scaling of processors
-num_experiments = 7
-geometric_step = 2
+num_experiments = 3
+geometric_step = 8
 # for parallel streams partitioning ( where the number of streams != number of processes)
 num_partitions = 96
 
@@ -34,26 +34,27 @@ show_title = True
 # "webbase-1M.mtx.hgr" $SEED 1 1 #Y
 # "ship_001.mtx.hgr" $SEED 1 30 #Y # hedge sim is too short
 
-folder = "../results/streams/"
-experiment_name = "streams"
-graph_name = "large_sparse_uniform.hgr"
+folder = "../results/h_praw/"
+experiment_name = "h_praw"
+graph_name = "small_uniform_dense_c192.hgr"
 # each element on the following arrays corresponds to an experiment run (collection of files)
-experiments = ["staggered_overlap_lambda1_parallelVertex_{}","staggered_overlap_lambda10_parallelVertex_{}","staggered_overlap_lambda100_parallelVertex_{}","staggered_parallelVertex_{}"]
-experiments_partitioning = ["parallelVertex","parallelVertex","parallelVertex","parallelVertex","parallelVertex","parallelVertex"]
+experiments = ["hyperPraw_bandwidth_w1_{}","hyperPraw_bandwidth_w3_{}","hyperPraw_bandwidth_w10_{}","hyperPraw_bandwidth_w1_local_{}","hyperPraw_bandwidth_w3_local_{}","hyperPraw_bandwidth_w10_local_{}"]
+experiments_partitioning = ["hyperPrawVertex","hyperPrawVertex","hyperPrawVertex","hyperPrawVertex","hyperPrawVertex","hyperPrawVertex","hyperPrawVertex","hyperPrawVertex"]
 experiments = [experiment_name + "_" + experiments[i] + "_" + graph_name + "_"+ experiments_partitioning[i] for i in range(len(experiments))]
-colours = ["red","green","blue","orange"] # as many as the number of experiments included
-legend_labels = ['lambda 1','lambda 10','lambda 100','lambda 0']#['Zoltan','PRAW','PRAW-arc-aware','PRAW-refinement']
+colours = ["red","green","blue","red","green","blue"] # as many as the number of experiments included
+linestyles = ["-","-","-","--","--","--"]
+legend_labels = ['global w1','global w3','global w10','local w1','local w3','local w10']
 
 # Each element on the following arrays corresponds to a column in columns_to_plot
-columns_to_plot = [3]#,4,3,5,8]#,9,10,11]
+columns_to_plot = [13,1,3,5]#,8]#,9,10,11]
 reference_values = [0,2,1,6,7,8,3,1,1] # used to take values on each column divided by these
 use_ref_values = False
-scale_plots = [1,1,1,1e-3,1,1,1,1]
-plot_title = ["Large uniform","Edge cut","Hyperedge cut","SOED","Edge comm cost","Hedge comm cost","Messages sent (edge)","Messages sent (hedge)"]
+scale_plots = [1,1,1,1e-6,1,1,1,1]
+plot_title = ["Partitioning time","Simulation time","Hyperedge cut","SOED","Edge comm cost","Hedge comm cost","Messages sent (edge)","Messages sent (hedge)"]
 plot_xlabel = ["Number of streams","Number of processes","Number of processes","Number of processes","Number of processes","Number of processes","Number of processes","Number of processes"]
-plot_ylabel = ["Cut ratio","Cut ratio","Cut ratio","SOED (thousands)","Cost","Cost","Messages sent","Messages sent"]
+plot_ylabel = ["Time (s)","Time (s)","Cut ratio","SOED (millions)","Cost","Cost","Messages sent","Messages sent"]
 image_format = 'pdf'
-plot_name = ["a_" + str(x) for x in range(len(columns_to_plot))] #["a1","a2","a3","a4","a5","a6","a7"]
+plot_name = ["h_praw_window_small_uniform_dense_c192_" + str(x) for x in range(len(columns_to_plot))] #["a1","a2","a3","a4","a5","a6","a7"]
 
 bar_plot_size = 0.4 / len(experiments)
 
@@ -80,16 +81,16 @@ def get_data_from_csv(filename):
 	data = np.genfromtxt(filename,skip_header=1,delimiter=",")
 	return data
 
-def plot(x,y, error,title,xlabel,ylabel,name,colour,legend,show,global_counter):
+def plot(x,y, error,title,xlabel,ylabel,name,colour,legend,show,global_counter,linestyle='-'):
 	if as_bar_plot:
 		rx = x + global_counter * bar_plot_size*np.array(x)
 		plt.bar(rx,y,width=bar_plot_size*np.array(x),color=colour,label=legend)
 		
 	else:
 		if show_error:
-			plt.errorbar(x, y, error,linewidth=1,color=colour,label=legend,marker='s',markersize=5)
+			plt.errorbar(x, y, error,linewidth=1,color=colour,label=legend,marker='s',markersize=5,ls=linestyle)
 		else:
-			plt.errorbar(x, y,linewidth=1,color=colour,label=legend,marker='s',markersize=5)
+			plt.errorbar(x, y,linewidth=1,color=colour,label=legend,marker='s',markersize=5,ls=linestyle)
 	if geometric_scaling:
 		#plt.yscale("log",basey=10)
 		plt.yscale("linear")
@@ -143,7 +144,7 @@ for i in range(len(columns_to_plot)):
 		#plot each column separately
 		y = [x * scale_plots[i] for x in means[i]]
 		error = [x * scale_plots[i] for x in stdevs[i]]
-		plot(experiment_range,y,error,plot_title[i],plot_xlabel[i],plot_ylabel[i],plot_name[i],colours[j],legend_labels[j], j == (len(experiments)-1),j)	
+		plot(experiment_range,y,error,plot_title[i],plot_xlabel[i],plot_ylabel[i],plot_name[i],colours[j],legend_labels[j], j == (len(experiments)-1),j,linestyle=linestyles[j])	
 
 
     
