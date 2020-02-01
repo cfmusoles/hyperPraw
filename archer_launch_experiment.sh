@@ -39,6 +39,14 @@ cp archer_retrieve_results.sh $WORK_DIR/$EXPERIMENT_NAME/
 #submit job files
 cd $WORK_DIR/$EXPERIMENT_NAME
 
+# merge split tar files if they exist
+count=`ls -1 *.parta* 2>/dev/null | wc -l`
+if [ $count != 0 ]
+then 
+cat parts.tar.gz.parta* > parts.tar.gz
+fi 
+rm *.parta*
+
 # untar hgraph files
 for f in *.tar.gz
 do
