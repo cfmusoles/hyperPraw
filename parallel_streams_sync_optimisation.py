@@ -68,6 +68,14 @@ run_experiment() {
 	H_SIM_STEPS="$4"
 	GRAPH_STREAM="inverted_"$HYPERGRAPH_FILE
 
+	# run single stream baseline for hyper PRAW
+	aprun -n $PROCESSES hyperPraw -n $EXPERIMENT_NAME"_hyperPraw_bandwidth_1" -h $HYPERGRAPH_FILE -i 25 -m 1200 -p hyperPrawVertex -t $E_SIM_STEPS -x $H_SIM_STEPS -s $SEED -k $MESSAGE_SIZE -e $GRAPH_STREAM -P -K 1 -g 1 -b $BM_FILE -W -r 800 -q $SIMS_PER_TRIAL -H
+	sleep 1
+
+	# global hypergraph partitioning baseline (zoltan)
+	aprun -n $PROCESSES hyperPraw -n $EXPERIMENT_NAME"_zoltanVertex_1" -h $HYPERGRAPH_FILE -i 25 -m 1200 -p zoltanVertex -t $E_SIM_STEPS -x $H_SIM_STEPS -s $SEED -k $MESSAGE_SIZE -e $GRAPH_STREAM -P -K 1 -g 1 -b $BM_FILE -r 800 -q $SIMS_PER_TRIAL -H
+	sleep 1
+
 	# run parallel versions
 	NUM_PARALLEL_EXPERIMENTS=4
 	MAX_PROCESSES="3"
@@ -75,31 +83,23 @@ run_experiment() {
 	for p in $(seq 1 $NUM_PARALLEL_EXPERIMENTS)
 	do
 		# window based streaming tests
-		aprun -n $PROCESSES hyperPraw -n $EXPERIMENT_NAME"_hyperPraw_bandwidth_w1_"$MAX_PROCESSES -h $HYPERGRAPH_FILE -i 25 -m 1200 -p hyperPrawVertex -t $E_SIM_STEPS -x $H_SIM_STEPS -s $SEED -k $MESSAGE_SIZE -e $GRAPH_STREAM -P -K $MAX_PROCESSES -g 1 -b $BM_FILE -W -r 500 -q $SIMS_PER_TRIAL -H
+		aprun -n $PROCESSES hyperPraw -n $EXPERIMENT_NAME"_hyperPraw_bandwidth_w1_"$MAX_PROCESSES -h $HYPERGRAPH_FILE -i 25 -m 1200 -p hyperPrawVertex -t $E_SIM_STEPS -x $H_SIM_STEPS -s $SEED -k $MESSAGE_SIZE -e $GRAPH_STREAM -P -K $MAX_PROCESSES -g 1 -b $BM_FILE -W -r 800 -q $SIMS_PER_TRIAL -H
 		sleep 1
-		aprun -n $PROCESSES hyperPraw -n $EXPERIMENT_NAME"_hyperPraw_bandwidth_w3_"$MAX_PROCESSES -h $HYPERGRAPH_FILE -i 25 -m 1200 -p hyperPrawVertex -t $E_SIM_STEPS -x $H_SIM_STEPS -s $SEED -k $MESSAGE_SIZE -e $GRAPH_STREAM -P -K $MAX_PROCESSES -g 3 -b $BM_FILE -W -r 500 -q $SIMS_PER_TRIAL -H
+		aprun -n $PROCESSES hyperPraw -n $EXPERIMENT_NAME"_hyperPraw_bandwidth_w3_"$MAX_PROCESSES -h $HYPERGRAPH_FILE -i 25 -m 1200 -p hyperPrawVertex -t $E_SIM_STEPS -x $H_SIM_STEPS -s $SEED -k $MESSAGE_SIZE -e $GRAPH_STREAM -P -K $MAX_PROCESSES -g 3 -b $BM_FILE -W -r 800 -q $SIMS_PER_TRIAL -H
 		sleep 1
-		aprun -n $PROCESSES hyperPraw -n $EXPERIMENT_NAME"_hyperPraw_bandwidth_w10_"$MAX_PROCESSES -h $HYPERGRAPH_FILE -i 25 -m 1200 -p hyperPrawVertex -t $E_SIM_STEPS -x $H_SIM_STEPS -s $SEED -k $MESSAGE_SIZE -e $GRAPH_STREAM -P -K $MAX_PROCESSES -g 10 -b $BM_FILE -W -r 500 -q $SIMS_PER_TRIAL -H
+		aprun -n $PROCESSES hyperPraw -n $EXPERIMENT_NAME"_hyperPraw_bandwidth_w10_"$MAX_PROCESSES -h $HYPERGRAPH_FILE -i 25 -m 1200 -p hyperPrawVertex -t $E_SIM_STEPS -x $H_SIM_STEPS -s $SEED -k $MESSAGE_SIZE -e $GRAPH_STREAM -P -K $MAX_PROCESSES -g 10 -b $BM_FILE -W -r 800 -q $SIMS_PER_TRIAL -H
 		sleep 1
 
 		# only local updates
-		aprun -n $PROCESSES hyperPraw -n $EXPERIMENT_NAME"_hyperPraw_bandwidth_w1_local_"$MAX_PROCESSES -h $HYPERGRAPH_FILE -i 25 -m 1200 -p hyperPrawVertex -t $E_SIM_STEPS -x $H_SIM_STEPS -s $SEED -k $MESSAGE_SIZE -e $GRAPH_STREAM -P -K $MAX_PROCESSES -g 1 -b $BM_FILE -W -r 500 -q $SIMS_PER_TRIAL -H -L
+		aprun -n $PROCESSES hyperPraw -n $EXPERIMENT_NAME"_hyperPraw_bandwidth_w1_local_"$MAX_PROCESSES -h $HYPERGRAPH_FILE -i 25 -m 1200 -p hyperPrawVertex -t $E_SIM_STEPS -x $H_SIM_STEPS -s $SEED -k $MESSAGE_SIZE -e $GRAPH_STREAM -P -K $MAX_PROCESSES -g 1 -b $BM_FILE -W -r 800 -q $SIMS_PER_TRIAL -H -L
 		sleep 1
-		aprun -n $PROCESSES hyperPraw -n $EXPERIMENT_NAME"_hyperPraw_bandwidth_w3_local_"$MAX_PROCESSES -h $HYPERGRAPH_FILE -i 25 -m 1200 -p hyperPrawVertex -t $E_SIM_STEPS -x $H_SIM_STEPS -s $SEED -k $MESSAGE_SIZE -e $GRAPH_STREAM -P -K $MAX_PROCESSES -g 3 -b $BM_FILE -W -r 500 -q $SIMS_PER_TRIAL -H -L
+		aprun -n $PROCESSES hyperPraw -n $EXPERIMENT_NAME"_hyperPraw_bandwidth_w3_local_"$MAX_PROCESSES -h $HYPERGRAPH_FILE -i 25 -m 1200 -p hyperPrawVertex -t $E_SIM_STEPS -x $H_SIM_STEPS -s $SEED -k $MESSAGE_SIZE -e $GRAPH_STREAM -P -K $MAX_PROCESSES -g 3 -b $BM_FILE -W -r 800 -q $SIMS_PER_TRIAL -H -L
 		sleep 1
-		aprun -n $PROCESSES hyperPraw -n $EXPERIMENT_NAME"_hyperPraw_bandwidth_w10_local_"$MAX_PROCESSES -h $HYPERGRAPH_FILE -i 25 -m 1200 -p hyperPrawVertex -t $E_SIM_STEPS -x $H_SIM_STEPS -s $SEED -k $MESSAGE_SIZE -e $GRAPH_STREAM -P -K $MAX_PROCESSES -g 10 -b $BM_FILE -W -r 500 -q $SIMS_PER_TRIAL -H -L
+		aprun -n $PROCESSES hyperPraw -n $EXPERIMENT_NAME"_hyperPraw_bandwidth_w10_local_"$MAX_PROCESSES -h $HYPERGRAPH_FILE -i 25 -m 1200 -p hyperPrawVertex -t $E_SIM_STEPS -x $H_SIM_STEPS -s $SEED -k $MESSAGE_SIZE -e $GRAPH_STREAM -P -K $MAX_PROCESSES -g 10 -b $BM_FILE -W -r 800 -q $SIMS_PER_TRIAL -H -L
 		sleep 1
 
 		MAX_PROCESSES=$(($MAX_PROCESSES * $FACTOR))
 	done
-
-	# run single stream baseline for hyper PRAW
-	aprun -n $PROCESSES hyperPraw -n $EXPERIMENT_NAME"_hyperPraw_bandwidth_1" -h $HYPERGRAPH_FILE -i 25 -m 1200 -p hyperPrawVertex -t $E_SIM_STEPS -x $H_SIM_STEPS -s $SEED -k $MESSAGE_SIZE -e $GRAPH_STREAM -P -K 1 -g 1 -b $BM_FILE -W -r 500 -q $SIMS_PER_TRIAL -H
-	sleep 1
-
-	# global hypergraph partitioning baseline (zoltan)
-	aprun -n $PROCESSES hyperPraw -n $EXPERIMENT_NAME"_zoltanVertex_1" -h $HYPERGRAPH_FILE -i 25 -m 1200 -p zoltanVertex -t $E_SIM_STEPS -x $H_SIM_STEPS -s $SEED -k $MESSAGE_SIZE -e $GRAPH_STREAM -P -K 1 -g 1 -b $BM_FILE -r 500 -q $SIMS_PER_TRIAL -H
-	sleep 1
 	
 }
 

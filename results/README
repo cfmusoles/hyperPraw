@@ -1,3 +1,9 @@
 # par_str: characterising parallel hypergraph streaming partitioning [parallel_streams_baseline.py]
 # ar_aware: benchmark parallel streaming vs arc aware streaming vs global hypergraph partitioning (zoltan) (parallel_streams_arc_aware.py]
 # h_praw: characterising hyper Praw streaming (window-based, local updates only) [parallel_streams_hyperPraw.py]
+# par_opt: characterising hyper Praw streaming (window-based, local updates only) in large scale [parallel_streams_sync_optimisation.py]
+
+
+To merge part files, use cat
+
+cat nameofpartfile.tar.gz.parta* > nameoffile.tar.gz

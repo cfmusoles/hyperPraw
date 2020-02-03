@@ -63,6 +63,7 @@ do
 	for a in $(seq 1 $REPETITIONS)
 	do
 		qsub $FILENAME
+		#qsub -q long $FILENAME
 		#qsub -q short $FILENAME
 	done
 	rm $FILENAME
