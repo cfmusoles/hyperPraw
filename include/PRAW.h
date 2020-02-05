@@ -1973,7 +1973,7 @@ namespace PRAW {
                     // local hyperedge, process and assign it
                     // calculate norm_part_degree for each vertex
                     // similar to Petroni HDRF
-                    double normalised_part_degrees[num_pins];
+                    /*double normalised_part_degrees[num_pins];
                     long int total_degrees = 0;
                     for(int ii=0; ii < num_pins; ii++) {
                         int pin_id = batch_elements[idx][ii];
@@ -1986,12 +1986,76 @@ namespace PRAW {
                                 return value / total_degrees;
                             }  
                         );
-                    }
+                    }*/
 
-                    // calculate C_rep(he) per partition per vertex
-                    //      sum 1 + (1-norm_part_degree(v)) if p exists in A(v)
+                    // TODO: can we optimise this step?? Too slow at large num_partitions
+                    // instead of looping through the pins on every partition, loop once through pins
+                    // create cost buckets for each partition and fill them once.
+                    // Keep track of lowest cost partition
+                    // still, staggered start when deciding what partition has highest score
+                    // optimisation trick to avoid having to calculate communication cost to partitions that do not have any replicas in it
+                    std::unordered_map<unsigned int,unsigned long> neighbours_in_partition;
                     double max_value = std::numeric_limits<double>::lowest();
                     int best_partition = 0;
+                    for(int vv=0; vv < num_pins; vv++) {
+                        int pin_id = batch_elements[idx][vv];
+                        std::unordered_map<unsigned short,unsigned short>::iterator it;
+                        for (it = seen_pins[pin_id].P.begin(); it != seen_pins[pin_id].P.end(); ++it)
+                        {
+                            unsigned short part = it->first;
+                            unsigned short replicas = it->second;
+                            //present_in_partition |= part == current_part;
+                            // communication should be proportional to the duplication of pins
+                            // if a pin is duplicated in two partitions, then communication will happen across those partitions
+                            neighbours_in_partition[part] += replicas;
+                            // if we were to use c_rep (overlap measure) we would need to do extra computation here
+                        }
+                    }
+                    // calculate cost of communication for all partition candidates
+                    // loop through the map only once
+                    double* c_comms = (double*)calloc(num_partitions,sizeof(double));
+                    std::unordered_map<unsigned int, unsigned long>::iterator it = neighbours_in_partition.begin();
+                    while(it != neighbours_in_partition.end()) {
+                        unsigned int part = it->first;
+                        unsigned long replicas = it->second;
+                        for(int origin=0; origin < num_partitions; origin++) {
+                            c_comms[origin] += comm_cost_matrix[origin][part] * replicas;
+                        }
+                        it++;
+                    }
+                    for(int pp=0; pp < num_partitions; pp++) {
+                        // each process should start from its process_id (to avoid initial cramming of elements on initial partitions)
+                        int current_part = start_process + pp;
+                        if(current_part >= num_partitions) current_part -= num_partitions;
+                        if(part_load[current_part] >= max_expected_workload) {
+    #ifdef DEBUG
+                            partition_filled++;
+                            filled_parts[current_part] = true;
+    #endif
+                            continue;
+                        }
+
+                        // calculate total cost
+                        float c_bal = pow(part_load[current_part],lambda);
+                        double current_value = - c_comms[current_part] - c_bal;
+                        
+                        if(current_value > max_value ||                                                 
+                                    current_value == max_value && part_load[best_partition] > part_load[current_part]) {
+                            max_value = current_value;
+                            best_partition = current_part;
+                        }
+
+                    }
+                    free(c_comms);
+
+
+
+
+
+
+                    /* // TOO SLOW!!
+                    // calculate C_rep(he) per partition per vertex
+                    //      sum 1 + (1-norm_part_degree(v)) if p exists in A(v)
                     for(int pp=0; pp < num_partitions; pp++) {
                         // each process should start from its process_id (to avoid initial cramming of elements on initial partitions)
                         int current_part = start_process + pp;
@@ -2009,15 +2073,15 @@ namespace PRAW {
                         for(int vv=0; vv < num_pins; vv++) {
                             int pin_id = batch_elements[idx][vv];
                             bool present_in_partition = false;
-                            /*std::set<int>::iterator it;
-                            for (it = seen_pins[pin_id].A.begin(); it != seen_pins[pin_id].A.end(); ++it)
-                            {
-                                int part = *it;
-                                present_in_partition |= part == current_part;
+                            //std::set<int>::iterator it;
+                            //for (it = seen_pins[pin_id].A.begin(); it != seen_pins[pin_id].A.end(); ++it)
+                            //{
+                            //    int part = *it;
+                            //    present_in_partition |= part == current_part;
                                 // communication should be proportional to the duplication of pins
                                 // if a pin is duplicated in two partitions, then communication will happen across those partitions
-                                c_comm += comm_cost_matrix[current_part][part];
-                            }*/
+                            //    c_comm += comm_cost_matrix[current_part][part];
+                            //}
                             std::unordered_map<unsigned short,unsigned short>::iterator it;
                             for (it = seen_pins[pin_id].P.begin(); it != seen_pins[pin_id].P.end(); ++it)
                             {
@@ -2046,8 +2110,10 @@ namespace PRAW {
                             max_value = current_value;
                             best_partition = current_part;
                         }
-                    }
-                    // HOW CAN RESULTS BE DIFFERENT BEWTEEN round robin streaming and batch streaming if the assignment is done randomly??
+                    }*/
+
+
+
                     element_mapping = best_partition;
 
                     // synchronise data
