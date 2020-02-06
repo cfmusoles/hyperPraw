@@ -1786,8 +1786,8 @@ namespace PRAW {
         //      Partial degree? (experiment with and without)
 
         // own parameters
-        float lambda_update = 1.2f; // must be greater than 1. Used when partitions are too imbalanced at the end of the pass
-        float lambda_refine = 0.95f; // must be lower than 1. Used when partitions are within imbalance limits at the end of the pass
+        float lambda_update = 0.05f; // must be greater than 1. Used when partitions are too imbalanced at the end of the pass
+        float lambda_refine = -0.02f; // must be lower than 1. Used when partitions are within imbalance limits at the end of the pass
 
         int process_id;
         MPI_Comm_rank(partitioning_comm,&process_id);
@@ -1958,7 +1958,6 @@ namespace PRAW {
                 sort(index.begin(), index.end(),
                     [&](const int& a, const int& b) {
                         return (element_priority[a] > element_priority[b]); // from highest to lowest
-                        //return (element_priority[a] < element_priority[b]); // from lowest to highest
                     }
                 );
                 // process each batched element in order
@@ -1988,7 +1987,6 @@ namespace PRAW {
                         );
                     }*/
 
-                    // TODO: can we optimise this step?? Too slow at large num_partitions
                     // instead of looping through the pins on every partition, loop once through pins
                     // create cost buckets for each partition and fill them once.
                     // Keep track of lowest cost partition
@@ -2015,11 +2013,22 @@ namespace PRAW {
                     // loop through the map only once
                     double* c_comms = (double*)calloc(num_partitions,sizeof(double));
                     std::unordered_map<unsigned int, unsigned long>::iterator it = neighbours_in_partition.begin();
+                    long max_replicaset_load = 0;
+                    long min_replicaset_load = std::numeric_limits<long>::max();
                     while(it != neighbours_in_partition.end()) {
                         unsigned int part = it->first;
                         unsigned long replicas = it->second;
                         for(int origin=0; origin < num_partitions; origin++) {
                             c_comms[origin] += comm_cost_matrix[origin][part] * replicas;
+                        }
+                        // we can calculate a upper load limit for acceptable partitions
+                        // based on the minimum cost of communication (max replicas) amongst the partitions with current replicas
+                        // i.e. the limit of c_bal a partition without replicas would have to be below to even compete with those with replicas
+                        // this removes the need to check many partitions later
+                        if(part_load[part] > max_replicaset_load) {
+                            max_replicaset_load = part_load[part];
+                        } else if(part_load[part] < min_replicaset_load) {
+                            min_replicaset_load = part_load[part];
                         }
                         it++;
                     }
@@ -2027,92 +2036,33 @@ namespace PRAW {
                         // each process should start from its process_id (to avoid initial cramming of elements on initial partitions)
                         int current_part = start_process + pp;
                         if(current_part >= num_partitions) current_part -= num_partitions;
-                        if(part_load[current_part] >= max_expected_workload) {
+                        long current_load = part_load[current_part];
+                        if(current_load >= max_expected_workload) { // partition full
     #ifdef DEBUG
                             partition_filled++;
                             filled_parts[current_part] = true;
     #endif
                             continue;
                         }
-
+                        // check for part load upper and lower limits
+                        // this avoids us having to calculate any further (avoids pow call)
+                        if((max_replicaset_load > 0 && current_load > max_replicaset_load)
+                                        || (neighbours_in_partition[current_part] == 0 && current_load >= min_replicaset_load)) {
+                            continue;
+                        }
+                        
                         // calculate total cost
-                        float c_bal = pow(part_load[current_part],lambda);
+                        float c_bal = pow(current_load,lambda);
                         double current_value = - c_comms[current_part] - c_bal;
                         
                         if(current_value > max_value ||                                                 
-                                    current_value == max_value && part_load[best_partition] > part_load[current_part]) {
+                                    current_value == max_value && part_load[best_partition] > current_load) {
                             max_value = current_value;
                             best_partition = current_part;
                         }
 
                     }
                     free(c_comms);
-
-
-
-
-
-
-                    /* // TOO SLOW!!
-                    // calculate C_rep(he) per partition per vertex
-                    //      sum 1 + (1-norm_part_degree(v)) if p exists in A(v)
-                    for(int pp=0; pp < num_partitions; pp++) {
-                        // each process should start from its process_id (to avoid initial cramming of elements on initial partitions)
-                        int current_part = start_process + pp;
-                        if(current_part >= num_partitions) current_part -= num_partitions;
-                        
-                        if(part_load[current_part] >= max_expected_workload) {
-    #ifdef DEBUG
-                            partition_filled++;
-                            filled_parts[current_part] = true;
-    #endif
-                            continue;
-                        }
-                        double c_rep = 0;
-                        double c_comm = 0;
-                        for(int vv=0; vv < num_pins; vv++) {
-                            int pin_id = batch_elements[idx][vv];
-                            bool present_in_partition = false;
-                            //std::set<int>::iterator it;
-                            //for (it = seen_pins[pin_id].A.begin(); it != seen_pins[pin_id].A.end(); ++it)
-                            //{
-                            //    int part = *it;
-                            //    present_in_partition |= part == current_part;
-                                // communication should be proportional to the duplication of pins
-                                // if a pin is duplicated in two partitions, then communication will happen across those partitions
-                            //    c_comm += comm_cost_matrix[current_part][part];
-                            //}
-                            std::unordered_map<unsigned short,unsigned short>::iterator it;
-                            for (it = seen_pins[pin_id].P.begin(); it != seen_pins[pin_id].P.end(); ++it)
-                            {
-                                unsigned short part = it->first;
-                                unsigned short replicas = it->second;
-                                present_in_partition |= part == current_part;
-                                //present_in_partition |= part == current_part;
-                                // communication should be proportional to the duplication of pins
-                                // if a pin is duplicated in two partitions, then communication will happen across those partitions
-                                c_comm += comm_cost_matrix[current_part][part] * replicas;
-                            }
-
-                            // Use HDRF
-                            //c_rep += present_in_partition ? 1 + (1 - normalised_part_degrees[vv]) : 0;
-                            // or use overlap                        
-                            c_rep += present_in_partition ? seen_pins[pin_id].P[current_part] : 0;
-                        }
-                        
-                        float c_bal = 1 * pow(part_load[current_part],lambda);
-                        double current_value = - c_comm - c_bal;
-                        
-                        //printf("[%i]: %.2f -- %.2f\n",current_part,c_comm / total_replicas,c_bal);
-                        
-                        if(current_value > max_value ||                                                 
-                                    current_value == max_value && part_load[best_partition] > part_load[current_part]) {
-                            max_value = current_value;
-                            best_partition = current_part;
-                        }
-                    }*/
-
-
 
                     element_mapping = best_partition;
 
@@ -2126,7 +2076,7 @@ namespace PRAW {
                     //  issues: tradeoff between less comm overhead and quality of partition (potentially higher graph size requirements as partition load is not updated often)
                     // *****
                     new_replicas[idx].push_back(element_mapping); // add in front the partition selected
-                    part_load[element_mapping] += 1; //  TODO: not really the element id  !! should be using element_wgt[current_element_id]
+                    part_load[element_mapping] += element_wgt[element_id + idx];
                     int new_pins = 0;
                     for(int ii=0; ii < batch_elements[idx].size(); ii++) {
                         int pin_id = batch_elements[idx][ii];
@@ -2282,17 +2232,15 @@ namespace PRAW {
                         last_partitioning = (idx_t*)malloc(num_elements*sizeof(idx_t));
                     }
                     memcpy(last_partitioning,partitioning,num_elements * sizeof(idx_t));
-                }             
-                //lambda *= lambda_refine;  
-                lambda -= 0.02;   
+                }              
+                lambda += lambda_refine;   
             } else {
                 // still too imbalanced
                 if(check_overfit) {
                     rollback = true;
                     break;
                 }
-                //lambda *=  lambda_update;
-                lambda += 0.05;
+                lambda += lambda_update;
                 if (lambda <= 0) break;
             }
             

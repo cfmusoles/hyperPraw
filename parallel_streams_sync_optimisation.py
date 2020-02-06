@@ -78,9 +78,9 @@ run_experiment() {
 	sleep 1
 
 	# run parallel versions
-	NUM_PARALLEL_EXPERIMENTS=4
-	MAX_PROCESSES="3"
-	FACTOR="4"
+	NUM_PARALLEL_EXPERIMENTS=5
+	MAX_PROCESSES="12"
+	FACTOR="2"
 	for p in $(seq 1 $NUM_PARALLEL_EXPERIMENTS)
 	do
 		# window based streaming tests
@@ -111,8 +111,8 @@ for p in $(seq 1 $REPETITIONS)
 do
 	SEED=$RANDOM
 	#synthetic graphs
-	run_experiment "huge_uniform_dense_c96.hgr" $SEED 1 5 850
-	run_experiment "huge_uniform_packed_c128.hgr" $SEED 1 5 1100
+	run_experiment "huge_uniform_dense_c96.hgr" $SEED 1 0 850
+	run_experiment "huge_uniform_packed_c128.hgr" $SEED 1 0 1100
 	
 done
 
