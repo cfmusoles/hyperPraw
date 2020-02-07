@@ -32,7 +32,7 @@ template_4='''
 #PBS -A e582
 
 REPETITIONS=1
-SIMS_PER_TRIAL=3
+SIMS_PER_TRIAL=2
 PROCESSES='''
 template_5='''
 EXPERIMENT_NAME='''
@@ -78,7 +78,7 @@ run_experiment() {
 	sleep 1
 
 	# run parallel versions
-	NUM_PARALLEL_EXPERIMENTS=5
+	NUM_PARALLEL_EXPERIMENTS=4
 	MAX_PROCESSES="12"
 	FACTOR="2"
 	for p in $(seq 1 $NUM_PARALLEL_EXPERIMENTS)
@@ -112,7 +112,7 @@ do
 	SEED=$RANDOM
 	#synthetic graphs
 	run_experiment "huge_uniform_dense_c96.hgr" $SEED 1 0 850
-	run_experiment "huge_uniform_packed_c128.hgr" $SEED 1 0 1100
+	run_experiment "huge_uniform_packed_c192.hgr" $SEED 1 0 950
 	
 done
 

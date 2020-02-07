@@ -2067,6 +2067,9 @@ namespace PRAW {
                     element_mapping = best_partition;
 
                     // synchronise data
+                    // OPTIMISATION:
+                    //      add to new_replicas as we go along in the previous loop (avoid needing to loop through batch_elements again)
+                    //      
                     // ***** 
                     //  TODO: test just synchronising partition sizes, not vertex degree
                     //  assumption: if pins are sufficiently shuffled, partial local degree may be enough and saves data shared

@@ -7,3 +7,7 @@
 To merge part files, use cat
 
 cat nameofpartfile.tar.gz.parta* > nameoffile.tar.gz
+
+To split files, use
+
+split -b 90M synthetic_hgraphs.tar.gz "parts.tar.gz.part"
