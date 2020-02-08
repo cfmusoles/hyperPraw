@@ -4,6 +4,7 @@
 #define PRAW__H
 
 #include <vector>
+#include <deque>
 #include <time.h>
 #include <mpi.h>
 #include <cmath>
@@ -1913,7 +1914,7 @@ namespace PRAW {
                 
                 // data structures for batch synchronisation
                 std::vector<int> local_pins_size(window_size,0);
-                std::vector<std::vector<int> > new_replicas(window_size);
+                std::vector<std::deque<int> > new_replicas(window_size);
                 
                 // Load a batch of elements and their pins
                 std::vector<std::vector<int> > batch_elements;
@@ -1930,8 +1931,6 @@ namespace PRAW {
                             if(seen_pins[pin_id].partial_degree == 0) first_time_pins++;
                             total_pins++;
     #endif
-                            // add it to local knowledge so it can be used in windowed partitioning
-                            seen_pins[pin_id].partial_degree += 1;
                             token = strtok(NULL, " "); 
                         }
                         actual_window_size++;
@@ -1995,8 +1994,14 @@ namespace PRAW {
                     std::unordered_map<unsigned int,unsigned long> neighbours_in_partition;
                     double max_value = std::numeric_limits<double>::lowest();
                     int best_partition = 0;
+                    int new_pins = 0;
                     for(int vv=0; vv < num_pins; vv++) {
                         int pin_id = batch_elements[idx][vv];
+
+                        // update new replicas (for parallel synchronisation)
+                        new_replicas[idx].push_back(pin_id);
+                        new_pins++;
+
                         std::unordered_map<unsigned short,unsigned short>::iterator it;
                         for (it = seen_pins[pin_id].P.begin(); it != seen_pins[pin_id].P.end(); ++it)
                         {
@@ -2009,6 +2014,8 @@ namespace PRAW {
                             // if we were to use c_rep (overlap measure) we would need to do extra computation here
                         }
                     }
+                    local_pins_size[idx] = new_pins; 
+
                     // calculate cost of communication for all partition candidates
                     // loop through the map only once
                     double* c_comms = (double*)calloc(num_partitions,sizeof(double));
@@ -2065,11 +2072,10 @@ namespace PRAW {
                     free(c_comms);
 
                     element_mapping = best_partition;
+                    new_replicas[idx].push_front(element_mapping); // add in front the partition selected
+                    part_load[element_mapping] += element_wgt[element_id + idx];
 
                     // synchronise data
-                    // OPTIMISATION:
-                    //      add to new_replicas as we go along in the previous loop (avoid needing to loop through batch_elements again)
-                    //      
                     // ***** 
                     //  TODO: test just synchronising partition sizes, not vertex degree
                     //  assumption: if pins are sufficiently shuffled, partial local degree may be enough and saves data shared
@@ -2078,7 +2084,7 @@ namespace PRAW {
                     //  TODO: Batch synchronisation requres testing. Are we saving time? Are results correct?
                     //  issues: tradeoff between less comm overhead and quality of partition (potentially higher graph size requirements as partition load is not updated often)
                     // *****
-                    new_replicas[idx].push_back(element_mapping); // add in front the partition selected
+                    /*new_replicas[idx].push_back(element_mapping); // add in front the partition selected
                     part_load[element_mapping] += element_wgt[element_id + idx];
                     int new_pins = 0;
                     for(int ii=0; ii < batch_elements[idx].size(); ii++) {
@@ -2095,8 +2101,7 @@ namespace PRAW {
                                 new_replicas[idx].push_back(pin_id);
                                 new_pins++;
                             } else {
-                                // no need to update partial_degree since this is done when the pins are read from the stream
-                                //seen_pins[pin_id].partial_degree += 1;
+                                seen_pins[pin_id].partial_degree += 1;
                             }
                         }
                         // must update seen_pins data structure as it goes along
@@ -2111,7 +2116,9 @@ namespace PRAW {
                             seen_pins[pin_id].P[element_mapping] += 1;
                         }
                     }
-                    local_pins_size[idx] = new_pins;                    
+                    local_pins_size[idx] = new_pins; 
+                    */
+                                    
                 }
 
                 element_id += window_size;
@@ -2171,22 +2178,22 @@ namespace PRAW {
                         
                         total_workload += element_wgt[current_element];
                         partitioning[current_element] = dest_partition;
+                        // update pins from remote processes (including local ones too)
                         if(ii != process_id) {
-                            // only update pins from remote processes (they were accounted for during local streaming)
+                            // part load for local elements has already been updated
                             part_load[dest_partition] += element_wgt[current_element];
-                            for(int jj=0; jj < current_pin_length; jj++) {
-                                int pin_id = recvbuffer[displs[ii] + current_element_index + jj];
-                                
-                                // update remote vertex info
-                                seen_pins[pin_id].partial_degree += 1;
-                                seen_pins[pin_id].A.insert(dest_partition); 
-                                if(seen_pins[pin_id].P.find(dest_partition) == seen_pins[pin_id].P.end()) {
-                                    seen_pins[pin_id].P[dest_partition] = 1;
-                                } else {
-                                    seen_pins[pin_id].P[dest_partition] += 1;
-                                } 
-                                        
-                            }
+                        }
+                        for(int jj=0; jj < current_pin_length; jj++) {
+                            int pin_id = recvbuffer[displs[ii] + current_element_index + jj];
+                            // update remote vertex info
+                            seen_pins[pin_id].partial_degree += 1;
+                            seen_pins[pin_id].A.insert(dest_partition); 
+                            if(seen_pins[pin_id].P.find(dest_partition) == seen_pins[pin_id].P.end()) {
+                                seen_pins[pin_id].P[dest_partition] = 1;
+                            } else {
+                                seen_pins[pin_id].P[dest_partition] += 1;
+                            } 
+                                    
                         }
                         // shift current_element_index to read the next element
                         current_element_index += current_pin_length;
