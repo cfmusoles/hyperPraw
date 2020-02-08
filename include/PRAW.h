@@ -2123,32 +2123,33 @@ namespace PRAW {
 
                 element_id += window_size;
 
-                // batch synchronisation
-                // synchronise length of pins list to be sent
-                int* remote_pins_size = (int*)malloc(sizeof(int) * window_size * num_processes);
 
-                MPI_Allgather(&local_pins_size[0],window_size,MPI_INT,remote_pins_size,window_size,MPI_INT,partitioning_comm);
-                
+                // batch synchronisation
                 // synchronise list of pins
                 // share send buffer size with other processes
                 // size = number of new replicas + 1 (the partition selected)
                 // flatten new_replicas first
+                // send partial pin counts (one per element) and total send size (all pins for all elements) simultaneously
                 std::vector<int> new_replicas_sync;
                 
                 for(int idx = 0; idx < window_size; idx++) {
                     if(idx >= actual_window_size) continue;
                     new_replicas_sync.insert(new_replicas_sync.end(),new_replicas[idx].begin(),new_replicas[idx].end());
                 }
-                int* recvcounts = (int*)malloc(num_processes * sizeof(int));
                 int send_size = new_replicas_sync.size();
-                
-                MPI_Allgather(&send_size,1,MPI_INT,recvcounts,1,MPI_INT,partitioning_comm);
+
+                local_pins_size.push_back(send_size);
+                int* remote_pins_size = (int*)malloc(sizeof(int) * (window_size+1) * num_processes);
+
+                MPI_Allgather(&local_pins_size[0],window_size+1,MPI_INT,remote_pins_size,window_size+1,MPI_INT,partitioning_comm);
                 
                 // share partition selected and new replicas list to all
                 int counter = 0;
                 int* displs = (int*)malloc(sizeof(int) * num_processes);
+                int* recvcounts = (int*)malloc(num_processes * sizeof(int));
                 for(int ii=0; ii < num_processes; ii++) {
                     displs[ii] = counter;
+                    recvcounts[ii] = remote_pins_size[ii*(window_size+1) + window_size];
                     counter += recvcounts[ii]; 
                 }
                 int* recvbuffer = (int*)malloc(sizeof(int) * counter);
@@ -2171,7 +2172,7 @@ namespace PRAW {
                             int current_stream_size = num_elements / num_processes + ((num_elements % num_processes > ii) ? 1 : 0);
                             if(current_element >= first_element_in_stream + current_stream_size) break;
                         }
-                        int current_pin_length = remote_pins_size[ii*window_size+el_order];
+                        int current_pin_length = remote_pins_size[ii*(window_size+1)+el_order];
                         int dest_partition = recvbuffer[displs[ii] + current_element_index];
                         // move current_element_index to start reading pins
                         current_element_index++;
