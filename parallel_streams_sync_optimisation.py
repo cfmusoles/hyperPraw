@@ -67,6 +67,7 @@ run_experiment() {
 	E_SIM_STEPS="$3"
 	H_SIM_STEPS="$4"
 	START_LAMBDA="$5"
+	COMPLETE_WINDOW_SCALING="$6"
 	GRAPH_STREAM="inverted_"$HYPERGRAPH_FILE
 
 	# run single stream baseline for hyper PRAW
@@ -88,18 +89,12 @@ run_experiment() {
 		sleep 1
 		aprun -n $PROCESSES hyperPraw -n $EXPERIMENT_NAME"_hyperPraw_bandwidth_w3_"$MAX_PROCESSES -h $HYPERGRAPH_FILE -i 15 -m 1200 -p hyperPrawVertex -t $E_SIM_STEPS -x $H_SIM_STEPS -s $SEED -k $MESSAGE_SIZE -e $GRAPH_STREAM -P -K $MAX_PROCESSES -g 3 -b $BM_FILE -W -r $START_LAMBDA -q $SIMS_PER_TRIAL -H
 		sleep 1
+		if [[ $COMPLETE_WINDOW_SCALING == "yes" ]]; then
 		aprun -n $PROCESSES hyperPraw -n $EXPERIMENT_NAME"_hyperPraw_bandwidth_w10_"$MAX_PROCESSES -h $HYPERGRAPH_FILE -i 15 -m 1200 -p hyperPrawVertex -t $E_SIM_STEPS -x $H_SIM_STEPS -s $SEED -k $MESSAGE_SIZE -e $GRAPH_STREAM -P -K $MAX_PROCESSES -g 10 -b $BM_FILE -W -r $START_LAMBDA -q $SIMS_PER_TRIAL -H
 		sleep 1
 		aprun -n $PROCESSES hyperPraw -n $EXPERIMENT_NAME"_hyperPraw_bandwidth_w20_"$MAX_PROCESSES -h $HYPERGRAPH_FILE -i 15 -m 1200 -p hyperPrawVertex -t $E_SIM_STEPS -x $H_SIM_STEPS -s $SEED -k $MESSAGE_SIZE -e $GRAPH_STREAM -P -K $MAX_PROCESSES -g 20 -b $BM_FILE -W -r $START_LAMBDA -q $SIMS_PER_TRIAL -H
 		sleep 1
-
-		# only local updates
-		#aprun -n $PROCESSES hyperPraw -n $EXPERIMENT_NAME"_hyperPraw_bandwidth_w1_local_"$MAX_PROCESSES -h $HYPERGRAPH_FILE -i 15 -m 1200 -p hyperPrawVertex -t $E_SIM_STEPS -x $H_SIM_STEPS -s $SEED -k $MESSAGE_SIZE -e $GRAPH_STREAM -P -K $MAX_PROCESSES -g 1 -b $BM_FILE -W -r $START_LAMBDA -q $SIMS_PER_TRIAL -H -L
-		#sleep 1
-		#aprun -n $PROCESSES hyperPraw -n $EXPERIMENT_NAME"_hyperPraw_bandwidth_w3_local_"$MAX_PROCESSES -h $HYPERGRAPH_FILE -i 15 -m 1200 -p hyperPrawVertex -t $E_SIM_STEPS -x $H_SIM_STEPS -s $SEED -k $MESSAGE_SIZE -e $GRAPH_STREAM -P -K $MAX_PROCESSES -g 3 -b $BM_FILE -W -r $START_LAMBDA -q $SIMS_PER_TRIAL -H -L
-		#sleep 1
-		#aprun -n $PROCESSES hyperPraw -n $EXPERIMENT_NAME"_hyperPraw_bandwidth_w10_local_"$MAX_PROCESSES -h $HYPERGRAPH_FILE -i 15 -m 1200 -p hyperPrawVertex -t $E_SIM_STEPS -x $H_SIM_STEPS -s $SEED -k $MESSAGE_SIZE -e $GRAPH_STREAM -P -K $MAX_PROCESSES -g 10 -b $BM_FILE -W -r $START_LAMBDA -q $SIMS_PER_TRIAL -H -L
-		#sleep 1
+		fi
 
 		MAX_PROCESSES=$(($MAX_PROCESSES * $FACTOR))
 	done
@@ -111,8 +106,8 @@ for p in $(seq 1 $REPETITIONS)
 do
 	SEED=$RANDOM
 	#synthetic graphs
-	run_experiment "huge_uniform_dense_c96.hgr" $SEED 1 0 850
-	run_experiment "huge_uniform_packed_c192.hgr" $SEED 1 0 950
+	run_experiment "huge_uniform_dense_c96.hgr" $SEED 1 0 850 "yes"
+	run_experiment "huge_uniform_packed_c192.hgr" $SEED 1 0 1050 "no"
 	
 done
 
