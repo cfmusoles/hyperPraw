@@ -6,7 +6,7 @@ import matplotlib.pyplot as plt
 import matplotlib.patches as mpatches
 
 geometric_scaling = True
-min_num_processes = 48
+min_num_processes = 96
 # for linear scaling of processors
 max_num_processes = 288
 process_step = 32
@@ -34,27 +34,27 @@ show_title = True
 # "webbase-1M.mtx.hgr" $SEED 1 1 #Y
 # "ship_001.mtx.hgr" $SEED 1 30 #Y # hedge sim is too short
 
-folder = "../results/ar_aware/"
-experiment_name = "ar_aware"
-graph_name = "huge_uniform_dense_c96.hgr"
+folder = "../results/par_opt/"
+experiment_name = "par_opt"
+graph_name = "huge_uniform_packed_c192.hgr"
 # each element on the following arrays corresponds to an experiment run (collection of files)
-experiments = ["zoltanVertex_1","hyperPraw_bandwidth_1","hyperPraw_bandwidth_4","hyperPraw_bandwidth_16","hyperPraw_bandwidth_64"]#,"hyperPraw_bandwidth_w3_local_{}","hyperPraw_bandwidth_w10_local_{}"]
-experiments_partitioning = ["zoltanVertex","hyperPrawVertex","hyperPrawVertex","hyperPrawVertex","hyperPrawVertex","hyperPrawVertex","hyperPrawVertex","hyperPrawVertex"]
+experiments = ["zoltanVertex_1","hyperPraw_bandwidth_1", "hyperPraw_bandwidth_w1_12","hyperPraw_bandwidth_w1_24","hyperPraw_bandwidth_w1_48","hyperPraw_bandwidth_w1_96"]
+experiments_partitioning = ["zoltanVertex", "hyperPrawVertex","hyperPrawVertex","hyperPrawVertex","hyperPrawVertex","hyperPrawVertex","hyperPrawVertex","hyperPrawVertex","hyperPrawVertex"]
 experiments = [experiment_name + "_" + experiments[i] + "_" + graph_name + "_"+ experiments_partitioning[i] for i in range(len(experiments))]
-colours = ["red","springgreen","limegreen","forestgreen","darkgreen","blue"] # as many as the number of experiments included
+colours = ["black","red","springgreen","limegreen","forestgreen","darkgreen","blue"] # as many as the number of experiments included
 linestyles = ["-","-","--","-.",":","--"]
-legend_labels = ['zoltan','HyperPRAW-1','HyperPRAW-4','HyperPRAW-16','HyperPRAW-64','local w10']
+legend_labels = ['zoltan','1-stream','12-streams','24-streams','48-streams','96-streams']
 
 # Each element on the following arrays corresponds to a column in columns_to_plot
-columns_to_plot = [13,1,3,5]#,8]#,9,10,11]
+columns_to_plot = [13,1,5]#,8]#,9,10,11]
 reference_values = [0,2,1,6,7,8,3,1,1] # used to take values on each column divided by these
 use_ref_values = False
-scale_plots = [1,1,1,1e-6,1,1,1,1]
-plot_title = ["Partitioning time","Simulation time","Hyperedge cut","SOED","Edge comm cost","Hedge comm cost","Messages sent (edge)","Messages sent (hedge)"]
+scale_plots = [1,1,1e-6,1,1,1,1]
+plot_title = ["Partitioning time (384 partitions)","Simulation time (384 partitions)","SOED (384 partitions)","Edge comm cost","Hedge comm cost","Messages sent (edge)","Messages sent (hedge)"]
 plot_xlabel = ["Number of streams","Number of processes","Number of processes","Number of processes","Number of processes","Number of processes","Number of processes","Number of processes"]
-plot_ylabel = ["Time (s)","Time (s)","Cut ratio","SOED (millions)","Cost","Cost","Messages sent","Messages sent"]
+plot_ylabel = ["Time (s)","Time (s)","SOED (millions)","Cost","Cost","Messages sent","Messages sent"]
 image_format = 'pdf'
-plot_name = ["ar_aware_scalability_huge_uniform_dense_c96_" + str(x) for x in range(len(columns_to_plot))] #["a1","a2","a3","a4","a5","a6","a7"]
+plot_name = ["par_opt_scaling_huge_uniform_packed_c192_" + str(x) for x in range(len(columns_to_plot))] #["a1","a2","a3","a4","a5","a6","a7"]
 
 bar_plot_size = 0.4 / len(experiments)
 

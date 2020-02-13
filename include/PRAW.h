@@ -1733,7 +1733,7 @@ namespace PRAW {
 
     
     // Stream from multiple files / streams
-    int ParallelHDRF(char* experiment_name, idx_t* partitioning, int num_partitions, MPI_Comm partitioning_comm, double** comm_cost_matrix, std::string hypergraph_filename, int* element_wgt, int max_iterations, float imbalance_tolerance, bool local_replica_degree_updates_only = false, int window_size = 1, bool input_order_round_robin = true, float lambda = 1.0f,bool save_partitioning_history = false) {
+    int ParallelHDRF(char* experiment_name, idx_t* partitioning, int num_partitions, MPI_Comm partitioning_comm, double** comm_cost_matrix, std::string hypergraph_filename, int* element_wgt, int max_iterations, float imbalance_tolerance, bool local_replica_degree_updates_only = false, int window_size = 1, bool input_order_round_robin = true, float lambda = 1.0f,bool save_partitioning_history = false, int* pin_wgt = NULL) {
         // Parallel Hyperedge Partitioning based algorithm
         // Because it can be applied to both vertex and hyperedge partitionings, we adopt the following nomenclature:
         //      element: what each line in the stream represent
@@ -1850,10 +1850,13 @@ namespace PRAW {
 
             // used to force all solutions to be within imbalance tolerance
             // currently uses full graph knowledge (just number of elements)
-            // assumes all elements have same workload (1)
-            // TODO@ needs to account for batch sync update
-            double max_expected_workload = (double)num_elements / num_partitions * imbalance_tolerance - (num_processes-1) * (double)window_size;
-            double average_expected_workload = (double)num_elements / num_partitions;
+            long int total_work = 0;
+            for(int ii=0; ii  < num_elements; ii++) {
+                total_work += element_wgt[ii];
+            }
+            double average_expected_workload = (double)total_work / num_partitions;
+            double max_expected_workload = average_expected_workload * imbalance_tolerance - (num_processes-1) * (double)window_size;
+            
             if(max_expected_workload < 1) {
                 PRINTF("Graph is too small! Too many processes (max expected workload limit is %f)\n",max_expected_workload);
                 return 0;
@@ -1992,6 +1995,7 @@ namespace PRAW {
                     // still, staggered start when deciding what partition has highest score
                     // optimisation trick to avoid having to calculate communication cost to partitions that do not have any replicas in it
                     std::unordered_map<unsigned int,unsigned long> neighbours_in_partition;
+                    std::unordered_map<unsigned int,unsigned long> comm_in_partition;
                     double max_value = std::numeric_limits<double>::lowest();
                     int best_partition = 0;
                     int new_pins = 0;
@@ -2011,6 +2015,7 @@ namespace PRAW {
                             // communication should be proportional to the duplication of pins
                             // if a pin is duplicated in two partitions, then communication will happen across those partitions
                             neighbours_in_partition[part] += replicas;
+                            comm_in_partition[part] += replicas * ((pin_wgt == NULL) ? 1 : pin_wgt[pin_id]);
                             // if we were to use c_rep (overlap measure) we would need to do extra computation here
                         }
                     }
@@ -2019,10 +2024,10 @@ namespace PRAW {
                     // calculate cost of communication for all partition candidates
                     // loop through the map only once
                     double* c_comms = (double*)calloc(num_partitions,sizeof(double));
-                    std::unordered_map<unsigned int, unsigned long>::iterator it = neighbours_in_partition.begin();
+                    std::unordered_map<unsigned int, unsigned long>::iterator it = comm_in_partition.begin();
                     long max_replicaset_load = 0;
                     long min_replicaset_load = std::numeric_limits<long>::max();
-                    while(it != neighbours_in_partition.end()) {
+                    while(it != comm_in_partition.end()) {
                         unsigned int part = it->first;
                         unsigned long replicas = it->second;
                         for(int origin=0; origin < num_partitions; origin++) {
@@ -2073,7 +2078,7 @@ namespace PRAW {
 
                     element_mapping = best_partition;
                     new_replicas[idx].push_front(element_mapping); // add in front the partition selected
-                    part_load[element_mapping] += element_wgt[element_id + idx];
+                    part_load[element_mapping] += element_wgt[(element_id + idx) * num_processes + process_id];
 
                     // synchronise data
                     // ***** 
@@ -2218,7 +2223,7 @@ namespace PRAW {
             float maxsize = *std::max_element(part_load, part_load + num_partitions);
             float minsize = *std::min_element(part_load, part_load + num_partitions);
             float max_imbalance = minsize <= 0 ? num_partitions : maxsize / minsize;
-            PRINTF("***Max-min ratio: %.3f, current lambda: %f.\n",max_imbalance,lambda); 
+            PRINTF("%i: ***Max-min ratio: %.3f, current lambda: %f.\n",process_id,max_imbalance,lambda);
 
             if(save_partitioning_history && process_id == MASTER_NODE) {
                 // store partition history
