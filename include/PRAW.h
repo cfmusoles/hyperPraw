@@ -38,8 +38,8 @@ namespace PRAW {
     // data structure used by the HDFR algorithm
     struct pin_data {
         int partial_degree = 0; // how many times has the pin  appeared in the stream so far
-        std::set<int> A;  // in what partitions it has been replicated so far
-        std::unordered_map<unsigned short,unsigned short> P;
+        //std::set<int> A;  // superseded by P
+        std::unordered_map<unsigned short,unsigned short> P; // in what partitions it has been replicated so far and how many times
     };
 
     std::string getFileName(std::string filePath)
@@ -867,7 +867,7 @@ namespace PRAW {
         for(int vid = 0; vid < num_vertices; vid++) {
             std::unordered_map<int,pin_data>::const_iterator it = seen_vertices->find (vid);
             if(it == seen_vertices->end()) continue;
-            *vertex_replication_factor += seen_vertices->at(vid).A.size();
+            *vertex_replication_factor += seen_vertices->at(vid).P.size();
         }
         *vertex_replication_factor /= num_vertices;
         
@@ -1551,19 +1551,20 @@ namespace PRAW {
                     for(int vv=0; vv < n_pins; vv++) {
                         int pin_id = batch_elements[idx][vv];
                         bool present_in_partition = false;
-                        std::set<int>::iterator it;
+                        std::unordered_map<unsigned short,unsigned short>::iterator it;
                         if(use_hdrf) {
-                            for (it = seen_pins[pin_id].A.begin(); it != seen_pins[pin_id].A.end(); ++it)
+                            
+                            for (it = seen_pins[pin_id].P.begin(); it != seen_pins[pin_id].P.end(); ++it)
                             {
-                                int part = *it;
+                                unsigned short part = it->first;
                                 present_in_partition |= part == current_part;
                             }
 
                             c_rep += present_in_partition ? 1 + (1 - normalised_part_degrees[vv]) : 0;
                         } else {
-                            for (it = seen_pins[pin_id].A.begin(); it != seen_pins[pin_id].A.end(); ++it)
+                            for (it = seen_pins[pin_id].P.begin(); it != seen_pins[pin_id].P.end(); ++it)
                             {
-                                int part = *it;
+                                unsigned short part = it->first;
                                 if(part == current_part) {
                                     c_rep += 1;
                                     break;
@@ -1597,7 +1598,9 @@ namespace PRAW {
                 int new_pins = 0;
                 for(int ii=0; ii < batch_elements[idx].size(); ii++) {
                     int pin_id = batch_elements[idx][ii];
-                    if(!local_replica_degree_updates_only && use_hdrf) {
+                    new_replicas[idx].push_back(pin_id);
+                    new_pins++;
+                    /*if(!local_replica_degree_updates_only && use_hdrf) {
                         new_replicas[idx].push_back(pin_id);
                         new_pins++;
                     } else {
@@ -1610,11 +1613,15 @@ namespace PRAW {
                             // we already account for this when reading the stream
                             //seen_pins[pin_id].partial_degree += 1;
                         }
-                    }
+                    }*/
                     // must update seen_pins data structure as it goes along
                     // then during remote sync avoid double counting local pins
                     // we already updated seen_pins[].part_degree when we read the stream
-                    seen_pins[pin_id].A.insert(element_mapping);
+                    if(seen_pins[pin_id].P.find(element_mapping) == seen_pins[pin_id].P.end()) {
+                        seen_pins[pin_id].P[element_mapping] = 1;
+                    } else {
+                        seen_pins[pin_id].P[element_mapping] += 1;
+                    }
                 }
                 local_pins_size[idx] = new_pins;                   
             }
@@ -1688,7 +1695,11 @@ namespace PRAW {
                             
                             // update remote vertex info
                             seen_pins[pin_id].partial_degree += 1;
-                            seen_pins[pin_id].A.insert(dest_partition);  
+                            if(seen_pins[pin_id].P.find(dest_partition) == seen_pins[pin_id].P.end()) {
+                                seen_pins[pin_id].P[dest_partition] = 1;
+                            } else {
+                                seen_pins[pin_id].P[dest_partition] += 1;
+                            } 
                                     
                         }
                     }
@@ -1901,9 +1912,7 @@ namespace PRAW {
             // HOW DO WE STORE AND COORDINATE THE DATASTRUCTURES? Balance between memory and communication
             // create an object Vertex that contains two variables
             //      int partial_degree --> store the current partial degree
-            //      std::vector<int> A --> store the list of partitions that have a replica of the vertex
             //      std::unordered_map<short,short> --> store the partitions that have a replica of the pin plus the pins and the number of replications on that partition
-            // store the Vertex in a std::unordered_map (hashmap) of Vertex* of length num_vertices (vertex id is given by the index)
             std::unordered_map<int,pin_data> seen_pins;
 
             // read reminder of file (one line per elemennt)
@@ -2113,8 +2122,6 @@ namespace PRAW {
                         // then during remote sync avoid double counting local pins
                         // we already updated seen_pins[].part_degree when we read the stream
                         // TODO: we don't need both seen_pins.A and .P, whichever we don't use can be inhibited
-                        // seen_pins.A is still used by getEdgeCentricReplicationFactor to calculate vertex replication
-                        seen_pins[pin_id].A.insert(element_mapping);
                         if(seen_pins[pin_id].P.find(element_mapping) == seen_pins[pin_id].P.end()) {
                             seen_pins[pin_id].P[element_mapping] = 1;
                         } else {
@@ -2193,7 +2200,6 @@ namespace PRAW {
                             int pin_id = recvbuffer[displs[ii] + current_element_index + jj];
                             // update remote vertex info
                             seen_pins[pin_id].partial_degree += 1;
-                            seen_pins[pin_id].A.insert(dest_partition); 
                             if(seen_pins[pin_id].P.find(dest_partition) == seen_pins[pin_id].P.end()) {
                                 seen_pins[pin_id].P[dest_partition] = 1;
                             } else {
@@ -2669,8 +2675,7 @@ namespace PRAW {
                             for(int jj=0; jj < current_pin_length; jj++) {
                                 int pin_id = recvbuffer[displs[ii] + current_element_index + 1 + jj];
                                 // update vertex info
-                                seen_pins[pin_id].partial_degree += 1;
-                                seen_pins[pin_id].A.insert(dest_partition);                  
+                                seen_pins[pin_id].partial_degree += 1;                 
                             }
                             current_element_index += current_pin_length+1;
                         }
