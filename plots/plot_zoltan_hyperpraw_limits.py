@@ -7,28 +7,29 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 # Parameters
-# CM: 80000 neurons, 300M synapses, MVC: 4130000 neurons, 24.2 Billions
+# CM: 80000 neurons, 300000000 synapses, MVC: 4130000 neurons, 24200000000 synapses
 num_vertex = 80000
 num_hedges = 80000
 num_pins = 300000000
-num_partitions = [192, 384, 768, 1536, 3072]
+num_partitions = [768, 1536, 3072, 6144, 12288, 24576]
 # hyperPRAW parameters
-num_streams = [192, 384, 768, 1536, 3072]
+num_streams = [768, 1536, 3072, 6144, 12288, 24576]
 avg_hedge_replication_factor = [0.05, 0.4, 0.9] # fraction of total partitions
-shared_mem_node_size = [192, 384, 768, 1536, 3072]
+max_hedge_replication_factor = num_pins / num_vertex
+shared_mem_node_size = [768, 1536, 3072, 6144, 12288, 24576]
 ############
 
 # graph details
-as_bar_plot = True
+as_bar_plot = False
 geometric_scaling = True
 show_title = True
 zoltan_colour = "blue"
 zoltan_linestyle = "-"
 zoltan_legend = "zoltan"
-colours = ["springgreen","limegreen","forestgreen"]
+colours = ["springgreen","mediumseagreen","darkgreen"]
 linestyles = ["--","--","-."]
 legend_labels = ['HyperPRAW (best)','HyperPRAW (average)','HyperPRAW (worse)']
-plot_title = "Memory requirements for partitioning algorithms"
+plot_title = "Memory requirements to partition CM"
 plot_xlabel = "Number of partitions"
 plot_ylabel = "Memory (GB)"
 image_format = 'pdf'
@@ -76,8 +77,11 @@ def get_hyperPRAW_limit(num_vertex, num_hedges, num_streams, num_partitions, avg
     - comm cost table 
     - partitioning
     '''
+    # cap max replication factor (to the max pins per vertex)
+    replication = min(avg_hedge_replication_factor * num_partitions, max_hedge_replication_factor)
+    replication_factor = replication / num_partitions
     # global memory
-    seen_table = num_hedges * (single_size + half_size * (num_partitions * avg_hedge_replication_factor * 2))
+    seen_table = num_hedges * (single_size + half_size * (num_partitions * replication_factor * 2))
     # apply memory optimisation to share central datastructure
     global_limit = seen_table * max(num_streams / node_size, 1)
 
