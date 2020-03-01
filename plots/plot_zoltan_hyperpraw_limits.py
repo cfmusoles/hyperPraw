@@ -7,9 +7,10 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 # Parameters
-num_vertex = 4130000
-num_hedges = 4130000
-num_pins = 24200000000
+# CM: 80000 neurons, 300M synapses, MVC: 4130000 neurons, 24.2 Billions
+num_vertex = 80000
+num_hedges = 80000
+num_pins = 300000000
 num_partitions = [192, 384, 768, 1536, 3072]
 # hyperPRAW parameters
 num_streams = [192, 384, 768, 1536, 3072]
@@ -18,7 +19,7 @@ shared_mem_node_size = [192, 384, 768, 1536, 3072]
 ############
 
 # graph details
-as_bar_plot = False
+as_bar_plot = True
 geometric_scaling = True
 show_title = True
 zoltan_colour = "blue"
