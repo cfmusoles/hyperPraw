@@ -6,7 +6,7 @@ import matplotlib.pyplot as plt
 import matplotlib.patches as mpatches
 
 geometric_scaling = True
-min_num_processes = 12
+min_num_processes = 96
 # for linear scaling of processors
 max_num_processes = 288
 process_step = 32
@@ -17,7 +17,7 @@ geometric_step = 2
 num_partitions = 96
 
 show_error = True
-as_bar_plot = False
+as_bar_plot = True
 show_title = True
 
 # "sat14_E02F20.cnf.hgr" $SEED 8 #Y
@@ -38,23 +38,23 @@ folder = "../results/par_opt/"
 experiment_name = "par_opt"
 graph_name = "huge_uniform_dense_c96.hgr"
 # each element on the following arrays corresponds to an experiment run (collection of files)
-experiments = ["hyperPraw_bandwidth_w1_{}","hyperPraw_bandwidth_w3_{}","hyperPraw_bandwidth_w10_{}"]
-experiments_partitioning = ["hyperPrawVertex", "hyperPrawVertex","hyperPrawVertex","hyperPrawVertex","hyperPrawVertex","hyperPrawVertex","hyperPrawVertex","hyperPrawVertex","hyperPrawVertex"]
+experiments = ["zoltanVertex_1","hyperPraw_bandwidth_1","hyperPraw_bandwidth_w1_12","hyperPraw_bandwidth_w1_24","hyperPraw_bandwidth_w1_48","hyperPraw_bandwidth_w1_96"]
+experiments_partitioning = ["zoltanVertex", "hyperPrawVertex","hyperPrawVertex","hyperPrawVertex","hyperPrawVertex","hyperPrawVertex","hyperPrawVertex","hyperPrawVertex","hyperPrawVertex"]
 experiments = [experiment_name + "_" + experiments[i] + "_" + graph_name + "_"+ experiments_partitioning[i] for i in range(len(experiments))]
-colours = ["springgreen","limegreen","forestgreen","darkgreen","blue"] # as many as the number of experiments included
+colours = ["black","red","springgreen","limegreen","forestgreen","darkgreen","blue"] # as many as the number of experiments included
 linestyles = ["-","-","--","-.",":","--"]
-legend_labels = ['parallel-w1','parallel-w3','parallel-w10','parallel-w20','48-streams','96-streams']
+legend_labels = ['Zoltan','1 stream','12 streams','24 streams','48 streams','96 streams']
 
 # Each element on the following arrays corresponds to a column in columns_to_plot
 columns_to_plot = [13,1,5]#,8]#,9,10,11]
 reference_values = [0,2,1,6,7,8,3,1,1] # used to take values on each column divided by these
 use_ref_values = False
 scale_plots = [1,1,1e-6,1,1,1,1]
-plot_title = ["Partitioning time (96 partitions)","Simulation time (96 partitions)","SOED (96 partitions)","Edge comm cost","Hedge comm cost","Messages sent (edge)","Messages sent (hedge)"]
+plot_title = ["Partitioning time","Simulation time","SOED","Edge comm cost","Hedge comm cost","Messages sent (edge)","Messages sent (hedge)"]
 plot_xlabel = ["Number of streams","Number of processes","Number of processes","Number of processes","Number of processes","Number of processes","Number of processes","Number of processes"]
 plot_ylabel = ["Time (s)","Time (s)","SOED (millions)","Cost","Cost","Messages sent","Messages sent"]
 image_format = 'pdf'
-plot_name = ["par_opt_window_streaming_96_huge_uniform_dense_c96_" + str(x) for x in range(len(columns_to_plot))] #["a1","a2","a3","a4","a5","a6","a7"]
+plot_name = ["par_opt_scaling_96_huge_uniform_dense_c96_" + str(x) for x in range(len(columns_to_plot))] #["a1","a2","a3","a4","a5","a6","a7"]
 
 bar_plot_size = 0.4 / len(experiments)
 

@@ -8,15 +8,15 @@ import numpy as np
 
 # Parameters
 # CM: 80000 neurons, 300000000 synapses, MVC: 4130000 neurons, 24200000000 synapses
-num_vertex = 80000
-num_hedges = 80000
-num_pins = 300000000
-num_partitions = [768, 1536, 3072, 6144, 12288, 24576]
+num_vertex = 4130000
+num_hedges = 4130000
+num_pins = 24200000000
+num_partitions = [768, 1536, 3072, 6144, 12288, 12288*2]
 # hyperPRAW parameters
-num_streams = [768, 1536, 3072, 6144, 12288, 24576]
-avg_hedge_replication_factor = [0.05, 0.4, 0.9] # fraction of total partitions
+num_streams = [768, 1536, 3072, 6144, 12288, 12288*2]
+avg_hedge_replication_factor = [0.01, 0.05, 0.1, 0.5] # fraction of total partitions
 max_hedge_replication_factor = num_pins / num_vertex
-shared_mem_node_size = [768, 1536, 3072, 6144, 12288, 24576]
+shared_mem_node_size = [768, 1536, 3072, 6144, 12288, 12288*2]
 ############
 
 # graph details
@@ -26,10 +26,10 @@ show_title = True
 zoltan_colour = "blue"
 zoltan_linestyle = "-"
 zoltan_legend = "zoltan"
-colours = ["springgreen","mediumseagreen","darkgreen"]
-linestyles = ["--","--","-."]
-legend_labels = ['HyperPRAW (best)','HyperPRAW (average)','HyperPRAW (worse)']
-plot_title = "Memory requirements to partition CM"
+colours = ["springgreen","mediumseagreen","green", "darkgreen"]
+linestyles = ["--","--","-.","-"]
+legend_labels = ['HyperPRAW (0.01)','HyperPRAW (0.05)','HyperPRAW (0.1)','HyperPRAW (0.5)']
+plot_title = "Memory requirements to partition MVC"
 plot_xlabel = "Number of partitions"
 plot_ylabel = "Memory (GB)"
 image_format = 'pdf'
@@ -60,7 +60,7 @@ def get_zoltan_limit(num_vertex, num_pins, num_partitions):
     global_limit += single_size * num_vertex
 
     # per process memory
-    per_process_limit = single_size * 3 + double_size * num_vertex
+    per_process_limit = single_size * 3 + double_size * num_vertex / num_partitions
 
     return global_limit + num_partitions * per_process_limit
 
@@ -81,12 +81,16 @@ def get_hyperPRAW_limit(num_vertex, num_hedges, num_streams, num_partitions, avg
     replication = min(avg_hedge_replication_factor * num_partitions, max_hedge_replication_factor)
     replication_factor = replication / num_partitions
     # global memory
+    # dominant at low scales (low number of streams / partitions)
     seen_table = num_hedges * (single_size + half_size * (num_partitions * replication_factor * 2))
     # apply memory optimisation to share central datastructure
     global_limit = seen_table * max(num_streams / node_size, 1)
 
     # per stream memory
-    stream_datastructures = single_size * (num_vertex + num_hedges) + double_size * num_partitions + double_size * num_vertex + double_size * num_partitions * num_partitions + single_size * 3 * num_streams
+    # this becomes dominant at large scales
+    # the storage of bandwidth cost becomes dominant
+    bandwidth_cost_matrix = (single_size * num_partitions * num_partitions) / 2
+    stream_datastructures = single_size * (num_vertex + num_hedges) + double_size * num_partitions + double_size * num_vertex + bandwidth_cost_matrix + single_size * 3 * num_streams
     # apply moemory optimisations to share partitioning datastructures
     streams_limit = stream_datastructures * max(num_streams / node_size, 1)
 

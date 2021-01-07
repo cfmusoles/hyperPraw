@@ -12,10 +12,11 @@ hgraphs = ["large_powerlaw_sparse_c96.hgr", "small_powerlaw_dense_c96.hgr",
         #['sat14_itox_vc1130.cnf.dual.hgr','2cubes_sphere.mtx.hgr','ABACUS_shell_hd.mtx.hgr','sparsine.mtx.hgr',
             #'pdb1HYS.mtx.hgr','sat14_10pipe_q0_k.cnf.primal.hgr','sat14_E02F22.cnf.hgr','webbase-1M.mtx.hgr',
             #'ship_001.mtx.hgr','sat14_atco_enc1_opt1_05_21.cnf.dual.hgr']
-
+folder = '../../hypergraph_generator/'
+hgraphs = ['test.hgr']
 image_format = 'pdf'
 
-plot_graphs = False
+plot_graphs = True
 
 for hgraph_file in hgraphs:
     # data structure to hold hedge sizes: 1d list corresponding to each hedge size
@@ -45,6 +46,13 @@ for hgraph_file in hgraphs:
         g.set_xlabel("Size of hyperedge")
         g.set_ylabel("Count")
         plt.savefig(hgraph_file + "_hedge_size." + image_format,format=image_format,dpi=1000)
+        # TEST: Plot expected powerlaw distribution
+        x = range(10,100)
+        y = [value**-1.8*np.sum(hedge_sizes) for value in x]
+        print(sum(y))
+        plt.yscale('log')
+        plt.xscale('log')
+        plt.plot(x,y,'b')
         plt.show()
 
 

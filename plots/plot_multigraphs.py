@@ -11,7 +11,7 @@ show_error = True
 as_bar_plot = True
 log_scale = False
 show_title = False
-show_annotations = False
+show_annotations = True
 
 # "sat14_itox_vc1130.cnf.dual.hgr" $SEED 2 #Y for esim
 # "2cubes_sphere.mtx.hgr" $SEED 3 #Y for esim
@@ -30,7 +30,7 @@ experiment_name = "ar_aware"
 graphs = ["large_powerlaw_sparse_c96.hgr", "small_powerlaw_dense_c96.hgr",
                     "large_uniform_sparse_c96.hgr", "small_uniform_dense_c96.hgr",
                     "small_uniform_sparse_c96.hgr", "small_uniform_sparse_c48.hgr",
-                    "small_uniform_dense_c192.hgr","huge_uniform_dense_c96.hgr"]
+                    "small_uniform_dense_c192.hgr"]
 graph_names = ["large_pl_sp_c96", "small_pl_den_c96",
                     "large_uni_sp_c96", "small_uni_den_c96",
                     "small_uni_sp_c96", "small_uni_sp_c48",
@@ -39,11 +39,11 @@ graph_names = ["large_pl_sp_c96", "small_pl_den_c96",
 #graph_names = ["sat14 itox","2cubes","ABACUS","sparsine","pdb1HYS","sat14 atco dual","sat14 10pipe primal","sat14 E02F22","webbase-1M","ship 001"]
 # each element on the following arrays corresponds to an experiment run (collection of files)
 #experiments_name = [experiment_name +  "_zoltan_" + graph_name + "_zoltan",experiment_name + "_default_" + graph_name + "_prawS",experiment_name + "_bandwidth_" + graph_name + "_prawS"]#,experiment_name + "_refinement_" + graph_name + "_prawSref"]
-experiments_name = ["zoltanVertex_1","hyperPraw_bandwidth_1"]
-experiments_partitioning = ["zoltanVertex","hyperPrawVertex","hyperPrawVertex","zoltanVertex","parallelVertex","parallelVertex","parallelVertex","parallelVertex"]
+experiments_name = ["parallelVertex_1","hyperPraw_default_1", "hyperPraw_bandwidth_1"]
+experiments_partitioning = ["parallelVertex","hyperPrawVertex","hyperPrawVertex","zoltanVertex","parallelVertex","parallelVertex","parallelVertex","parallelVertex"]
 colours = ["black","tomato","yellow","seagreen","red","blue","pink","brown","red","purple"] # as many as the number of experiments included
 patterns = ["//" , "||" , "--" , "xx" , "//" , "||","--","//" , "||" , "--"]
-legend_labels = ['zoltan','HyperPRAW','bandwidth comm cost','zoltan','HyperPraw-bandwidth1','HyperPraw-bandwidth16']
+legend_labels = ['overlap','uniform comm cost','bandwidth comm cost','zoltan','HyperPraw-bandwidth1','HyperPraw-bandwidth16']
 
 # Each element on the following arrays corresponds to a column in columns_to_plot
 columns_to_plot = [13,1,5]#,3,2,11]
@@ -56,7 +56,7 @@ image_format = 'pdf'
 plot_name = ["arc_aware_zoltan_benchmark_192_" + str(x) for x in range(len(columns_to_plot))] #["a1","a2","a3","a4","a5","a6","a7"]
 
 
-annotations = ['8.1x',  '2x','1.4x','1.2x','1.7x','14x','1.4x','3.1x','4.3x','1.5x']
+annotations = ['1.5x', '5.2x','1.2x','2.2x','1.5x','1.8x','4.8x','3.1x','4.3x','1.5x']
 bar_plot_size = 0.7 / len(experiments_name)
 
 # general plot settings
